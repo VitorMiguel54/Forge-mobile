@@ -8,7 +8,7 @@ Atualizado em: 13/07/2026
 
 A fundacao visual do Forge esta implementada no app Expo Router, seguindo os documentos de marca e os tokens de `src/theme`.
 
-As primeiras telas mobile-first foram criadas. A Home ja consome o endpoint mobile do dashboard via camada dedicada de API; as demais telas ainda usam dados mockados:
+As primeiras telas mobile-first foram criadas. A Home e Treinos ja consomem endpoints mobile via camada dedicada de API; as demais telas ainda usam dados mockados:
 
 - `/`: Home.
 - `/workouts`: Treinos.
@@ -86,8 +86,16 @@ Treinos (`/workouts`):
 
 - Header com acao `Novo treino`.
 - Card de treino em andamento.
-- Lista mockada de treinos salvos.
+- Lista de treinos salvos vinda da API.
 - Estados visuais: disponivel, em andamento e concluido.
+- Integrada ao hook `useWorkouts`, com estados de loading, erro, vazio e sucesso.
+- Consumo centralizado em `src/api/apiClient.ts` e `src/services/workoutsService.ts`.
+
+Configuracao de API para Treinos:
+
+- `EXPO_PUBLIC_USER_PROFILE_ID`: perfil usado para montar as rotas mobile por usuario.
+- `EXPO_PUBLIC_WORKOUTS_ENDPOINT`: endpoint opcional de Treinos; padrao atual: `/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/workouts`.
+- Nao ha campos mockados na tela Treinos; a duracao estimada vem do endpoint mobile.
 
 Historico (`/history`):
 
@@ -143,7 +151,7 @@ Resultados da ultima validacao:
 
 - TypeScript sem erros.
 - Lint sem erros.
-- Web respondendo `200 OK` em `http://localhost:8082`.
+- Web respondendo `200 OK` em `http://localhost:8082/workouts`.
 
 Rotas principais:
 

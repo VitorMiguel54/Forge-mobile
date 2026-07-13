@@ -1,47 +1,17 @@
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomNavigation, Button, Card } from '@/components';
+import { useWorkouts } from '@/hooks/useWorkouts';
+import type { MobileWorkout } from '@/services/workoutsService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
-type WorkoutStatus = 'available' | 'inProgress' | 'completed';
-
-type WorkoutMock = {
-  readonly name: string;
-  readonly muscleGroups: string;
-  readonly exerciseCount: number;
-  readonly estimatedDuration: string;
-  readonly status: WorkoutStatus;
-};
-
-const workoutsMock: readonly WorkoutMock[] = [
-  {
-    name: 'Superiores A',
-    muscleGroups: 'Peito, ombro e triceps',
-    exerciseCount: 6,
-    estimatedDuration: '50 min',
-    status: 'inProgress',
-  },
-  {
-    name: 'Inferiores A',
-    muscleGroups: 'Quadriceps, posterior e gluteos',
-    exerciseCount: 7,
-    estimatedDuration: '55 min',
-    status: 'available',
-  },
-  {
-    name: 'Full Body',
-    muscleGroups: 'Corpo inteiro',
-    exerciseCount: 8,
-    estimatedDuration: '60 min',
-    status: 'completed',
-  },
-] as const;
-
 const webContentMaxWidth = spacing[10] * spacing[5];
-const inProgressWorkout = workoutsMock.find((workout) => workout.status === 'inProgress');
 
 export default function WorkoutsScreen() {
+  const { workouts, error, isLoading, refetch } = useWorkouts();
+  const hasWorkouts = Boolean(workouts?.activeWorkout || workouts?.savedWorkouts.length);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -59,35 +29,69 @@ export default function WorkoutsScreen() {
             <Button title="Novo treino" style={styles.newWorkoutButton} />
           </View>
 
-          {inProgressWorkout ? (
-            <Card variant="highlighted" padding={5}>
-              <View style={styles.featuredWorkout}>
-                <View style={styles.featuredHeader}>
-                  <View style={styles.statusPillInProgress}>
-                    <Text style={styles.statusPillText}>Em andamento</Text>
-                  </View>
-                  <Text style={styles.featuredDuration}>{inProgressWorkout.estimatedDuration}</Text>
-                </View>
-                <View style={styles.featuredCopy}>
-                  <Text style={styles.featuredTitle}>{inProgressWorkout.name}</Text>
-                  <Text style={styles.description}>{inProgressWorkout.muscleGroups}</Text>
-                </View>
-                <View style={styles.featuredMetaRow}>
-                  <WorkoutStat label="Exercicios" value={inProgressWorkout.exerciseCount} />
-                  <WorkoutStat label="Duracao" value={inProgressWorkout.estimatedDuration} />
-                </View>
-              </View>
+          {isLoading ? (
+            <Card padding={5} style={styles.stateCard}>
+              <ActivityIndicator color={colors.brand.primary} />
+              <Text style={styles.stateTitle}>Carregando treinos</Text>
+              <Text style={styles.stateText}>Buscando sua biblioteca da Forja.</Text>
             </Card>
           ) : null}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Treinos salvos</Text>
-            <View style={styles.workoutList}>
-              {workoutsMock.map((workout) => (
-                <WorkoutCard key={workout.name} workout={workout} />
-              ))}
-            </View>
-          </View>
+          {!isLoading && error ? (
+            <Card padding={5} style={styles.stateCard}>
+              <Text style={styles.stateTitle}>Nao foi possivel carregar</Text>
+              <Text style={styles.stateText}>{error}</Text>
+              <Button title="Tentar novamente" variant="secondary" onPress={() => void refetch()} />
+            </Card>
+          ) : null}
+
+          {!isLoading && !error && workouts ? (
+            <>
+              {workouts.activeWorkout ? (
+                <Card variant="highlighted" padding={5}>
+                  <View style={styles.featuredWorkout}>
+                    <View style={styles.featuredHeader}>
+                      <View style={styles.statusPillInProgress}>
+                        <Text style={styles.statusPillText}>Em andamento</Text>
+                      </View>
+                      <Text style={styles.featuredDuration}>
+                        {formatDuration(workouts.activeWorkout.estimatedDurationMinutes)}
+                      </Text>
+                    </View>
+                    <View style={styles.featuredCopy}>
+                      <Text style={styles.featuredTitle}>{workouts.activeWorkout.name}</Text>
+                      <Text style={styles.description}>
+                        {formatMuscleGroups(workouts.activeWorkout.muscleGroups)}
+                      </Text>
+                    </View>
+                    <View style={styles.featuredMetaRow}>
+                      <WorkoutStat label="Exercicios" value={workouts.activeWorkout.exerciseCount} />
+                      <WorkoutStat
+                        label="Duracao"
+                        value={formatDuration(workouts.activeWorkout.estimatedDurationMinutes)}
+                      />
+                    </View>
+                  </View>
+                </Card>
+              ) : null}
+
+              {hasWorkouts ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Treinos salvos</Text>
+                  <View style={styles.workoutList}>
+                    {workouts.savedWorkouts.map((workout) => (
+                      <WorkoutCard key={workout.id} workout={workout} />
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <Card padding={5} style={styles.stateCard}>
+                  <Text style={styles.stateTitle}>Nenhum treino salvo</Text>
+                  <Text style={styles.stateText}>Crie seu primeiro treino para comecar a forjar ritmo.</Text>
+                </Card>
+              )}
+            </>
+          ) : null}
         </View>
       </ScrollView>
       <BottomNavigation activeHref="/workouts" />
@@ -95,7 +99,7 @@ export default function WorkoutsScreen() {
   );
 }
 
-function WorkoutCard({ workout }: { readonly workout: WorkoutMock }) {
+function WorkoutCard({ workout }: { readonly workout: MobileWorkout }) {
   const status = statusStyles[workout.status];
 
   return (
@@ -104,7 +108,7 @@ function WorkoutCard({ workout }: { readonly workout: WorkoutMock }) {
         <View style={styles.workoutCardHeader}>
           <View style={styles.workoutTitleGroup}>
             <Text style={styles.cardTitle}>{workout.name}</Text>
-            <Text style={styles.secondaryText}>{workout.muscleGroups}</Text>
+            <Text style={styles.secondaryText}>{formatMuscleGroups(workout.muscleGroups)}</Text>
           </View>
           <View style={[styles.statusPill, status.container]}>
             <Text style={[styles.statusText, status.text]}>{status.label}</Text>
@@ -113,7 +117,7 @@ function WorkoutCard({ workout }: { readonly workout: WorkoutMock }) {
 
         <View style={styles.workoutMetaGrid}>
           <WorkoutStat label="Exercicios" value={workout.exerciseCount} />
-          <WorkoutStat label="Duracao" value={workout.estimatedDuration} />
+          <WorkoutStat label="Duracao" value={formatDuration(workout.estimatedDurationMinutes)} />
         </View>
       </View>
     </Card>
@@ -128,6 +132,35 @@ function WorkoutStat({ label, value }: { readonly label: string; readonly value:
     </View>
   );
 }
+
+function formatDuration(minutes: number): string {
+  return `${minutes} min`;
+}
+
+function formatMuscleGroups(muscleGroups: readonly string[]): string {
+  if (muscleGroups.length === 0) {
+    return 'Grupos musculares nao informados';
+  }
+
+  return muscleGroups.map(formatMuscleGroup).join(', ');
+}
+
+function formatMuscleGroup(muscleGroup: string): string {
+  return muscleGroupLabels[muscleGroup] ?? muscleGroup;
+}
+
+const muscleGroupLabels: Record<string, string> = {
+  Arms: 'Bracos',
+  Back: 'Costas',
+  Cardio: 'Cardio',
+  Chest: 'Peito',
+  Core: 'Core',
+  FullBody: 'Corpo inteiro',
+  Glutes: 'Gluteos',
+  Legs: 'Pernas',
+  Other: 'Outros',
+  Shoulders: 'Ombros',
+} as const;
 
 const statusStyles = {
   available: {
@@ -253,6 +286,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.title.section,
     color: colors.text.primary,
+  },
+  stateCard: {
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  stateTitle: {
+    ...typography.title.section,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  stateText: {
+    ...typography.body.secondary,
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
   workoutList: {
     gap: spacing[4],
