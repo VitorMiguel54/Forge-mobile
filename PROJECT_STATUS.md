@@ -8,7 +8,7 @@ Atualizado em: 13/07/2026
 
 A fundacao visual do Forge esta implementada no app Expo Router, seguindo os documentos de marca e os tokens de `src/theme`.
 
-As primeiras telas mobile-first foram criadas. A Home e Treinos ja consomem endpoints mobile via camada dedicada de API; as demais telas ainda usam dados mockados:
+As primeiras telas mobile-first foram criadas. A Home, Treinos e Historico ja consomem endpoints mobile via camada dedicada de API; as demais telas ainda usam dados mockados:
 
 - `/`: Home.
 - `/workouts`: Treinos.
@@ -100,7 +100,15 @@ Configuracao de API para Treinos:
 Historico (`/history`):
 
 - Resumo de treinos, tempo total e volume semanal.
-- Lista cronologica mockada dos ultimos treinos.
+- Lista cronologica dos ultimos treinos vinda da API.
+- Integrada ao hook `useHistory`, com estados de loading, erro, vazio e sucesso.
+- Consumo centralizado em `src/api/apiClient.ts` e `src/services/historyService.ts`.
+
+Configuracao de API para Historico:
+
+- `EXPO_PUBLIC_USER_PROFILE_ID`: perfil usado para montar as rotas mobile por usuario.
+- `EXPO_PUBLIC_HISTORY_ENDPOINT`: endpoint opcional de Historico; padrao atual: `/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/history?page=1&pageSize=20`.
+- Nao ha campos mockados na tela Historico; nomes de exercicios nao existem no contrato atual, entao a UI mostra a quantidade de exercicios registrada pela API.
 
 Conquistas (`/achievements`):
 
@@ -151,7 +159,7 @@ Resultados da ultima validacao:
 
 - TypeScript sem erros.
 - Lint sem erros.
-- Web respondendo `200 OK` em `http://localhost:8082/workouts`.
+- Web respondendo `200 OK` em `http://localhost:8082/history`.
 
 Rotas principais:
 

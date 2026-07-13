@@ -1,57 +1,17 @@
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomNavigation, Card } from '@/components';
+import { BottomNavigation, Button, Card } from '@/components';
+import { useHistory } from '@/hooks/useHistory';
+import type { MobileHistoryWorkout } from '@/services/historyService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
-
-type HistoryWorkout = {
-  readonly name: string;
-  readonly date: string;
-  readonly duration: string;
-  readonly totalVolume: string;
-  readonly exercises: readonly string[];
-};
-
-const historySummary = {
-  workoutsCompleted: 4,
-  totalTime: '3h 25m',
-  weeklyVolume: '12.8k kg',
-} as const;
-
-const historyMock: readonly HistoryWorkout[] = [
-  {
-    name: 'Superiores A',
-    date: 'Hoje',
-    duration: '52 min',
-    totalVolume: '4.2k kg',
-    exercises: ['Supino reto', 'Desenvolvimento', 'Triceps corda'],
-  },
-  {
-    name: 'Inferiores A',
-    date: 'Ontem',
-    duration: '58 min',
-    totalVolume: '5.1k kg',
-    exercises: ['Agachamento', 'Leg press', 'Mesa flexora'],
-  },
-  {
-    name: 'Full Body',
-    date: 'Sabado',
-    duration: '46 min',
-    totalVolume: '3.5k kg',
-    exercises: ['Remada baixa', 'Levantamento terra', 'Prancha'],
-  },
-  {
-    name: 'Superiores A',
-    date: 'Quinta',
-    duration: '49 min',
-    totalVolume: '4.0k kg',
-    exercises: ['Supino inclinado', 'Elevacao lateral', 'Rosca direta'],
-  },
-] as const;
 
 const webContentMaxWidth = spacing[10] * spacing[5];
 
 export default function HistoryScreen() {
+  const { history, error, isLoading, refetch } = useHistory();
+  const hasHistory = Boolean(history?.workouts.length);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -62,28 +22,63 @@ export default function HistoryScreen() {
         <View style={styles.page}>
           <View style={styles.header}>
             <Text style={styles.eyebrow}>Linha do tempo</Text>
-            <Text style={styles.title}>Histórico</Text>
+            <Text style={styles.title}>Historico</Text>
             <Text style={styles.description}>
               Seus treinos recentes organizados para reconhecer progresso sem perder foco.
             </Text>
           </View>
 
-          <Card variant="elevated" padding={5}>
-            <View style={styles.summaryGrid}>
-              <SummaryStat label="Treinos" value={historySummary.workoutsCompleted} />
-              <SummaryStat label="Tempo total" value={historySummary.totalTime} />
-              <SummaryStat label="Volume semana" value={historySummary.weeklyVolume} />
-            </View>
-          </Card>
+          {isLoading ? (
+            <Card padding={5} style={styles.stateCard}>
+              <ActivityIndicator color={colors.brand.primary} />
+              <Text style={styles.stateTitle}>Carregando historico</Text>
+              <Text style={styles.stateText}>Buscando seus treinos concluidos.</Text>
+            </Card>
+          ) : null}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ultimos treinos</Text>
-            <View style={styles.timeline}>
-              {historyMock.map((workout) => (
-                <HistoryWorkoutCard key={`${workout.name}-${workout.date}`} workout={workout} />
-              ))}
-            </View>
-          </View>
+          {!isLoading && error ? (
+            <Card padding={5} style={styles.stateCard}>
+              <Text style={styles.stateTitle}>Nao foi possivel carregar</Text>
+              <Text style={styles.stateText}>{error}</Text>
+              <Button title="Tentar novamente" variant="secondary" onPress={() => void refetch()} />
+            </Card>
+          ) : null}
+
+          {!isLoading && !error && history ? (
+            <>
+              <Card variant="elevated" padding={5}>
+                <View style={styles.summaryGrid}>
+                  <SummaryStat label="Treinos" value={history.summary.workouts} />
+                  <SummaryStat
+                    label="Tempo total"
+                    value={formatDuration(history.summary.totalDurationMinutes)}
+                  />
+                  <SummaryStat
+                    label="Volume semana"
+                    value={formatVolume(history.summary.weeklyVolume)}
+                  />
+                </View>
+              </Card>
+
+              {hasHistory ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Ultimos treinos</Text>
+                  <View style={styles.timeline}>
+                    {history.workouts.map((workout) => (
+                      <HistoryWorkoutCard key={workout.id} workout={workout} />
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <Card padding={5} style={styles.stateCard}>
+                  <Text style={styles.stateTitle}>Nenhum treino no historico</Text>
+                  <Text style={styles.stateText}>
+                    Treinos concluidos aparecem aqui para acompanhar sua evolucao.
+                  </Text>
+                </Card>
+              )}
+            </>
+          ) : null}
         </View>
       </ScrollView>
       <BottomNavigation activeHref="/history" />
@@ -100,32 +95,30 @@ function SummaryStat({ label, value }: { readonly label: string; readonly value:
   );
 }
 
-function HistoryWorkoutCard({ workout }: { readonly workout: HistoryWorkout }) {
+function HistoryWorkoutCard({ workout }: { readonly workout: MobileHistoryWorkout }) {
   return (
     <Card padding={4}>
       <View style={styles.historyCard}>
         <View style={styles.historyHeader}>
           <View style={styles.historyTitleGroup}>
             <Text style={styles.cardTitle}>{workout.name}</Text>
-            <Text style={styles.secondaryText}>{workout.date}</Text>
+            <Text style={styles.secondaryText}>{formatDate(workout.date)}</Text>
           </View>
           <View style={styles.dateBadge}>
-            <Text style={styles.dateBadgeText}>{workout.duration}</Text>
+            <Text style={styles.dateBadgeText}>{formatDuration(workout.durationMinutes)}</Text>
           </View>
         </View>
 
         <View style={styles.metaGrid}>
-          <WorkoutMeta label="Volume" value={workout.totalVolume} />
-          <WorkoutMeta label="Exercicios" value={workout.exercises.length} />
+          <WorkoutMeta label="Volume" value={formatVolume(workout.volume)} />
+          <WorkoutMeta label="Exercicios" value={workout.exerciseCount} />
         </View>
 
         <View style={styles.exerciseList}>
-          {workout.exercises.map((exercise) => (
-            <View key={exercise} style={styles.exerciseItem}>
-              <View style={styles.exerciseDot} />
-              <Text style={styles.exerciseText}>{exercise}</Text>
-            </View>
-          ))}
+          <View style={styles.exerciseItem}>
+            <View style={styles.exerciseDot} />
+            <Text style={styles.exerciseText}>{formatExerciseCount(workout.exerciseCount)}</Text>
+          </View>
         </View>
       </View>
     </Card>
@@ -139,6 +132,42 @@ function WorkoutMeta({ label, value }: { readonly label: string; readonly value:
       <Text style={styles.metaLabel}>{label}</Text>
     </View>
   );
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function formatVolume(volume: number): string {
+  if (volume >= 1000) {
+    return `${Number((volume / 1000).toFixed(1))}k kg`;
+  }
+
+  return `${volume} kg`;
+}
+
+function formatDate(date: string): string {
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'Data nao informada';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+  }).format(parsedDate);
+}
+
+function formatExerciseCount(exerciseCount: number): string {
+  return exerciseCount === 1 ? '1 exercicio registrado' : `${exerciseCount} exercicios registrados`;
 }
 
 const styles = StyleSheet.create({
@@ -204,6 +233,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.title.section,
     color: colors.text.primary,
+  },
+  stateCard: {
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  stateTitle: {
+    ...typography.title.section,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  stateText: {
+    ...typography.body.secondary,
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
   timeline: {
     gap: spacing[4],
