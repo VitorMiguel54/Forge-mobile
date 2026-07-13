@@ -8,7 +8,7 @@ Atualizado em: 13/07/2026
 
 A fundacao visual do Forge esta implementada no app Expo Router, seguindo os documentos de marca e os tokens de `src/theme`.
 
-As primeiras telas mobile-first foram criadas com dados mockados, sem integracao com API:
+As primeiras telas mobile-first foram criadas. A Home ja consome o endpoint mobile do dashboard via camada dedicada de API; as demais telas ainda usam dados mockados:
 
 - `/`: Home.
 - `/workouts`: Treinos.
@@ -73,6 +73,14 @@ Home (`/`):
 - Proximo treino.
 - Conquista em progresso.
 - Atividade recente.
+- Integrada ao hook `useDashboard`, com estados de loading, erro e sucesso.
+- Consumo centralizado em `src/api/apiClient.ts` e `src/services/dashboardService.ts`.
+
+Configuracao de API:
+
+- `EXPO_PUBLIC_API_BASE_URL`: base URL obrigatoria da API.
+- `EXPO_PUBLIC_DASHBOARD_ENDPOINT`: endpoint opcional do dashboard; padrao atual: `/mobile/dashboard`.
+- Campos ainda ausentes no endpoint usam fallback temporario marcado com TODO em `dashboardService.ts`.
 
 Treinos (`/workouts`):
 
@@ -131,11 +139,11 @@ npm.cmd run lint
 npm.cmd run web -- --port 8082
 ```
 
-Resultados esperados no estado atual:
+Resultados da ultima validacao:
 
 - TypeScript sem erros.
 - Lint sem erros.
-- Web respondendo em `http://localhost:8082`.
+- Web respondendo `200 OK` em `http://localhost:8082`.
 
 Rotas principais:
 
@@ -161,5 +169,5 @@ Observacao:
 - Refinar visual das telas em dispositivo real.
 - Implementar icones oficiais da bottom navigation.
 - Definir fluxos reais de criacao/edicao.
-- Integrar API somente apos estabilizar layout e contratos.
-- Substituir mocks por dados reais em etapa futura.
+- Completar o contrato real do endpoint mobile e remover fallbacks TODO do dashboard.
+- Integrar API nas demais telas apos estabilizar layout e contratos.

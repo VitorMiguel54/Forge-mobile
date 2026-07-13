@@ -1,77 +1,18 @@
 import { Image } from 'expo-image';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomNavigation, Button, Card, MetricCard, XPProgress } from '@/components';
+import { useDashboard } from '@/hooks/useDashboard';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
-
-const homeMock = {
-  userName: 'Rafael',
-  dayLabel: 'Hoje',
-  guardianName: 'Guardiao da Forja',
-  guardianStatus: 'Pronto para o proximo treino',
-  weeklyGoal: '3 de 5 treinos na semana',
-  nextWorkout: {
-    title: 'Treino de forca',
-    detail: 'Peito, ombro e triceps',
-    estimate: '45 min',
-  },
-  quickActions: [
-    { title: 'Agua', detail: 'Registrar 300 ml' },
-    { title: 'Peso', detail: 'Atualizar medida' },
-    { title: 'Sono', detail: 'Registrar noite' },
-  ],
-  weeklyProgress: [
-    { label: 'Treinos', current: 3, target: 5 },
-    { label: 'Agua', current: 5, target: 7 },
-    { label: 'Sono', current: 4, target: 7 },
-  ],
-  achievement: {
-    title: 'Consistencia de Aco',
-    detail: '3 treinos concluidos nesta semana',
-    status: 'Em progresso',
-  },
-  recentActivity: [
-    { title: 'Supino reto', detail: '4 series registradas' },
-    { title: 'Agua', detail: '1.8 L consumidos hoje' },
-    { title: 'Sono', detail: '7.2 h na ultima noite' },
-  ],
-  xp: {
-    level: 7,
-    current: 320,
-    next: 500,
-  },
-  metrics: {
-    volume: {
-      value: '12.8k',
-      unit: 'kg',
-      secondaryText: 'Volume da semana',
-    },
-    water: {
-      value: 1.8,
-      unit: 'L',
-      secondaryText: 'Meta diaria: 2.5 L',
-      progress: { current: 1.8, target: 2.5 },
-    },
-    sleep: {
-      value: 7.2,
-      unit: 'h',
-      secondaryText: 'Ultima noite',
-      progress: { current: 7.2, target: 8 },
-    },
-    weight: {
-      value: 82.4,
-      unit: 'kg',
-      secondaryText: '-1.6 kg desde o inicio',
-    },
-  },
-} as const;
 
 const webContentMaxWidth = spacing[10] * spacing[5];
 const guardianImageSize = componentSizes.avatar.xl + componentSizes.avatar.lg + spacing[12] + spacing[8];
 const compactProgressTrackWidth = spacing[12] + spacing[10];
 
 export default function HomeScreen() {
+  const { dashboard, error, isLoading, refetch } = useDashboard();
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -80,176 +21,196 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.page}>
-          <View style={styles.header}>
-            <View style={styles.headerCopy}>
-              <Text style={styles.eyebrow}>{homeMock.dayLabel}</Text>
-              <Text style={styles.title}>Boa tarde, {homeMock.userName}</Text>
-              <Text style={styles.description}>{homeMock.weeklyGoal}</Text>
-            </View>
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelBadgeText}>Nvl {homeMock.xp.level}</Text>
-            </View>
-          </View>
+          {isLoading ? (
+            <Card padding={5} style={styles.stateCard}>
+              <ActivityIndicator color={colors.brand.primary} />
+              <Text style={styles.stateTitle}>Carregando Home</Text>
+              <Text style={styles.stateText}>Buscando seus dados da Forja.</Text>
+            </Card>
+          ) : null}
 
-          <Card variant="highlighted" padding={5} style={styles.guardianCardShell}>
-            <View style={styles.guardianHeat} />
-            <View style={styles.guardianImageFrame}>
-              <Image
-                source={require('@/assets/images/guardian-placeholder.png')}
-                style={styles.guardianImage}
-                contentFit="cover"
-                accessibilityLabel="Placeholder do Guardiao"
-              />
-            </View>
+          {!isLoading && error ? (
+            <Card padding={5} style={styles.stateCard}>
+              <Text style={styles.stateTitle}>Nao foi possivel carregar</Text>
+              <Text style={styles.stateText}>{error}</Text>
+              <Button title="Tentar novamente" variant="secondary" onPress={() => void refetch()} />
+            </Card>
+          ) : null}
 
-            <View style={styles.guardianContent}>
-              <View style={styles.guardianTextBlock}>
-                <Text style={styles.eyebrow}>Guardiao ativo</Text>
-                <Text style={styles.guardianTitle}>{homeMock.guardianName}</Text>
-                <Text style={styles.guardianStatus}>{homeMock.guardianStatus}</Text>
-              </View>
-
-              <View style={styles.guardianMetaRow}>
-                <View style={styles.guardianMetaItem}>
-                  <Text style={styles.guardianMetaValue}>{homeMock.xp.current}</Text>
-                  <Text style={styles.guardianMetaLabel}>XP atual</Text>
+          {!isLoading && !error && dashboard ? (
+            <>
+              <View style={styles.header}>
+                <View style={styles.headerCopy}>
+                  <Text style={styles.eyebrow}>{dashboard.dayLabel}</Text>
+                  <Text style={styles.title}>Boa tarde, {dashboard.userName}</Text>
+                  <Text style={styles.description}>{dashboard.weeklyGoal}</Text>
                 </View>
-                <View style={styles.guardianMetaDivider} />
-                <View style={styles.guardianMetaItem}>
-                  <Text style={styles.guardianMetaValue}>{homeMock.xp.next}</Text>
-                  <Text style={styles.guardianMetaLabel}>Proximo nivel</Text>
+                <View style={styles.levelBadge}>
+                  <Text style={styles.levelBadgeText}>Nvl {dashboard.xp.level}</Text>
                 </View>
               </View>
 
-              <XPProgress
-                currentLevel={homeMock.xp.level}
-                currentXp={homeMock.xp.current}
-                xpToNextLevel={homeMock.xp.next}
-                style={styles.xpProgress}
-              />
+              <Card variant="highlighted" padding={5} style={styles.guardianCardShell}>
+                <View style={styles.guardianHeat} />
+                <View style={styles.guardianImageFrame}>
+                  <Image
+                    source={require('@/assets/images/guardian-placeholder.png')}
+                    style={styles.guardianImage}
+                    contentFit="cover"
+                    accessibilityLabel="Placeholder do Guardiao"
+                  />
+                </View>
 
-              <Button title="Iniciar treino" style={styles.guardianButton} />
-            </View>
-          </Card>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Acoes rapidas</Text>
-            <View style={styles.quickActionsGrid}>
-              {homeMock.quickActions.map((action) => (
-                <Card key={action.title} padding={4} style={styles.quickActionCard}>
-                  <Text style={styles.cardTitle}>{action.title}</Text>
-                  <Text style={styles.secondaryText}>{action.detail}</Text>
-                </Card>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Visao do dia</Text>
-            <View style={styles.metricsGrid}>
-              <MetricCard
-                title="Volume"
-                value={homeMock.metrics.volume.value}
-                unit={homeMock.metrics.volume.unit}
-                secondaryText={homeMock.metrics.volume.secondaryText}
-                accent="volume"
-                variant="elevated"
-                style={styles.metricCard}
-              />
-              <MetricCard
-                title="Agua"
-                value={homeMock.metrics.water.value}
-                unit={homeMock.metrics.water.unit}
-                secondaryText={homeMock.metrics.water.secondaryText}
-                accent="water"
-                progress={homeMock.metrics.water.progress}
-                style={styles.metricCard}
-              />
-              <MetricCard
-                title="Sono"
-                value={homeMock.metrics.sleep.value}
-                unit={homeMock.metrics.sleep.unit}
-                secondaryText={homeMock.metrics.sleep.secondaryText}
-                accent="sleep"
-                progress={homeMock.metrics.sleep.progress}
-                style={styles.metricCard}
-              />
-              <MetricCard
-                title="Peso"
-                value={homeMock.metrics.weight.value}
-                unit={homeMock.metrics.weight.unit}
-                secondaryText={homeMock.metrics.weight.secondaryText}
-                accent="weight"
-                style={styles.metricCard}
-              />
-            </View>
-          </View>
-
-          <Card padding={5}>
-            <View style={styles.cardStack}>
-              <Text style={styles.sectionTitle}>Resumo semanal</Text>
-              {homeMock.weeklyProgress.map((item) => (
-                <View key={item.label} style={styles.progressRow}>
-                  <View style={styles.progressLabelGroup}>
-                    <Text style={styles.cardTitle}>{item.label}</Text>
-                    <Text style={styles.secondaryText}>
-                      {item.current} de {item.target}
-                    </Text>
+                <View style={styles.guardianContent}>
+                  <View style={styles.guardianTextBlock}>
+                    <Text style={styles.eyebrow}>Guardiao ativo</Text>
+                    <Text style={styles.guardianTitle}>{dashboard.guardianName}</Text>
+                    <Text style={styles.guardianStatus}>{dashboard.guardianStatus}</Text>
                   </View>
-                  <View style={styles.compactProgressTrack}>
-                    <View
-                      style={[
-                        styles.compactProgressFill,
-                        { width: `${Math.min((item.current / item.target) * 100, 100)}%` },
-                      ]}
-                    />
+
+                  <View style={styles.guardianMetaRow}>
+                    <View style={styles.guardianMetaItem}>
+                      <Text style={styles.guardianMetaValue}>{dashboard.xp.current}</Text>
+                      <Text style={styles.guardianMetaLabel}>XP atual</Text>
+                    </View>
+                    <View style={styles.guardianMetaDivider} />
+                    <View style={styles.guardianMetaItem}>
+                      <Text style={styles.guardianMetaValue}>{dashboard.xp.next}</Text>
+                      <Text style={styles.guardianMetaLabel}>Proximo nivel</Text>
+                    </View>
                   </View>
+
+                  <XPProgress
+                    currentLevel={dashboard.xp.level}
+                    currentXp={dashboard.xp.current}
+                    xpToNextLevel={dashboard.xp.next}
+                    style={styles.xpProgress}
+                  />
+
+                  <Button title="Iniciar treino" style={styles.guardianButton} />
                 </View>
-              ))}
-            </View>
-          </Card>
+              </Card>
 
-          <Card padding={5}>
-            <View style={styles.nextWorkout}>
-              <View style={styles.nextWorkoutCopy}>
-                <Text style={styles.sectionTitle}>{homeMock.nextWorkout.title}</Text>
-                <Text style={styles.secondaryText}>{homeMock.nextWorkout.detail}</Text>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Acoes rapidas</Text>
+                <View style={styles.quickActionsGrid}>
+                  {dashboard.quickActions.map((action) => (
+                    <Card key={action.title} padding={4} style={styles.quickActionCard}>
+                      <Text style={styles.cardTitle}>{action.title}</Text>
+                      <Text style={styles.secondaryText}>{action.detail}</Text>
+                    </Card>
+                  ))}
+                </View>
               </View>
-              <View style={styles.workoutBadge}>
-                <Text style={styles.workoutBadgeText}>{homeMock.nextWorkout.estimate}</Text>
-              </View>
-            </View>
-          </Card>
 
-          <Card variant="elevated" padding={5}>
-            <View style={styles.achievementCard}>
-              <View style={styles.achievementMark}>
-                <Text style={styles.achievementMarkText}>XP</Text>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Visao do dia</Text>
+                <View style={styles.metricsGrid}>
+                  <MetricCard
+                    title="Volume"
+                    value={dashboard.metrics.volume.value}
+                    unit={dashboard.metrics.volume.unit}
+                    secondaryText={dashboard.metrics.volume.secondaryText}
+                    accent="volume"
+                    variant="elevated"
+                    style={styles.metricCard}
+                  />
+                  <MetricCard
+                    title="Agua"
+                    value={dashboard.metrics.water.value}
+                    unit={dashboard.metrics.water.unit}
+                    secondaryText={dashboard.metrics.water.secondaryText}
+                    accent="water"
+                    progress={dashboard.metrics.water.progress}
+                    style={styles.metricCard}
+                  />
+                  <MetricCard
+                    title="Sono"
+                    value={dashboard.metrics.sleep.value}
+                    unit={dashboard.metrics.sleep.unit}
+                    secondaryText={dashboard.metrics.sleep.secondaryText}
+                    accent="sleep"
+                    progress={dashboard.metrics.sleep.progress}
+                    style={styles.metricCard}
+                  />
+                  <MetricCard
+                    title="Peso"
+                    value={dashboard.metrics.weight.value}
+                    unit={dashboard.metrics.weight.unit}
+                    secondaryText={dashboard.metrics.weight.secondaryText}
+                    accent="weight"
+                    style={styles.metricCard}
+                  />
+                </View>
               </View>
-              <View style={styles.achievementCopy}>
-                <Text style={styles.sectionTitle}>{homeMock.achievement.title}</Text>
-                <Text style={styles.secondaryText}>{homeMock.achievement.detail}</Text>
-              </View>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusBadgeText}>{homeMock.achievement.status}</Text>
-              </View>
-            </View>
-          </Card>
 
-          <Card padding={5}>
-            <View style={styles.cardStack}>
-              <Text style={styles.sectionTitle}>Atividade recente</Text>
-              {homeMock.recentActivity.map((activity) => (
-                <View key={activity.title} style={styles.activityRow}>
-                  <View style={styles.activityIndicator} />
-                  <View style={styles.activityCopy}>
-                    <Text style={styles.cardTitle}>{activity.title}</Text>
-                    <Text style={styles.secondaryText}>{activity.detail}</Text>
+              <Card padding={5}>
+                <View style={styles.cardStack}>
+                  <Text style={styles.sectionTitle}>Resumo semanal</Text>
+                  {dashboard.weeklyProgress.map((item) => (
+                    <View key={item.label} style={styles.progressRow}>
+                      <View style={styles.progressLabelGroup}>
+                        <Text style={styles.cardTitle}>{item.label}</Text>
+                        <Text style={styles.secondaryText}>
+                          {item.current} de {item.target}
+                        </Text>
+                      </View>
+                      <View style={styles.compactProgressTrack}>
+                        <View
+                          style={[
+                            styles.compactProgressFill,
+                            { width: `${Math.min((item.current / item.target) * 100, 100)}%` },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </Card>
+
+              <Card padding={5}>
+                <View style={styles.nextWorkout}>
+                  <View style={styles.nextWorkoutCopy}>
+                    <Text style={styles.sectionTitle}>{dashboard.nextWorkout.title}</Text>
+                    <Text style={styles.secondaryText}>{dashboard.nextWorkout.detail}</Text>
+                  </View>
+                  <View style={styles.workoutBadge}>
+                    <Text style={styles.workoutBadgeText}>{dashboard.nextWorkout.estimate}</Text>
                   </View>
                 </View>
-              ))}
-            </View>
-          </Card>
+              </Card>
+
+              <Card variant="elevated" padding={5}>
+                <View style={styles.achievementCard}>
+                  <View style={styles.achievementMark}>
+                    <Text style={styles.achievementMarkText}>XP</Text>
+                  </View>
+                  <View style={styles.achievementCopy}>
+                    <Text style={styles.sectionTitle}>{dashboard.achievement.title}</Text>
+                    <Text style={styles.secondaryText}>{dashboard.achievement.detail}</Text>
+                  </View>
+                  <View style={styles.statusBadge}>
+                    <Text style={styles.statusBadgeText}>{dashboard.achievement.status}</Text>
+                  </View>
+                </View>
+              </Card>
+
+              <Card padding={5}>
+                <View style={styles.cardStack}>
+                  <Text style={styles.sectionTitle}>Atividade recente</Text>
+                  {dashboard.recentActivity.map((activity) => (
+                    <View key={activity.title} style={styles.activityRow}>
+                      <View style={styles.activityIndicator} />
+                      <View style={styles.activityCopy}>
+                        <Text style={styles.cardTitle}>{activity.title}</Text>
+                        <Text style={styles.secondaryText}>{activity.detail}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </Card>
+            </>
+          ) : null}
         </View>
       </ScrollView>
       <BottomNavigation activeHref="/" />
@@ -400,9 +361,23 @@ const styles = StyleSheet.create({
     ...typography.title.section,
     color: colors.text.primary,
   },
+  stateCard: {
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  stateTitle: {
+    ...typography.title.section,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
   secondaryText: {
     ...typography.body.secondary,
     color: colors.text.secondary,
+  },
+  stateText: {
+    ...typography.body.secondary,
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
   xpProgress: {
     maxWidth: spacing[12] * spacing[4],

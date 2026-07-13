@@ -1,163 +1,281 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Card, MetricCard, XPProgress } from '@/components';
-import { colors, spacing, typography } from '@/theme';
+import {
+  Button,
+  Card,
+  MetricCard,
+  XPProgress,
+} from '@/components';
 
-const palette = [
-  { name: 'Brand', value: colors.brand.primary },
-  { name: 'XP', value: colors.gamification.xp },
-  { name: 'Water', value: colors.metric.water },
-  { name: 'Sleep', value: colors.metric.sleep },
-  { name: 'Weight', value: colors.metric.weight },
-  { name: 'Volume', value: colors.metric.volume },
-] as const;
+import {
+  colors,
+  spacing,
+  typography,
+} from '@/theme';
 
 export default function DesignPreviewScreen() {
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>Forge Design System</Text>
-          <Text style={styles.title}>Preview visual</Text>
-          <Text style={styles.description}>
-            Tela temporaria para validar tokens, componentes base e densidade visual antes da Home.
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>Forge Design Preview</Text>
+
+        <Text style={styles.description}>
+          Tela temporária para validação visual do tema e dos componentes.
+        </Text>
+      </View>
+
+      <Section title="Botões">
+        <Button
+          title="Botão primário"
+          variant="primary"
+          onPress={() => {}}
+        />
+
+        <Button
+          title="Botão secundário"
+          variant="secondary"
+          onPress={() => {}}
+        />
+
+        <Button
+          title="Botão outline"
+          variant="outline"
+          onPress={() => {}}
+        />
+
+        <Button
+          title="Carregando"
+          variant="primary"
+          loading
+          onPress={() => {}}
+        />
+
+        <Button
+          title="Desabilitado"
+          variant="primary"
+          disabled
+          onPress={() => {}}
+        />
+      </Section>
+
+      <Section title="Cards">
+        <Card variant="default">
+          <Text style={styles.cardTitle}>Card padrão</Text>
+          <Text style={styles.cardText}>
+            Superfície básica para conteúdos do Forge.
           </Text>
-        </View>
+        </Card>
+
+        <Card variant="elevated">
+          <Text style={styles.cardTitle}>Card elevado</Text>
+          <Text style={styles.cardText}>
+            Possui maior destaque e profundidade.
+          </Text>
+        </Card>
 
         <Card variant="highlighted">
-          <View style={styles.cardStack}>
-            <Text style={styles.sectionTitle}>Progresso</Text>
-            <XPProgress currentLevel={7} currentXp={320} xpToNextLevel={500} />
-          </View>
+          <Text style={styles.cardTitle}>Card destacado</Text>
+          <Text style={styles.cardText}>
+            Utilizado para informações importantes.
+          </Text>
         </Card>
+      </Section>
 
-        <View style={styles.metricsGrid}>
-          <MetricCard
-            title="Agua"
-            value={1.8}
-            unit="L"
-            secondaryText="Meta diaria: 2.5 L"
-            accent="water"
-            progress={{ current: 1.8, target: 2.5 }}
-          />
-          <MetricCard
-            title="Sono"
-            value={7.2}
-            unit="h"
-            secondaryText="Boa recuperacao"
-            accent="sleep"
-            progress={{ current: 7.2, target: 8 }}
-          />
-          <MetricCard
-            title="Peso"
-            value={82.4}
-            unit="kg"
-            secondaryText="-1.6 kg desde o inicio"
-            accent="weight"
-          />
-          <MetricCard
-            title="Volume"
-            value="12.8k"
-            unit="kg"
-            secondaryText="Ultimo treino concluido"
-            accent="volume"
-            variant="elevated"
-          />
-        </View>
+      <Section title="Métricas">
+        <MetricCard
+          title="Água"
+          value="2,1"
+          unit="L"
+          secondaryText="Meta diária: 3 L"
+          accent="water"
+          progress={{ current: 2.1, target: 3 }}
+        />
 
-        <Card>
-          <View style={styles.cardStack}>
-            <Text style={styles.sectionTitle}>Acoes</Text>
-            <View style={styles.buttonStack}>
-              <Button title="Iniciar treino" />
-              <Button title="Registrar agua" variant="secondary" />
-              <Button title="Ver detalhes" variant="outline" />
-              <Button title="Carregando" loading />
-            </View>
-          </View>
-        </Card>
+        <MetricCard
+          title="Sono"
+          value="7,5"
+          unit="h"
+          secondaryText="Meta diária: 8 horas"
+          accent="sleep"
+          progress={{ current: 7.5, target: 8 }}
+        />
 
-        <Card>
-          <View style={styles.cardStack}>
-            <Text style={styles.sectionTitle}>Cores</Text>
-            <View style={styles.paletteGrid}>
-              {palette.map((item) => (
-                <View key={item.name} style={styles.swatchItem}>
-                  <View style={[styles.swatch, { backgroundColor: item.value }]} />
-                  <Text style={styles.swatchLabel}>{item.name}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </Card>
-      </ScrollView>
-    </SafeAreaView>
+        <MetricCard
+          title="Peso"
+          value="63,2"
+          unit="kg"
+          secondaryText="+2,2 kg desde o início"
+          accent="weight"
+        />
+
+        <MetricCard
+          title="Volume"
+          value="8.450"
+          unit="kg"
+          secondaryText="Último treino"
+          accent="volume"
+        />
+      </Section>
+
+      <Section title="Progresso de XP">
+        <XPProgress
+          currentLevel={1}
+          currentXp={0}
+          xpToNextLevel={500}
+        />
+
+        <XPProgress
+          currentLevel={3}
+          currentXp={250}
+          xpToNextLevel={500}
+        />
+
+        <XPProgress
+          currentLevel={8}
+          currentXp={480}
+          xpToNextLevel={500}
+        />
+
+        <XPProgress
+          currentLevel={10}
+          currentXp={650}
+          xpToNextLevel={500}
+        />
+      </Section>
+
+      <Section title="Tipografia">
+        <Text style={styles.mainTitle}>Título principal</Text>
+        <Text style={styles.sectionTitle}>Título de seção</Text>
+        <Text style={styles.cardTitle}>Título de card</Text>
+        <Text style={styles.body}>Texto principal do Forge.</Text>
+
+        <Text style={styles.secondaryText}>
+          Texto secundário para informações de apoio.
+        </Text>
+
+        <Text style={styles.caption}>LEGENDA E METADADOS</Text>
+        <Text style={styles.highlightNumber}>8.450</Text>
+        <Text style={styles.compactNumber}>63,2 kg</Text>
+      </Section>
+    </ScrollView>
+  );
+}
+
+type SectionProps = {
+  title: string;
+  children: React.ReactNode;
+};
+
+function Section({ title, children }: SectionProps) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionLabel}>{title}</Text>
+        <View style={styles.divider} />
+      </View>
+
+      <View style={styles.sectionContent}>{children}</View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  screen: {
     flex: 1,
     backgroundColor: colors.background.primary,
   },
-  scrollView: {
-    flex: 1,
-  },
+
   content: {
-    gap: spacing[5],
-    padding: spacing[4],
-    paddingBottom: spacing[10],
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[8],
+    paddingBottom: spacing[12],
   },
+
   header: {
     gap: spacing[2],
+    marginBottom: spacing[8],
   },
-  eyebrow: {
-    ...typography.caption,
-    color: colors.brand.primary,
-    textTransform: 'uppercase',
-  },
+
   title: {
+    color: colors.text.primary,
     ...typography.title.main,
-    color: colors.text.primary,
   },
+
   description: {
-    ...typography.body.default,
     color: colors.text.secondary,
+    ...typography.body.secondary,
   },
-  sectionTitle: {
-    ...typography.title.section,
-    color: colors.text.primary,
+
+  section: {
+    marginBottom: spacing[8],
   },
-  cardStack: {
-    gap: spacing[4],
-  },
-  metricsGrid: {
-    gap: spacing[4],
-  },
-  buttonStack: {
-    gap: spacing[3],
-  },
-  paletteGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[3],
-  },
-  swatchItem: {
-    width: '30%',
-    minWidth: 88,
+
+  sectionHeader: {
     gap: spacing[2],
+    marginBottom: spacing[4],
   },
-  swatch: {
-    height: 44,
-    borderRadius: 8,
+
+  sectionLabel: {
+    color: colors.text.primary,
+    ...typography.title.section,
   },
-  swatchLabel: {
-    ...typography.caption,
+
+  divider: {
+    height: 1,
+    backgroundColor: colors.border.default,
+  },
+
+  sectionContent: {
+    gap: spacing[4],
+  },
+
+  cardTitle: {
+    color: colors.text.primary,
+    ...typography.title.card,
+  },
+
+  cardText: {
     color: colors.text.secondary,
+    ...typography.body.secondary,
+    marginTop: spacing[2],
+  },
+
+  mainTitle: {
+    color: colors.text.primary,
+    ...typography.title.main,
+  },
+
+  sectionTitle: {
+    color: colors.text.primary,
+    ...typography.title.section,
+  },
+
+  body: {
+    color: colors.text.primary,
+    ...typography.body.default,
+  },
+
+  secondaryText: {
+    color: colors.text.secondary,
+    ...typography.body.secondary,
+  },
+
+  caption: {
+    color: colors.text.secondary,
+    ...typography.caption,
+  },
+
+  highlightNumber: {
+    color: colors.text.primary,
+    ...typography.number.highlight,
+  },
+
+  compactNumber: {
+    color: colors.text.primary,
+    ...typography.number.compact,
   },
 });
