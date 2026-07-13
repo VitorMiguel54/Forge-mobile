@@ -4,5 +4,7 @@ export { Card } from './cards/Card';
 export type { CardPadding, CardProps, CardVariant } from './cards/Card';
 export { MetricCard } from './cards/MetricCard';
 export type { MetricAccent, MetricCardProps, MetricProgress } from './cards/MetricCard';
+export { BottomNavigation } from './navigation/BottomNavigation';
+export type { BottomNavigationItem, BottomNavigationProps } from './navigation/BottomNavigation';
 export { XPProgress } from './progress/XPProgress';
 export type { XPProgressProps } from './progress/XPProgress';

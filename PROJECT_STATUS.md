@@ -6,42 +6,24 @@ Atualizado em: 13/07/2026
 
 # Estado Atual
 
-A fundacao do tema visual do Forge foi implementada em codigo, seguindo o `DESIGN_SYSTEM.md` versao `1.1`.
+A fundacao visual do Forge esta implementada no app Expo Router, seguindo os documentos de marca e os tokens de `src/theme`.
 
-Os primeiros componentes reutilizaveis do Forge foram implementados consumindo os tokens de `src/theme`.
+As primeiras telas mobile-first foram criadas com dados mockados, sem integracao com API:
 
-Nenhuma tela nova foi criada.
+- `/`: Home.
+- `/workouts`: Treinos.
+- `/history`: Historico.
+- `/achievements`: Conquistas.
+- `/profile`: Perfil.
+- `/design-preview`: tela temporaria para validar componentes e tokens.
 
-A Home ainda nao foi implementada.
-
-O projeto ainda esta no template inicial do Expo Router nas telas existentes.
-
----
-
-# Documentos de Referencia
-
-Foram usados como base:
-
-- `BRAND_GUIDE.md`
-- `MOODBOARD.md`
-- `ART_DIRECTION.md`
-- `MOBILE_UI_SPEC.md`
-- `DESIGN_SYSTEM.md`
-- `FRONTEND_GUIDELINES.md`
-
-Documentos adicionais existentes no projeto:
-
-- `API_CONTRACTS.md`
-- `HOME_LAYOUT.md`
-- `HOME_SCREEN_SPEC.md`
-- `PRODUCT_VISION.md`
-- `README.md`
+O app usa uma bottom navigation propria em `src/components/navigation/BottomNavigation.tsx`.
 
 ---
 
 # Tema Visual
 
-Arquivos criados em `src/theme`:
+Tokens existentes em `src/theme`:
 
 - `colors.ts`
 - `typography.ts`
@@ -53,58 +35,81 @@ Arquivos criados em `src/theme`:
 - `componentSizes.ts`
 - `index.ts`
 
-Tokens implementados:
-
-- Paleta oficial do Forge.
-- Tipografia oficial.
-- Escala de espacamentos.
-- Radius.
-- Bordas.
-- Sombras/elevacao.
-- Tamanhos e espessuras de icones.
-- Alturas de botoes.
-- Areas minimas de toque.
-- Tamanhos estruturais de FAB, progress bar, badge, chip, avatar e bottom navigation.
-
-Tambem foi criado `src/types/styles.d.ts` para declarar imports de CSS usados pelo template Expo/Web.
+As telas novas usam apenas tokens do tema para cores, espacamentos, tipografia, bordas, radius e tamanhos estruturais.
 
 ---
 
 # Componentes Reutilizaveis
 
-Arquivos criados em `src/components`:
-
-- `buttons/Button.tsx`
-- `cards/Card.tsx`
-- `cards/MetricCard.tsx`
-- `progress/XPProgress.tsx`
-- `index.ts`
-
-Componentes implementados:
+Componentes atuais:
 
 - `Button`
-  - Variants: `primary`, `secondary`, `outline`.
-  - Estados: normal, pressed, disabled e loading.
-  - Suporte a icone opcional.
-  - Usa area minima de toque definida no tema.
-
 - `Card`
-  - Variants: `default`, `elevated`, `highlighted`.
-  - Suporte a `children`.
-  - Padding configuravel apenas por tokens de `spacing`.
-
 - `MetricCard`
-  - Suporta titulo, valor principal, unidade, texto secundario, icone e progresso opcional.
-  - Accents: `water`, `sleep`, `weight`, `volume`.
-  - Pensado para agua, sono, peso e volume.
-
 - `XPProgress`
-  - Recebe nivel atual, XP atual e XP necessario para o proximo nivel.
-  - Calcula percentual internamente.
-  - Trata XP zero, meta zero e XP acima da meta.
-  - Sem animacao por enquanto.
+- `BottomNavigation`
 
-Nenhuma tela temporaria foi criada.
+Exports centralizados em `src/components/index.ts`.
+
+---
+
+# Telas Implementadas
+
+Home (`/`):
+
+- Guardiao temporario com imagem mockada.
+- XP e nivel.
+- Acoes rapidas.
+- Metricas do dia.
+- Resumo semanal.
+- Proximo treino.
+- Conquista em progresso.
+- Atividade recente.
+
+Treinos (`/workouts`):
+
+- Header com acao `Novo treino`.
+- Card de treino em andamento.
+- Lista mockada de treinos salvos.
+- Estados visuais: disponivel, em andamento e concluido.
+
+Historico (`/history`):
+
+- Resumo de treinos, tempo total e volume semanal.
+- Lista cronologica mockada dos ultimos treinos.
+
+Conquistas (`/achievements`):
+
+- Resumo de desbloqueadas, disponiveis e progresso geral.
+- Filtros visuais por raridade.
+- Lista mockada de conquistas com raridade, estado e progresso.
+
+Perfil (`/profile`):
+
+- Avatar temporario.
+- Nome do usuario.
+- Nivel e XP.
+- Peso atual e inicial.
+- Sequencia de treinos.
+- Totais de treinos e conquistas.
+- Botoes `Editar perfil` e `Configuracoes`.
+
+Design Preview (`/design-preview`):
+
+- Tela temporaria para validar `Button`, `Card`, `MetricCard`, `XPProgress` e tokens principais.
+
+---
+
+# Assets
+
+Asset temporario criado:
+
+- `assets/images/guardian-placeholder.png`
+
+Uso atual:
+
+- Guardiao da Home.
+- Avatar temporario do Perfil.
 
 ---
 
@@ -118,37 +123,27 @@ npm.cmd run lint
 npm.cmd run web -- --port 8082
 ```
 
-Resultados:
+Resultados esperados no estado atual:
 
-- `npx.cmd tsc --noEmit`: passou.
-- `npm.cmd run lint`: passou.
-- `npm.cmd run web -- --port 8082`: passou e respondeu em `http://localhost:8082`.
+- TypeScript sem erros.
+- Lint sem erros.
+- Web respondendo em `http://localhost:8082`.
 
-Ambiente atual:
+Rotas principais:
 
-- Node atual: `v22.22.0`.
-- A versao atual do Node esta dentro da faixa suportada por React Native/Metro.
-- Em PowerShell, `npm -v` via `npm.ps1` pode ser bloqueado por execution policy. Usar `npm.cmd` evita esse problema.
-
----
-
-# Ajustes Feitos Durante Validacao
-
-- `eslint` e `eslint-config-expo` foram adicionados pelo `expo lint`, pois o projeto ainda nao tinha ESLint configurado.
-- `eslint.config.js` foi criado pela configuracao automatica do Expo.
-- `src/hooks/use-color-scheme.web.ts` foi ajustado para evitar `setState` sincronamente dentro de `useEffect`, conforme regra do lint.
-- `src/types/styles.d.ts` foi adicionado para resolver declaracoes de imports CSS no TypeScript.
+- `http://localhost:8082`
+- `http://localhost:8082/workouts`
+- `http://localhost:8082/history`
+- `http://localhost:8082/achievements`
+- `http://localhost:8082/profile`
+- `http://localhost:8082/design-preview`
 
 ---
 
-# Decisoes Ainda Provisorias
+# Proximos Passos
 
-- Confirmar `Inter` e `Sora` como fontes finais apos teste visual.
-- Validar a paleta em Android e iOS reais.
-- Validar sombras/elevacao em dispositivos Android intermediarios.
-- Confirmar `lucide-react-native` como biblioteca oficial de icones antes de instalar.
-- Validar visualmente `Button`, `Card`, `MetricCard` e `XPProgress` em tela real/prototipo.
-- Validar o uso de `boxShadow` nos cards em Android, iOS e Web.
-- Definir duracoes exatas de microinteracoes.
-- Validar radius dos cards e botoes em prototipo visual.
-- Implementar a Home apenas quando o layout/spec estiver fechado.
+- Refinar visual das telas em dispositivo real.
+- Implementar icones oficiais da bottom navigation.
+- Definir fluxos reais de criacao/edicao.
+- Integrar API somente apos estabilizar layout e contratos.
+- Substituir mocks por dados reais em etapa futura.
