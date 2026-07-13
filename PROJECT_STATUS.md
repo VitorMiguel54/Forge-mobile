@@ -144,13 +144,20 @@ Conquistas (`/achievements`):
 
 Perfil (`/profile`):
 
-- Avatar temporario.
-- Nome do usuario.
-- Nivel e XP.
-- Peso atual e inicial.
-- Sequencia de treinos.
-- Totais de treinos e conquistas.
-- Botoes `Editar perfil` e `Configuracoes`.
+- Avatar textual com iniciais derivadas do nome real retornado pela API.
+- Nome, email, nivel, XP, peso atual, peso inicial e data de criacao vindos da API.
+- Metas reais do perfil: treinos semanais, agua diaria e sono diario.
+- Estatisticas gerais exibidas conforme a API fornece: treinos, treinos na semana, tempo total, volume semanal e volume total.
+- Integrada ao hook `useProfile`, com estados de loading, erro, vazio e sucesso.
+- Consumo centralizado em `src/api/apiClient.ts` e `src/services/profileService.ts`.
+- Sem campos mockados; dados ausentes nos contratos atuais nao sao inventados.
+- Botoes `Editar perfil` e `Configuracoes` preservados visualmente, desabilitados ate existirem fluxos reais.
+
+Configuracao de API para Perfil:
+
+- `EXPO_PUBLIC_USER_PROFILE_ID`: perfil usado para buscar os dados do usuario.
+- Endpoint principal: `GET /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}`.
+- Dados auxiliares reais: `GET /api/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/home` e `GET /api/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/history?page=1&pageSize=1`.
 
 Design Preview (`/design-preview`):
 
@@ -187,6 +194,7 @@ Resultados da ultima validacao:
 - Lint sem erros.
 - Web respondendo `200 OK` em `http://localhost:8082/workouts`.
 - Web respondendo `200 OK` em `http://localhost:8082/workouts/test-workout-id`, validando a rota dinamica de treino.
+- Web respondendo `200 OK` em `http://localhost:8082/profile`.
 
 Observacao da validacao da API:
 

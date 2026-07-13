@@ -1,27 +1,17 @@
-import { Image } from 'expo-image';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomNavigation, Button, Card, XPProgress } from '@/components';
+import { useProfile } from '@/hooks/useProfile';
+import type { ProfileStat } from '@/services/profileService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
-
-const profileMock = {
-  name: 'Rafael Soares',
-  title: 'Forjando consistência',
-  level: 7,
-  currentXp: 320,
-  xpToNextLevel: 500,
-  currentWeight: '82.4 kg',
-  initialWeight: '84.0 kg',
-  workoutStreak: '5 dias',
-  totalWorkouts: 42,
-  totalAchievements: 7,
-} as const;
 
 const webContentMaxWidth = spacing[10] * spacing[5];
 const avatarSize = componentSizes.avatar.xl + spacing[12];
 
 export default function ProfileScreen() {
+  const { profile, error, isLoading, refetch } = useProfile();
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -36,47 +26,88 @@ export default function ProfileScreen() {
             <Text style={styles.description}>Dados pessoais e progresso principal em um só lugar.</Text>
           </View>
 
-          <Card variant="highlighted" padding={5}>
-            <View style={styles.profileHero}>
-              <View style={styles.avatarFrame}>
-                <Image
-                  source={require('@/assets/images/guardian-placeholder.png')}
-                  style={styles.avatarImage}
-                  contentFit="cover"
-                  accessibilityLabel="Avatar temporário do usuário"
-                />
-              </View>
+          {isLoading ? (
+            <Card padding={5} style={styles.stateCard}>
+              <ActivityIndicator color={colors.brand.primary} />
+              <Text style={styles.stateTitle}>Carregando perfil</Text>
+              <Text style={styles.stateText}>Buscando seus dados da Forja.</Text>
+            </Card>
+          ) : null}
 
-              <View style={styles.profileIdentity}>
-                <Text style={styles.profileName}>{profileMock.name}</Text>
-                <Text style={styles.secondaryText}>{profileMock.title}</Text>
-                <View style={styles.levelBadge}>
-                  <Text style={styles.levelBadgeText}>Nível {profileMock.level}</Text>
+          {!isLoading && error ? (
+            <Card padding={5} style={styles.stateCard}>
+              <Text style={styles.stateTitle}>Não foi possível carregar</Text>
+              <Text style={styles.stateText}>{error}</Text>
+              <Button title="Tentar novamente" variant="secondary" onPress={() => void refetch()} />
+            </Card>
+          ) : null}
+
+          {!isLoading && !error && !profile ? (
+            <Card padding={5} style={styles.stateCard}>
+              <Text style={styles.stateTitle}>Perfil não encontrado</Text>
+              <Text style={styles.stateText}>Nenhum dado de perfil foi retornado pela API.</Text>
+            </Card>
+          ) : null}
+
+          {!isLoading && !error && profile ? (
+            <>
+              <Card variant="highlighted" padding={5}>
+                <View style={styles.profileHero}>
+                  <View style={styles.avatarFrame}>
+                    <Text style={styles.avatarInitials}>{getInitials(profile.name)}</Text>
+                  </View>
+
+                  <View style={styles.profileIdentity}>
+                    <Text style={styles.profileName}>{profile.name}</Text>
+                    <Text style={styles.secondaryText}>{profile.email}</Text>
+                    <View style={styles.levelBadge}>
+                      <Text style={styles.levelBadgeText}>Nível {profile.level}</Text>
+                    </View>
+                  </View>
+
+                  <XPProgress
+                    currentLevel={profile.level}
+                    currentXp={profile.currentXp}
+                    xpToNextLevel={profile.xpToNextLevel ?? profile.currentXp}
+                  />
                 </View>
+              </Card>
+
+              <View style={styles.statsGrid}>
+                <ProfileStatCard label="Peso atual" value={formatWeight(profile.currentWeight)} />
+                <ProfileStatCard label="Peso inicial" value={formatWeight(profile.initialWeight)} />
+                <ProfileStatCard label="Criado em" value={formatDate(profile.createdAt)} />
+                <ProfileStatCard label="Meta semanal" value={`${profile.weeklyWorkoutGoal} treinos`} />
+                <ProfileStatCard label="Meta de água" value={`${profile.dailyWaterGoalInLiters} L`} />
+                <ProfileStatCard label="Meta de sono" value={`${profile.dailySleepGoalInHours} h`} />
               </View>
 
-              <XPProgress
-                currentLevel={profileMock.level}
-                currentXp={profileMock.currentXp}
-                xpToNextLevel={profileMock.xpToNextLevel}
-              />
-            </View>
-          </Card>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Estatísticas gerais</Text>
+                {profile.stats.length > 0 ? (
+                  <View style={styles.statsGrid}>
+                    {profile.stats.map((stat) => (
+                      <ProfileStatCard key={stat.label} label={stat.label} value={stat.value} />
+                    ))}
+                  </View>
+                ) : (
+                  <Card padding={5} style={styles.stateCard}>
+                    <Text style={styles.stateTitle}>Nenhuma estatística disponível</Text>
+                    <Text style={styles.stateText}>
+                      As estatísticas aparecem quando a API retornar dados de treino para este perfil.
+                    </Text>
+                  </Card>
+                )}
+              </View>
 
-          <View style={styles.statsGrid}>
-            <ProfileStat label="Peso atual" value={profileMock.currentWeight} />
-            <ProfileStat label="Peso inicial" value={profileMock.initialWeight} />
-            <ProfileStat label="Sequência" value={profileMock.workoutStreak} />
-            <ProfileStat label="Treinos" value={profileMock.totalWorkouts} />
-            <ProfileStat label="Conquistas" value={profileMock.totalAchievements} />
-          </View>
-
-          <Card padding={5}>
-            <View style={styles.actions}>
-              <Button title="Editar perfil" />
-              <Button title="Configurações" variant="secondary" />
-            </View>
-          </Card>
+              <Card padding={5}>
+                <View style={styles.actions}>
+                  <Button title="Editar perfil" disabled />
+                  <Button title="Configurações" variant="secondary" disabled />
+                </View>
+              </Card>
+            </>
+          ) : null}
         </View>
       </ScrollView>
       <BottomNavigation activeHref="/profile" />
@@ -84,13 +115,43 @@ export default function ProfileScreen() {
   );
 }
 
-function ProfileStat({ label, value }: { readonly label: string; readonly value: string | number }) {
+function ProfileStatCard({ label, value }: ProfileStat) {
   return (
     <Card padding={4} style={styles.statCard}>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </Card>
   );
+}
+
+function formatWeight(weight: number): string {
+  return `${new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: Number.isInteger(weight) ? 0 : 1,
+  }).format(weight)} kg`;
+}
+
+function formatDate(date: string): string {
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'Data não informada';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(parsedDate);
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
 }
 
 const styles = StyleSheet.create({
@@ -144,9 +205,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.secondary,
     overflow: 'hidden',
   },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
+  avatarInitials: {
+    ...typography.title.main,
+    color: colors.text.primary,
   },
   profileIdentity: {
     alignItems: 'center',
@@ -176,6 +237,13 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.gamification.level,
   },
+  section: {
+    gap: spacing[3],
+  },
+  sectionTitle: {
+    ...typography.title.section,
+    color: colors.text.primary,
+  },
   statsGrid: {
     flexDirection: Platform.select({
       web: 'row',
@@ -199,6 +267,20 @@ const styles = StyleSheet.create({
   statLabel: {
     ...typography.caption,
     color: colors.text.secondary,
+  },
+  stateCard: {
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  stateTitle: {
+    ...typography.title.section,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  stateText: {
+    ...typography.body.secondary,
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
   actions: {
     gap: spacing[3],
