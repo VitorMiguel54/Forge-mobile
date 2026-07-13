@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,6 +10,7 @@ import { borders, colors, componentSizes, radius, spacing, typography } from '@/
 const webContentMaxWidth = spacing[10] * spacing[5];
 
 export default function WorkoutDetailsScreen() {
+  const router = useRouter();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const workoutId = Array.isArray(params.id) ? params.id[0] : params.id;
   const { workout, error, isLoading } = useWorkoutDetails(workoutId);
@@ -37,7 +38,12 @@ export default function WorkoutDetailsScreen() {
             </Card>
           ) : null}
 
-          {!isLoading && !error && workout ? <WorkoutDetailsContent workout={workout} /> : null}
+          {!isLoading && !error && workout ? (
+            <WorkoutDetailsContent
+              workout={workout}
+              onStart={() => router.push(`/workouts/${encodeURIComponent(workout.id)}/execute` as Href)}
+            />
+          ) : null}
         </View>
       </ScrollView>
       <BottomNavigation activeHref="/workouts" />
@@ -45,7 +51,13 @@ export default function WorkoutDetailsScreen() {
   );
 }
 
-function WorkoutDetailsContent({ workout }: { readonly workout: WorkoutDetails }) {
+function WorkoutDetailsContent({
+  onStart,
+  workout,
+}: {
+  readonly onStart: () => void;
+  readonly workout: WorkoutDetails;
+}) {
   return (
     <>
       <View style={styles.header}>
@@ -67,7 +79,7 @@ function WorkoutDetailsContent({ workout }: { readonly workout: WorkoutDetails }
 
           {workout.notes ? <Text style={styles.secondaryText}>{workout.notes}</Text> : null}
 
-          <Button title="Iniciar agora" />
+          <Button title="Iniciar agora" onPress={onStart} />
         </View>
       </Card>
     </>

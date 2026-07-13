@@ -204,7 +204,7 @@ function formatMuscleGroup(muscleGroup: string): string {
 }
 
 function getWorkoutHref(id: string): Href {
-  return `/workouts/${encodeURIComponent(id)}` as Href;
+  return `/workouts/${encodeURIComponent(id)}/execute` as Href;
 }
 
 const muscleGroupLabels: Record<string, string> = {

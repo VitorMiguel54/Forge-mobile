@@ -110,11 +110,16 @@ Treinos (`/workouts`):
 - Botao `Novo treino` cria um treino real via `POST /api/workouts` usando `EXPO_PUBLIC_USER_PROFILE_ID`.
 - Botoes `Iniciar treino` abrem `/workouts/{id}` usando o ID real retornado pela API.
 - Tela `/workouts/[id]` carrega o treino selecionado via `GET /api/workouts/{id}`.
+- Tela `/workouts/[id]/execute` executa o treino com exercícios e séries reais da API.
+- Execução permite navegar entre exercícios, registrar séries existentes via `PUT /api/workout-sets/{id}` e criar novas séries via `POST /api/workout-exercises/{workoutExerciseId}/sets`.
+- Finalização usa `POST /api/workouts/{id}/finish` e força recarga dos dados reais de Home, Histórico e Perfil após sucesso.
 - Estados visuais: disponivel, em andamento e concluido.
 - Integrada ao hook `useWorkouts`, com estados de loading, erro, vazio e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/workoutsService.ts`.
 - Service de Treinos resolve variaveis de ambiente no momento da chamada, consistente com a Home.
 - `apiClient` possui suporte a `POST` para fluxos de criacao.
+- `apiClient` possui suporte a `PUT` para registro/atualizacao de series.
+- Fluxo de execucao centralizado em `src/services/workoutExecutionService.ts` e `src/hooks/useWorkoutExecution.ts`.
 
 Configuracao de API para Treinos:
 
@@ -122,6 +127,8 @@ Configuracao de API para Treinos:
 - `EXPO_PUBLIC_WORKOUTS_ENDPOINT`: endpoint opcional de Treinos; padrao atual: `/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/workouts`.
 - Nao ha campos mockados na tela Treinos; a duracao estimada vem do endpoint mobile.
 - O detalhe de treino usa a rota existente `/api/workouts/{id}`; campos nao presentes nesse contrato nao sao mockados.
+- A execucao usa as rotas existentes `/api/workouts/{id}`, `/api/workouts/{id}/exercises`, `/api/exercises`, `/api/workout-exercises/{workoutExerciseId}/sets`, `/api/workout-sets/{id}` e `/api/workouts/{id}/finish`.
+- Descanso nao existe no contrato atual de series; por isso nao e exibido nem mockado.
 
 Historico (`/history`):
 
@@ -195,6 +202,7 @@ Resultados da ultima validacao:
 - Web respondendo `200 OK` em `http://localhost:8082/workouts`.
 - Web respondendo `200 OK` em `http://localhost:8082/workouts/test-workout-id`, validando a rota dinamica de treino.
 - Web respondendo `200 OK` em `http://localhost:8082/profile`.
+- Web respondendo `200 OK` em `http://localhost:8082/workouts/test-workout-id/execute`, validando a rota de execucao.
 
 Observacao da validacao da API:
 
