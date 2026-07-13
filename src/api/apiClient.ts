@@ -78,7 +78,13 @@ class ApiClient {
 }
 
 function normalizeBaseUrl(baseUrl?: string): string {
-  return baseUrl?.replace(/\/+$/, '') ?? '';
+  const normalizedBaseUrl = baseUrl?.replace(/\/+$/, '') ?? '';
+
+  if (!normalizedBaseUrl || normalizedBaseUrl.endsWith('/api')) {
+    return normalizedBaseUrl;
+  }
+
+  return `${normalizedBaseUrl}/api`;
 }
 
 function normalizePath(path: string): string {

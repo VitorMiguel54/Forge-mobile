@@ -1,4 +1,4 @@
-import { apiClient } from '@/api/apiClient';
+import { ApiError, apiClient } from '@/api/apiClient';
 
 export type DashboardProgress = {
   readonly current: number;
@@ -48,8 +48,6 @@ export type DashboardData = {
 };
 
 type ApiRecord = Record<string, unknown>;
-
-const dashboardEndpoint = process.env.EXPO_PUBLIC_DASHBOARD_ENDPOINT ?? '/mobile/dashboard';
 
 // TODO: Remover os fallbacks campo a campo quando o endpoint mobile entregar todo o contrato da Home.
 const dashboardFallback: DashboardData = {
@@ -115,37 +113,107 @@ const dashboardFallback: DashboardData = {
 };
 
 export async function getDashboard(): Promise<DashboardData> {
-  const response = await apiClient.get<unknown>(dashboardEndpoint);
+  const endpoint = resolveDashboardEndpoint();
+  const response = await apiClient.get<unknown>(endpoint);
   return mapDashboardResponse(response);
+}
+
+function resolveDashboardEndpoint(): string {
+  const dashboardEndpoint = process.env.EXPO_PUBLIC_DASHBOARD_ENDPOINT;
+  const userProfileId = process.env.EXPO_PUBLIC_USER_PROFILE_ID;
+
+  if (dashboardEndpoint) {
+    return userProfileId ? dashboardEndpoint.replace('{userProfileId}', userProfileId) : dashboardEndpoint;
+  }
+
+  if (!userProfileId) {
+    throw new ApiError('Configure EXPO_PUBLIC_USER_PROFILE_ID para carregar a Home.');
+  }
+
+  return `/mobile/users/${userProfileId}/home`;
 }
 
 function mapDashboardResponse(response: unknown): DashboardData {
   const payload = getObject(getField(asObject(response), 'data')) ?? asObject(response) ?? {};
+  const user = getObject(getField(payload, 'user'));
+  const gamification = getObject(getField(payload, 'gamification'));
+  const weight = getObject(getField(payload, 'weight'));
+  const water = getObject(getField(payload, 'water'));
+  const sleep = getObject(getField(payload, 'sleep'));
+  const weeklyProgress = getObject(getField(payload, 'weeklyProgress', 'weekly_progress'));
+  const activeWorkout = getObject(getField(payload, 'activeWorkout', 'active_workout'));
+  const metricsSummary = getObject(getField(payload, 'metricsSummary', 'metrics_summary'));
+  const weeklyCompletedWorkouts =
+    getNumber(weeklyProgress, ['completedWorkouts', 'completed_workouts']) ??
+    dashboardFallback.weeklyProgress[0].current;
+  const weeklyWorkoutGoal =
+    getNumber(weeklyProgress, ['workoutGoal', 'workout_goal']) ??
+    dashboardFallback.weeklyProgress[0].target;
+  const todayWaterConsumption =
+    getNumber(water, ['todayConsumption', 'today_consumption']) ?? dashboardFallback.metrics.water.value;
+  const dailyWaterGoal = getNumber(water, ['dailyGoal', 'daily_goal']) ?? 2.5;
+  const latestSleepHours =
+    getNumber(sleep, ['latestHours', 'latest_hours']) ?? dashboardFallback.metrics.sleep.value;
+  const dailySleepGoal = getNumber(sleep, ['dailyGoal', 'daily_goal']) ?? 8;
+  const weeklyVolumeMoved =
+    getNumber(metricsSummary, ['weeklyVolumeMoved', 'weekly_volume_moved']) ??
+    getNumber(metricsSummary, ['totalVolumeMoved', 'total_volume_moved']) ??
+    0;
+  const currentWeight = getNumber(weight, ['currentWeight', 'current_weight']);
+  const weightDifference = getNumber(weight, ['difference']);
 
   return {
-    userName: getString(payload, ['userName', 'user_name', 'name']) ?? dashboardFallback.userName,
+    userName:
+      getString(payload, ['userName', 'user_name', 'name']) ??
+      getString(user, ['name']) ??
+      dashboardFallback.userName,
     dayLabel: getString(payload, ['dayLabel', 'day_label']) ?? dashboardFallback.dayLabel,
     guardianName: getString(payload, ['guardianName', 'guardian_name']) ?? dashboardFallback.guardianName,
     guardianStatus:
       getString(payload, ['guardianStatus', 'guardian_status']) ?? dashboardFallback.guardianStatus,
-    weeklyGoal: getString(payload, ['weeklyGoal', 'weekly_goal']) ?? dashboardFallback.weeklyGoal,
-    nextWorkout: mapNextWorkout(getObject(getField(payload, 'nextWorkout', 'next_workout'))),
+    weeklyGoal:
+      getString(payload, ['weeklyGoal', 'weekly_goal']) ??
+      `${weeklyCompletedWorkouts} de ${weeklyWorkoutGoal} treinos na semana`,
+    nextWorkout: mapNextWorkout(
+      getObject(getField(payload, 'nextWorkout', 'next_workout')) ?? activeWorkout,
+    ),
     quickActions: mapList(getField(payload, 'quickActions', 'quick_actions'), dashboardFallback.quickActions),
-    weeklyProgress: mapWeeklyProgress(getField(payload, 'weeklyProgress', 'weekly_progress')),
+    weeklyProgress: mapWeeklyProgress(
+      getField(payload, 'weeklyProgress', 'weekly_progress'),
+      {
+        completedWorkouts: weeklyCompletedWorkouts,
+        workoutGoal: weeklyWorkoutGoal,
+        todayWaterConsumption: Number(todayWaterConsumption),
+        dailyWaterGoal,
+        latestSleepHours: Number(latestSleepHours),
+        dailySleepGoal,
+      },
+    ),
     achievement: mapAchievement(getObject(getField(payload, 'achievement'))),
     recentActivity: mapList(
       getField(payload, 'recentActivity', 'recent_activity'),
       dashboardFallback.recentActivity,
     ),
-    xp: mapXp(getObject(getField(payload, 'xp'))),
-    metrics: mapMetrics(getObject(getField(payload, 'metrics'))),
+    xp: mapXp(getObject(getField(payload, 'xp')) ?? gamification),
+    metrics: mapMetrics(getObject(getField(payload, 'metrics')), {
+      weeklyVolumeMoved,
+      todayWaterConsumption: Number(todayWaterConsumption),
+      dailyWaterGoal,
+      latestSleepHours: Number(latestSleepHours),
+      dailySleepGoal,
+      currentWeight,
+      weightDifference,
+    }),
   };
 }
 
 function mapNextWorkout(value?: ApiRecord): DashboardData['nextWorkout'] {
   return {
     title: getString(value, ['title']) ?? dashboardFallback.nextWorkout.title,
-    detail: getString(value, ['detail', 'description']) ?? dashboardFallback.nextWorkout.detail,
+    detail:
+      getString(value, ['detail', 'description']) ??
+      getWorkoutDateDetail(getString(value, ['workoutDate', 'workout_date'])) ??
+      dashboardFallback.nextWorkout.detail,
     estimate:
       getString(value, ['estimate', 'estimatedDuration', 'estimated_duration']) ??
       dashboardFallback.nextWorkout.estimate,
@@ -164,16 +232,50 @@ function mapXp(value?: ApiRecord): DashboardData['xp'] {
   return {
     level: getNumber(value, ['level']) ?? dashboardFallback.xp.level,
     current: getNumber(value, ['current', 'currentXp', 'current_xp']) ?? dashboardFallback.xp.current,
-    next: getNumber(value, ['next', 'nextLevelXp', 'next_level_xp']) ?? dashboardFallback.xp.next,
+    next:
+      getNumber(value, ['next', 'nextLevelXp', 'next_level_xp', 'xpToNextLevel', 'xp_to_next_level']) ??
+      dashboardFallback.xp.next,
   };
 }
 
-function mapMetrics(value?: ApiRecord): DashboardData['metrics'] {
+function mapMetrics(
+  value: ApiRecord | undefined,
+  apiMetrics: {
+    readonly weeklyVolumeMoved: number;
+    readonly todayWaterConsumption: number;
+    readonly dailyWaterGoal: number;
+    readonly latestSleepHours: number;
+    readonly dailySleepGoal: number;
+    readonly currentWeight?: number;
+    readonly weightDifference?: number;
+  },
+): DashboardData['metrics'] {
   return {
-    volume: mapMetric(getObject(getField(value, 'volume')), dashboardFallback.metrics.volume),
-    water: mapMetric(getObject(getField(value, 'water')), dashboardFallback.metrics.water),
-    sleep: mapMetric(getObject(getField(value, 'sleep')), dashboardFallback.metrics.sleep),
-    weight: mapMetric(getObject(getField(value, 'weight')), dashboardFallback.metrics.weight),
+    volume: mapMetric(getObject(getField(value, 'volume')), {
+      value: formatCompactNumber(apiMetrics.weeklyVolumeMoved),
+      unit: 'kg',
+      secondaryText: 'Volume da semana',
+    }),
+    water: mapMetric(getObject(getField(value, 'water')), {
+      value: apiMetrics.todayWaterConsumption,
+      unit: 'L',
+      secondaryText: `Meta diaria: ${apiMetrics.dailyWaterGoal} L`,
+      progress: { current: apiMetrics.todayWaterConsumption, target: apiMetrics.dailyWaterGoal },
+    }),
+    sleep: mapMetric(getObject(getField(value, 'sleep')), {
+      value: apiMetrics.latestSleepHours,
+      unit: 'h',
+      secondaryText: 'Ultima noite',
+      progress: { current: apiMetrics.latestSleepHours, target: apiMetrics.dailySleepGoal },
+    }),
+    weight: mapMetric(getObject(getField(value, 'weight')), {
+      value: apiMetrics.currentWeight ?? dashboardFallback.metrics.weight.value,
+      unit: 'kg',
+      secondaryText:
+        apiMetrics.weightDifference === undefined
+          ? dashboardFallback.metrics.weight.secondaryText
+          : formatWeightDifference(apiMetrics.weightDifference),
+    }),
   };
 }
 
@@ -186,9 +288,23 @@ function mapMetric(value: ApiRecord | undefined, fallback: DashboardMetric): Das
   };
 }
 
-function mapWeeklyProgress(value: unknown): DashboardData['weeklyProgress'] {
+function mapWeeklyProgress(
+  value: unknown,
+  apiProgress: {
+    readonly completedWorkouts: number;
+    readonly workoutGoal: number;
+    readonly todayWaterConsumption: number;
+    readonly dailyWaterGoal: number;
+    readonly latestSleepHours: number;
+    readonly dailySleepGoal: number;
+  },
+): DashboardData['weeklyProgress'] {
   if (!Array.isArray(value)) {
-    return dashboardFallback.weeklyProgress;
+    return [
+      { label: 'Treinos', current: apiProgress.completedWorkouts, target: apiProgress.workoutGoal },
+      { label: 'Agua', current: apiProgress.todayWaterConsumption, target: apiProgress.dailyWaterGoal },
+      { label: 'Sono', current: apiProgress.latestSleepHours, target: apiProgress.dailySleepGoal },
+    ];
   }
 
   return value.map((item, index) => {
@@ -259,4 +375,37 @@ function getObject(value: unknown): ApiRecord | undefined {
 
 function asObject(value: unknown): ApiRecord | undefined {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as ApiRecord) : undefined;
+}
+
+function getWorkoutDateDetail(date?: string): string | undefined {
+  if (!date) {
+    return undefined;
+  }
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return undefined;
+  }
+
+  return `Iniciado em ${new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+  }).format(parsedDate)}`;
+}
+
+function formatCompactNumber(value: number): string | number {
+  if (value >= 1000) {
+    return `${Number((value / 1000).toFixed(1))}k`;
+  }
+
+  return value;
+}
+
+function formatWeightDifference(value: number): string {
+  if (value === 0) {
+    return 'Sem variacao desde o inicio';
+  }
+
+  return `${value > 0 ? '+' : ''}${value} kg desde o inicio`;
 }

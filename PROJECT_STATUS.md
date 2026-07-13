@@ -65,22 +65,27 @@ Exports centralizados em `src/components/index.ts`.
 
 Home (`/`):
 
-- Guardiao temporario com imagem mockada.
+- Guardiao temporario com imagem mockada e card principal refinado visualmente.
 - XP e nivel.
-- Acoes rapidas.
-- Metricas do dia.
-- Resumo semanal.
+- Acoes rapidas com cards mais destacados.
+- Metricas do dia com melhor proporcao e espacamento.
+- Resumo semanal com hierarquia visual reforcada.
 - Proximo treino.
 - Conquista em progresso.
 - Atividade recente.
 - Integrada ao hook `useDashboard`, com estados de loading, erro e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/dashboardService.ts`.
+- Refinamento visual aplicado sem alterar services, hooks ou contratos da API.
 
 Configuracao de API:
 
 - `EXPO_PUBLIC_API_BASE_URL`: base URL obrigatoria da API.
-- `EXPO_PUBLIC_DASHBOARD_ENDPOINT`: endpoint opcional do dashboard; padrao atual: `/mobile/dashboard`.
+- `EXPO_PUBLIC_API_BASE_URL` pode ser informado com ou sem `/api`; o `apiClient` normaliza para incluir `/api`.
+- `EXPO_PUBLIC_USER_PROFILE_ID`: perfil usado para montar as rotas mobile por usuario.
+- `EXPO_PUBLIC_DASHBOARD_ENDPOINT`: endpoint opcional da Home; padrao atual: `/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/home`.
 - Campos ainda ausentes no endpoint usam fallback temporario marcado com TODO em `dashboardService.ts`.
+- Se `EXPO_PUBLIC_USER_PROFILE_ID` nao for exportado pelo Expo, a Home falha antes de chamar `fetch`; nesse caso nenhuma requisicao aparece no Network.
+- Apos alterar `.env`, reiniciar o servidor Expo para que as variaveis `EXPO_PUBLIC_*` sejam rebundladas.
 
 Treinos (`/workouts`):
 
@@ -159,7 +164,14 @@ Resultados da ultima validacao:
 
 - TypeScript sem erros.
 - Lint sem erros.
-- Web respondendo `200 OK` em `http://localhost:8082/history`.
+- Web respondendo `200 OK` em `http://localhost:8082`.
+
+Observacao da validacao da API:
+
+- A rota real inspecionada na Forge API e `GET /api/mobile/users/{userProfileId}/home`.
+- O app nao deve mais chamar `/mobile/dashboard`.
+- Diagnostico da Home sem requisicao: no ambiente validado, o Expo carregou `.env` exportando apenas `EXPO_PUBLIC_API_BASE_URL`, sem `EXPO_PUBLIC_USER_PROFILE_ID`.
+- A validacao HTTPS direta no ambiente Codex nao completou por handshake TLS/local sandbox, mesmo com a API subindo em `https://localhost:7170`; validar no navegador local com certificado dev confiavel e `EXPO_PUBLIC_USER_PROFILE_ID` preenchido.
 
 Rotas principais:
 

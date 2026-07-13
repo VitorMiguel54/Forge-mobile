@@ -7,7 +7,7 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
 const webContentMaxWidth = spacing[10] * spacing[5];
-const guardianImageSize = componentSizes.avatar.xl + componentSizes.avatar.lg + spacing[12] + spacing[8];
+const guardianImageSize = componentSizes.avatar.xl + componentSizes.avatar.lg + spacing[12] + spacing[10];
 const compactProgressTrackWidth = spacing[12] + spacing[10];
 
 export default function HomeScreen() {
@@ -51,6 +51,7 @@ export default function HomeScreen() {
               </View>
 
               <Card variant="highlighted" padding={5} style={styles.guardianCardShell}>
+                <View style={styles.guardianAccentBar} />
                 <View style={styles.guardianHeat} />
                 <View style={styles.guardianImageFrame}>
                   <Image
@@ -63,7 +64,10 @@ export default function HomeScreen() {
 
                 <View style={styles.guardianContent}>
                   <View style={styles.guardianTextBlock}>
-                    <Text style={styles.eyebrow}>Guardiao ativo</Text>
+                    <View style={styles.guardianEyebrowRow}>
+                      <View style={styles.guardianStatusDot} />
+                      <Text style={styles.eyebrow}>Guardiao ativo</Text>
+                    </View>
                     <Text style={styles.guardianTitle}>{dashboard.guardianName}</Text>
                     <Text style={styles.guardianStatus}>{dashboard.guardianStatus}</Text>
                   </View>
@@ -94,10 +98,18 @@ export default function HomeScreen() {
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Acoes rapidas</Text>
                 <View style={styles.quickActionsGrid}>
-                  {dashboard.quickActions.map((action) => (
+                  {dashboard.quickActions.map((action, index) => (
                     <Card key={action.title} padding={4} style={styles.quickActionCard}>
-                      <Text style={styles.cardTitle}>{action.title}</Text>
-                      <Text style={styles.secondaryText}>{action.detail}</Text>
+                      <View style={styles.quickActionTopRow}>
+                        <View style={styles.quickActionMark}>
+                          <Text style={styles.quickActionMarkText}>{index + 1}</Text>
+                        </View>
+                        <Text style={styles.quickActionHint}>Rapido</Text>
+                      </View>
+                      <View style={styles.quickActionCopy}>
+                        <Text style={styles.cardTitle}>{action.title}</Text>
+                        <Text style={styles.secondaryText}>{action.detail}</Text>
+                      </View>
                     </Card>
                   ))}
                 </View>
@@ -144,9 +156,12 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              <Card padding={5}>
+              <Card padding={5} style={styles.weeklySummaryCard}>
                 <View style={styles.cardStack}>
-                  <Text style={styles.sectionTitle}>Resumo semanal</Text>
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionTitle}>Resumo semanal</Text>
+                    <Text style={styles.sectionMeta}>Meta</Text>
+                  </View>
                   {dashboard.weeklyProgress.map((item) => (
                     <View key={item.label} style={styles.progressRow}>
                       <View style={styles.progressLabelGroup}>
@@ -168,7 +183,7 @@ export default function HomeScreen() {
                 </View>
               </Card>
 
-              <Card padding={5}>
+              <Card padding={5} style={styles.nextWorkoutCard}>
                 <View style={styles.nextWorkout}>
                   <View style={styles.nextWorkoutCopy}>
                     <Text style={styles.sectionTitle}>{dashboard.nextWorkout.title}</Text>
@@ -229,8 +244,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     alignItems: 'center',
     paddingHorizontal: spacing[4],
-    paddingTop: spacing[6],
-    paddingBottom: componentSizes.bottomNavigation.height + spacing[8],
+    paddingTop: spacing[8],
+    paddingBottom: componentSizes.bottomNavigation.height + spacing[10],
   },
   page: {
     width: '100%',
@@ -238,13 +253,13 @@ const styles = StyleSheet.create({
       web: webContentMaxWidth,
       default: undefined,
     }),
-    gap: spacing[6],
+    gap: spacing[8],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: spacing[4],
+    gap: spacing[5],
   },
   headerCopy: {
     flex: 1,
@@ -265,7 +280,7 @@ const styles = StyleSheet.create({
   },
   levelBadge: {
     minHeight: componentSizes.badge.minHeight,
-    paddingHorizontal: spacing[3],
+    paddingHorizontal: spacing[4],
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.circular,
@@ -278,25 +293,36 @@ const styles = StyleSheet.create({
     color: colors.gamification.level,
   },
   guardianCardShell: {
-    minHeight: guardianImageSize - spacing[8],
+    minHeight: Platform.select({
+      web: guardianImageSize - spacing[6],
+      default: guardianImageSize - spacing[4],
+    }),
     overflow: 'hidden',
+  },
+  guardianAccentBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: spacing[1],
+    backgroundColor: colors.forge.hotOrange,
   },
   guardianHeat: {
     position: 'absolute',
-    top: spacing[5],
-    right: spacing[4],
+    top: spacing[4],
+    right: -spacing[8],
     width: guardianImageSize,
     height: guardianImageSize,
     borderRadius: radius.circular,
-    backgroundColor: colors.surface.default,
+    backgroundColor: colors.background.secondary,
     borderWidth: borders.width.default,
     borderColor: colors.material.bronze,
-    opacity: 0.54,
+    opacity: 0.72,
   },
   guardianImageFrame: {
     position: 'absolute',
-    right: -spacing[10],
-    bottom: -spacing[8],
+    right: -spacing[12],
+    bottom: -spacing[6],
     width: guardianImageSize,
     height: guardianImageSize,
     alignItems: 'center',
@@ -306,15 +332,21 @@ const styles = StyleSheet.create({
     borderColor: colors.material.bronze,
     backgroundColor: colors.background.secondary,
     overflow: 'hidden',
-    opacity: 0.86,
+    opacity: 0.94,
   },
   guardianImage: {
     width: '100%',
     height: '100%',
   },
   guardianContent: {
-    width: '72%',
-    minHeight: guardianImageSize - spacing[8],
+    width: Platform.select({
+      web: '68%',
+      default: '74%',
+    }),
+    minHeight: Platform.select({
+      web: guardianImageSize - spacing[6],
+      default: guardianImageSize - spacing[4],
+    }),
     justifyContent: 'space-between',
     gap: spacing[5],
   },
@@ -329,13 +361,24 @@ const styles = StyleSheet.create({
     ...typography.body.default,
     color: colors.text.secondary,
   },
+  guardianEyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  guardianStatusDot: {
+    width: spacing[2],
+    height: spacing[2],
+    borderRadius: radius.circular,
+    backgroundColor: colors.semantic.success,
+  },
   guardianMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: spacing[4],
+    gap: spacing[5],
     paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
+    paddingHorizontal: spacing[5],
     borderRadius: radius.lg,
     borderWidth: borders.width.default,
     borderColor: colors.border.default,
@@ -386,7 +429,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   section: {
-    gap: spacing[3],
+    gap: spacing[4],
   },
   quickActionsGrid: {
     flexDirection: Platform.select({
@@ -397,10 +440,40 @@ const styles = StyleSheet.create({
   },
   quickActionCard: {
     flex: 1,
+    minHeight: componentSizes.buttonHeight.xl + spacing[10],
+    justifyContent: 'space-between',
+    gap: spacing[5],
+    borderColor: colors.border.default,
+  },
+  quickActionTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[3],
+  },
+  quickActionMark: {
+    width: componentSizes.avatar.sm,
+    height: componentSizes.avatar.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.circular,
+    borderWidth: borders.width.default,
+    borderColor: colors.brand.primary,
+    backgroundColor: colors.surface.default,
+  },
+  quickActionMarkText: {
+    ...typography.caption,
+    color: colors.brand.primary,
+  },
+  quickActionHint: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  quickActionCopy: {
     gap: spacing[2],
   },
   cardStack: {
-    gap: spacing[4],
+    gap: spacing[5],
   },
   cardTitle: {
     ...typography.title.card,
@@ -412,19 +485,36 @@ const styles = StyleSheet.create({
       default: 'column',
     }),
     flexWrap: 'wrap',
-    gap: spacing[4],
+    gap: spacing[3],
   },
   metricCard: {
     flexBasis: Platform.select({
-      web: '47%',
+      web: '48%',
       default: 'auto',
     }),
     flexGrow: 1,
+    minHeight: componentSizes.avatar.xl + spacing[10],
+  },
+  weeklySummaryCard: {
+    gap: spacing[4],
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[4],
+  },
+  sectionMeta: {
+    ...typography.caption,
+    color: colors.text.secondary,
   },
   nextWorkout: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[4],
+    gap: spacing[5],
+  },
+  nextWorkoutCard: {
+    borderColor: colors.material.steel,
   },
   nextWorkoutCopy: {
     flex: 1,
