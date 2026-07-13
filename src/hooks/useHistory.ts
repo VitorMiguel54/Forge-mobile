@@ -69,8 +69,8 @@ export function useHistory(): UseHistoryResult {
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    return error.status ? `${error.message} Codigo ${error.status}.` : error.message;
+    return error.status ? `${error.message} Código ${error.status}.` : error.message;
   }
 
-  return 'Nao foi possivel carregar o historico.';
+  return 'Não foi possível carregar o histórico.';
 }

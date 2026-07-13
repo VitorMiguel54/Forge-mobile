@@ -1,5 +1,5 @@
 import { Link, type Href } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
@@ -52,13 +52,18 @@ export function BottomNavigation({ activeHref, items = defaultItems }: BottomNav
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'absolute',
+    position: Platform.select({
+      web: 'fixed',
+      default: 'absolute',
+    }),
     left: 0,
     right: 0,
     bottom: 0,
     alignItems: 'center',
     paddingHorizontal: spacing[4],
     paddingBottom: spacing[3],
+    zIndex: 10,
+    elevation: 10,
   },
   container: {
     width: '100%',

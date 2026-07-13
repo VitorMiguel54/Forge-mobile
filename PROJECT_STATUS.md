@@ -45,6 +45,12 @@ Tokens existentes em `src/theme`:
 
 As telas novas usam apenas tokens do tema para cores, espacamentos, tipografia, bordas, radius e tamanhos estruturais.
 
+Fontes:
+
+- Tokens de tipografia usam Inter para texto e Sora para titulos/numeros.
+- No Web, `src/global.css` carrega Inter e Sora e e importado em `src/app/_layout.tsx`.
+- Em native, ainda nao ha arquivos de fonte bundled em `assets`; quando houver build nativo real, as fontes devem ser empacotadas via `expo-font`.
+
 ---
 
 # Componentes Reutilizaveis
@@ -59,6 +65,10 @@ Componentes atuais:
 
 Exports centralizados em `src/components/index.ts`.
 
+Observacao:
+
+- Textos visiveis das telas e componentes foram revisados em portugues com acentuacao em UTF-8, sem alterar nomes de propriedades da API, rotas ou identificadores internos.
+
 ---
 
 # Telas Implementadas
@@ -66,6 +76,7 @@ Exports centralizados em `src/components/index.ts`.
 Home (`/`):
 
 - Guardiao temporario com imagem mockada e card principal refinado visualmente.
+- Card do Guardiao ajustado para melhor aproveitamento de espaco no Web/mobile.
 - XP e nivel.
 - Acoes rapidas com cards mais destacados.
 - Metricas do dia com melhor proporcao e espacamento.
@@ -76,6 +87,8 @@ Home (`/`):
 - Integrada ao hook `useDashboard`, com estados de loading, erro e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/dashboardService.ts`.
 - Refinamento visual aplicado sem alterar services, hooks ou contratos da API.
+- Bottom navigation mantida como unica barra fixa, com z-index/elevation para evitar duplicidade visual/empilhamento no Web.
+- Diferenca de peso normalizada com arredondamento e formato pt-BR antes da exibicao.
 
 Configuracao de API:
 
@@ -90,17 +103,25 @@ Configuracao de API:
 Treinos (`/workouts`):
 
 - Header com acao `Novo treino`.
-- Card de treino em andamento.
+- Card de treino do dia/em andamento destacado quando a API retornar `activeWorkout`.
 - Lista de treinos salvos vinda da API.
+- Cada card exibe nome, grupos musculares, duracao estimada e quantidade de exercicios.
+- Botoes `Iniciar treino` no destaque e nos cards de treino.
+- Botao `Novo treino` cria um treino real via `POST /api/workouts` usando `EXPO_PUBLIC_USER_PROFILE_ID`.
+- Botoes `Iniciar treino` abrem `/workouts/{id}` usando o ID real retornado pela API.
+- Tela `/workouts/[id]` carrega o treino selecionado via `GET /api/workouts/{id}`.
 - Estados visuais: disponivel, em andamento e concluido.
 - Integrada ao hook `useWorkouts`, com estados de loading, erro, vazio e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/workoutsService.ts`.
+- Service de Treinos resolve variaveis de ambiente no momento da chamada, consistente com a Home.
+- `apiClient` possui suporte a `POST` para fluxos de criacao.
 
 Configuracao de API para Treinos:
 
 - `EXPO_PUBLIC_USER_PROFILE_ID`: perfil usado para montar as rotas mobile por usuario.
 - `EXPO_PUBLIC_WORKOUTS_ENDPOINT`: endpoint opcional de Treinos; padrao atual: `/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/workouts`.
 - Nao ha campos mockados na tela Treinos; a duracao estimada vem do endpoint mobile.
+- O detalhe de treino usa a rota existente `/api/workouts/{id}`; campos nao presentes nesse contrato nao sao mockados.
 
 Historico (`/history`):
 
@@ -164,7 +185,8 @@ Resultados da ultima validacao:
 
 - TypeScript sem erros.
 - Lint sem erros.
-- Web respondendo `200 OK` em `http://localhost:8082`.
+- Web respondendo `200 OK` em `http://localhost:8082/workouts`.
+- Web respondendo `200 OK` em `http://localhost:8082/workouts/test-workout-id`, validando a rota dinamica de treino.
 
 Observacao da validacao da API:
 

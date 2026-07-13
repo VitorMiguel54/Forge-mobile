@@ -7,7 +7,7 @@ import { borders, colors, componentSizes, radius, spacing, typography } from '@/
 
 const profileMock = {
   name: 'Rafael Soares',
-  title: 'Forjando consistencia',
+  title: 'Forjando consistência',
   level: 7,
   currentXp: 320,
   xpToNextLevel: 500,
@@ -33,7 +33,7 @@ export default function ProfileScreen() {
           <View style={styles.header}>
             <Text style={styles.eyebrow}>Perfil</Text>
             <Text style={styles.title}>Sua forja</Text>
-            <Text style={styles.description}>Dados pessoais e progresso principal em um so lugar.</Text>
+            <Text style={styles.description}>Dados pessoais e progresso principal em um só lugar.</Text>
           </View>
 
           <Card variant="highlighted" padding={5}>
@@ -43,7 +43,7 @@ export default function ProfileScreen() {
                   source={require('@/assets/images/guardian-placeholder.png')}
                   style={styles.avatarImage}
                   contentFit="cover"
-                  accessibilityLabel="Avatar temporario do usuario"
+                  accessibilityLabel="Avatar temporário do usuário"
                 />
               </View>
 
@@ -51,7 +51,7 @@ export default function ProfileScreen() {
                 <Text style={styles.profileName}>{profileMock.name}</Text>
                 <Text style={styles.secondaryText}>{profileMock.title}</Text>
                 <View style={styles.levelBadge}>
-                  <Text style={styles.levelBadgeText}>Nivel {profileMock.level}</Text>
+                  <Text style={styles.levelBadgeText}>Nível {profileMock.level}</Text>
                 </View>
               </View>
 
@@ -66,7 +66,7 @@ export default function ProfileScreen() {
           <View style={styles.statsGrid}>
             <ProfileStat label="Peso atual" value={profileMock.currentWeight} />
             <ProfileStat label="Peso inicial" value={profileMock.initialWeight} />
-            <ProfileStat label="Sequencia" value={profileMock.workoutStreak} />
+            <ProfileStat label="Sequência" value={profileMock.workoutStreak} />
             <ProfileStat label="Treinos" value={profileMock.totalWorkouts} />
             <ProfileStat label="Conquistas" value={profileMock.totalAchievements} />
           </View>
@@ -74,7 +74,7 @@ export default function ProfileScreen() {
           <Card padding={5}>
             <View style={styles.actions}>
               <Button title="Editar perfil" />
-              <Button title="Configuracoes" variant="secondary" />
+              <Button title="Configurações" variant="secondary" />
             </View>
           </Card>
         </View>

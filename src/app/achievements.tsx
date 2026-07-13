@@ -30,7 +30,7 @@ const achievementsMock: readonly AchievementMock[] = [
     unlocked: true,
   },
   {
-    name: 'Ritmo de Aco',
+    name: 'Ritmo de Aço',
     description: 'Complete 3 treinos na mesma semana.',
     rarity: 'rare',
     unlocked: true,
@@ -44,20 +44,20 @@ const achievementsMock: readonly AchievementMock[] = [
   },
   {
     name: 'Lenda da Forja',
-    description: 'Mantenha consistencia por 12 semanas.',
+    description: 'Mantenha consistência por 12 semanas.',
     rarity: 'legendary',
     unlocked: false,
     progress: { current: 3, target: 12 },
   },
   {
-    name: 'Hidratacao Solida',
-    description: 'Bata a meta de agua por 5 dias.',
+    name: 'Hidratação Sólida',
+    description: 'Bata a meta de água por 5 dias.',
     rarity: 'common',
     unlocked: false,
     progress: { current: 2, target: 5 },
   },
   {
-    name: 'Recuperacao Firme',
+    name: 'Recuperação Firme',
     description: 'Registre sono adequado por 7 noites.',
     rarity: 'rare',
     unlocked: false,
@@ -82,7 +82,7 @@ export default function AchievementsScreen() {
             <Text style={styles.eyebrow}>Marcos</Text>
             <Text style={styles.title}>Conquistas</Text>
             <Text style={styles.description}>
-              Progresso visual discreto para reconhecer consistencia e evolucao.
+              Progresso visual discreto para reconhecer consistência e evolução.
             </Text>
           </View>
 
@@ -90,7 +90,7 @@ export default function AchievementsScreen() {
             <View style={styles.summary}>
               <View style={styles.summaryGrid}>
                 <SummaryStat label="Desbloqueadas" value={achievementsSummary.unlocked} />
-                <SummaryStat label="Disponiveis" value={achievementsSummary.available} />
+                <SummaryStat label="Disponíveis" value={achievementsSummary.available} />
                 <SummaryStat label="Progresso" value={`${overallProgress}%`} />
               </View>
               <View style={styles.overallTrack}>
@@ -109,7 +109,7 @@ export default function AchievementsScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Colecao</Text>
+            <Text style={styles.sectionTitle}>Coleção</Text>
             <View style={styles.achievementGrid}>
               {achievementsMock.map((achievement) => (
                 <AchievementCard key={achievement.name} achievement={achievement} />
@@ -205,11 +205,11 @@ const rarityTone = {
     color: colors.gamification.xp,
   },
   epic: {
-    label: 'Epico',
+    label: 'Épico',
     color: colors.metric.sleep,
   },
   legendary: {
-    label: 'Lendario',
+    label: 'Lendário',
     color: colors.gamification.level,
   },
 } as const;

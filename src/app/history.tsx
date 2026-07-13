@@ -22,7 +22,7 @@ export default function HistoryScreen() {
         <View style={styles.page}>
           <View style={styles.header}>
             <Text style={styles.eyebrow}>Linha do tempo</Text>
-            <Text style={styles.title}>Historico</Text>
+            <Text style={styles.title}>Histórico</Text>
             <Text style={styles.description}>
               Seus treinos recentes organizados para reconhecer progresso sem perder foco.
             </Text>
@@ -31,14 +31,14 @@ export default function HistoryScreen() {
           {isLoading ? (
             <Card padding={5} style={styles.stateCard}>
               <ActivityIndicator color={colors.brand.primary} />
-              <Text style={styles.stateTitle}>Carregando historico</Text>
-              <Text style={styles.stateText}>Buscando seus treinos concluidos.</Text>
+              <Text style={styles.stateTitle}>Carregando histórico</Text>
+              <Text style={styles.stateText}>Buscando seus treinos concluídos.</Text>
             </Card>
           ) : null}
 
           {!isLoading && error ? (
             <Card padding={5} style={styles.stateCard}>
-              <Text style={styles.stateTitle}>Nao foi possivel carregar</Text>
+              <Text style={styles.stateTitle}>Não foi possível carregar</Text>
               <Text style={styles.stateText}>{error}</Text>
               <Button title="Tentar novamente" variant="secondary" onPress={() => void refetch()} />
             </Card>
@@ -62,7 +62,7 @@ export default function HistoryScreen() {
 
               {hasHistory ? (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Ultimos treinos</Text>
+                  <Text style={styles.sectionTitle}>Últimos treinos</Text>
                   <View style={styles.timeline}>
                     {history.workouts.map((workout) => (
                       <HistoryWorkoutCard key={workout.id} workout={workout} />
@@ -71,9 +71,9 @@ export default function HistoryScreen() {
                 </View>
               ) : (
                 <Card padding={5} style={styles.stateCard}>
-                  <Text style={styles.stateTitle}>Nenhum treino no historico</Text>
+                  <Text style={styles.stateTitle}>Nenhum treino no histórico</Text>
                   <Text style={styles.stateText}>
-                    Treinos concluidos aparecem aqui para acompanhar sua evolucao.
+                    Treinos concluídos aparecem aqui para acompanhar sua evolução.
                   </Text>
                 </Card>
               )}
@@ -111,7 +111,7 @@ function HistoryWorkoutCard({ workout }: { readonly workout: MobileHistoryWorkou
 
         <View style={styles.metaGrid}>
           <WorkoutMeta label="Volume" value={formatVolume(workout.volume)} />
-          <WorkoutMeta label="Exercicios" value={workout.exerciseCount} />
+          <WorkoutMeta label="Exercícios" value={workout.exerciseCount} />
         </View>
 
         <View style={styles.exerciseList}>
@@ -157,7 +157,7 @@ function formatDate(date: string): string {
   const parsedDate = new Date(date);
 
   if (Number.isNaN(parsedDate.getTime())) {
-    return 'Data nao informada';
+    return 'Data não informada';
   }
 
   return new Intl.DateTimeFormat('pt-BR', {
@@ -167,7 +167,7 @@ function formatDate(date: string): string {
 }
 
 function formatExerciseCount(exerciseCount: number): string {
-  return exerciseCount === 1 ? '1 exercicio registrado' : `${exerciseCount} exercicios registrados`;
+  return exerciseCount === 1 ? '1 exercício registrado' : `${exerciseCount} exercícios registrados`;
 }
 
 const styles = StyleSheet.create({

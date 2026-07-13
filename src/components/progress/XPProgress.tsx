@@ -20,7 +20,7 @@ export function XPProgress({
   return (
     <View style={[styles.container, style]}>
       <View style={styles.header}>
-        <Text style={styles.level}>Nivel {currentLevel}</Text>
+        <Text style={styles.level}>Nível {currentLevel}</Text>
         <Text style={styles.xp}>
           {currentXp} / {xpToNextLevel} XP
         </Text>

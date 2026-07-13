@@ -53,33 +53,33 @@ type ApiRecord = Record<string, unknown>;
 const dashboardFallback: DashboardData = {
   userName: 'Rafael',
   dayLabel: 'Hoje',
-  guardianName: 'Guardiao da Forja',
-  guardianStatus: 'Pronto para o proximo treino',
+  guardianName: 'Guardião da Forja',
+  guardianStatus: 'Pronto para o próximo treino',
   weeklyGoal: '3 de 5 treinos na semana',
   nextWorkout: {
-    title: 'Treino de forca',
-    detail: 'Peito, ombro e triceps',
+    title: 'Treino de força',
+    detail: 'Peito, ombro e tríceps',
     estimate: '45 min',
   },
   quickActions: [
-    { title: 'Agua', detail: 'Registrar 300 ml' },
+    { title: 'Água', detail: 'Registrar 300 ml' },
     { title: 'Peso', detail: 'Atualizar medida' },
     { title: 'Sono', detail: 'Registrar noite' },
   ],
   weeklyProgress: [
     { label: 'Treinos', current: 3, target: 5 },
-    { label: 'Agua', current: 5, target: 7 },
+    { label: 'Água', current: 5, target: 7 },
     { label: 'Sono', current: 4, target: 7 },
   ],
   achievement: {
-    title: 'Consistencia de Aco',
-    detail: '3 treinos concluidos nesta semana',
+    title: 'Consistência de Aço',
+    detail: '3 treinos concluídos nesta semana',
     status: 'Em progresso',
   },
   recentActivity: [
-    { title: 'Supino reto', detail: '4 series registradas' },
-    { title: 'Agua', detail: '1.8 L consumidos hoje' },
-    { title: 'Sono', detail: '7.2 h na ultima noite' },
+    { title: 'Supino reto', detail: '4 séries registradas' },
+    { title: 'Água', detail: '1.8 L consumidos hoje' },
+    { title: 'Sono', detail: '7.2 h na última noite' },
   ],
   xp: {
     level: 7,
@@ -95,19 +95,19 @@ const dashboardFallback: DashboardData = {
     water: {
       value: 1.8,
       unit: 'L',
-      secondaryText: 'Meta diaria: 2.5 L',
+      secondaryText: 'Meta diária: 2.5 L',
       progress: { current: 1.8, target: 2.5 },
     },
     sleep: {
       value: 7.2,
       unit: 'h',
-      secondaryText: 'Ultima noite',
+      secondaryText: 'Última noite',
       progress: { current: 7.2, target: 8 },
     },
     weight: {
       value: 82.4,
       unit: 'kg',
-      secondaryText: '-1.6 kg desde o inicio',
+      secondaryText: '-1.6 kg desde o início',
     },
   },
 };
@@ -259,13 +259,13 @@ function mapMetrics(
     water: mapMetric(getObject(getField(value, 'water')), {
       value: apiMetrics.todayWaterConsumption,
       unit: 'L',
-      secondaryText: `Meta diaria: ${apiMetrics.dailyWaterGoal} L`,
+      secondaryText: `Meta diária: ${apiMetrics.dailyWaterGoal} L`,
       progress: { current: apiMetrics.todayWaterConsumption, target: apiMetrics.dailyWaterGoal },
     }),
     sleep: mapMetric(getObject(getField(value, 'sleep')), {
       value: apiMetrics.latestSleepHours,
       unit: 'h',
-      secondaryText: 'Ultima noite',
+      secondaryText: 'Última noite',
       progress: { current: apiMetrics.latestSleepHours, target: apiMetrics.dailySleepGoal },
     }),
     weight: mapMetric(getObject(getField(value, 'weight')), {
@@ -302,7 +302,7 @@ function mapWeeklyProgress(
   if (!Array.isArray(value)) {
     return [
       { label: 'Treinos', current: apiProgress.completedWorkouts, target: apiProgress.workoutGoal },
-      { label: 'Agua', current: apiProgress.todayWaterConsumption, target: apiProgress.dailyWaterGoal },
+      { label: 'Água', current: apiProgress.todayWaterConsumption, target: apiProgress.dailyWaterGoal },
       { label: 'Sono', current: apiProgress.latestSleepHours, target: apiProgress.dailySleepGoal },
     ];
   }
@@ -403,9 +403,17 @@ function formatCompactNumber(value: number): string | number {
 }
 
 function formatWeightDifference(value: number): string {
-  if (value === 0) {
-    return 'Sem variacao desde o inicio';
+  const roundedValue = Math.round(value * 10) / 10;
+
+  if (roundedValue === 0) {
+    return 'Sem variação desde o início';
   }
 
-  return `${value > 0 ? '+' : ''}${value} kg desde o inicio`;
+  const formattedValue = new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: Number.isInteger(roundedValue) ? 0 : 1,
+  }).format(Math.abs(roundedValue));
+  const direction = roundedValue > 0 ? 'acima' : 'abaixo';
+
+  return `${formattedValue} kg ${direction} do início`;
 }

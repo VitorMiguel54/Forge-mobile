@@ -48,7 +48,7 @@ function resolveHistoryEndpoint(page: number, pageSize: number): string {
   }
 
   if (!userProfileId) {
-    throw new ApiError('Configure EXPO_PUBLIC_USER_PROFILE_ID para carregar o historico.');
+    throw new ApiError('Configure EXPO_PUBLIC_USER_PROFILE_ID para carregar o histórico.');
   }
 
   return `/mobile/users/${userProfileId}/history?page=${page}&pageSize=${pageSize}`;

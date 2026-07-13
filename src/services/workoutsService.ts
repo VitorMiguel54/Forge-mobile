@@ -16,17 +16,45 @@ export type MobileWorkoutsData = {
   readonly savedWorkouts: readonly MobileWorkout[];
 };
 
-type ApiRecord = Record<string, unknown>;
+export type WorkoutDetails = {
+  readonly id: string;
+  readonly userProfileId: string;
+  readonly name: string;
+  readonly workoutDate: string;
+  readonly location?: string;
+  readonly notes?: string;
+  readonly totalVolume: number;
+};
 
-const workoutsEndpoint = process.env.EXPO_PUBLIC_WORKOUTS_ENDPOINT;
-const userProfileId = process.env.EXPO_PUBLIC_USER_PROFILE_ID;
+type ApiRecord = Record<string, unknown>;
 
 export async function getMobileWorkouts(): Promise<MobileWorkoutsData> {
   const response = await apiClient.get<unknown>(resolveWorkoutsEndpoint());
   return mapWorkoutsResponse(response);
 }
 
+export async function createWorkout(): Promise<WorkoutDetails> {
+  const userProfileId = getUserProfileId('criar um treino');
+  const response = await apiClient.post<unknown>('/workouts', {
+    userProfileId,
+    name: getDefaultWorkoutName(),
+    workoutDate: new Date().toISOString(),
+    location: null,
+    notes: null,
+  });
+
+  return mapWorkoutDetails(response);
+}
+
+export async function getWorkoutById(id: string): Promise<WorkoutDetails> {
+  const response = await apiClient.get<unknown>(`/workouts/${id}`);
+  return mapWorkoutDetails(response);
+}
+
 function resolveWorkoutsEndpoint(): string {
+  const workoutsEndpoint = process.env.EXPO_PUBLIC_WORKOUTS_ENDPOINT;
+  const userProfileId = process.env.EXPO_PUBLIC_USER_PROFILE_ID;
+
   if (workoutsEndpoint) {
     return userProfileId ? workoutsEndpoint.replace('{userProfileId}', userProfileId) : workoutsEndpoint;
   }
@@ -38,6 +66,16 @@ function resolveWorkoutsEndpoint(): string {
   return `/mobile/users/${userProfileId}/workouts`;
 }
 
+function getUserProfileId(action: string): string {
+  const userProfileId = process.env.EXPO_PUBLIC_USER_PROFILE_ID;
+
+  if (!userProfileId) {
+    throw new ApiError(`Configure EXPO_PUBLIC_USER_PROFILE_ID para ${action}.`);
+  }
+
+  return userProfileId;
+}
+
 function mapWorkoutsResponse(response: unknown): MobileWorkoutsData {
   const payload = getObject(getField(asObject(response), 'data')) ?? asObject(response) ?? {};
   const activeWorkout = mapWorkout(getField(payload, 'activeWorkout', 'active_workout'));
@@ -45,6 +83,20 @@ function mapWorkoutsResponse(response: unknown): MobileWorkoutsData {
   return {
     activeWorkout,
     savedWorkouts: mapWorkoutList(getField(payload, 'savedWorkouts', 'saved_workouts')),
+  };
+}
+
+function mapWorkoutDetails(response: unknown): WorkoutDetails {
+  const workout = getObject(getField(asObject(response), 'data')) ?? asObject(response) ?? {};
+
+  return {
+    id: getString(workout, ['id']) ?? '',
+    userProfileId: getString(workout, ['userProfileId', 'user_profile_id']) ?? '',
+    name: getString(workout, ['name']) ?? '',
+    workoutDate: getString(workout, ['workoutDate', 'workout_date']) ?? '',
+    location: getString(workout, ['location']),
+    notes: getString(workout, ['notes']),
+    totalVolume: getNumber(workout, ['totalVolume', 'total_volume']) ?? 0,
   };
 }
 
@@ -88,6 +140,15 @@ function mapWorkoutStatus(status?: string): WorkoutStatus {
   }
 
   return 'available';
+}
+
+function getDefaultWorkoutName(): string {
+  const date = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+  }).format(new Date());
+
+  return `Treino ${date}`;
 }
 
 function getField(object: ApiRecord | undefined, ...keys: string[]): unknown {

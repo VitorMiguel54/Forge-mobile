@@ -7,7 +7,7 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
 const webContentMaxWidth = spacing[10] * spacing[5];
-const guardianImageSize = componentSizes.avatar.xl + componentSizes.avatar.lg + spacing[12] + spacing[10];
+const guardianImageSize = componentSizes.avatar.xl + componentSizes.avatar.lg + spacing[12] + spacing[4];
 const compactProgressTrackWidth = spacing[12] + spacing[10];
 
 export default function HomeScreen() {
@@ -24,14 +24,14 @@ export default function HomeScreen() {
           {isLoading ? (
             <Card padding={5} style={styles.stateCard}>
               <ActivityIndicator color={colors.brand.primary} />
-              <Text style={styles.stateTitle}>Carregando Home</Text>
+              <Text style={styles.stateTitle}>Carregando home</Text>
               <Text style={styles.stateText}>Buscando seus dados da Forja.</Text>
             </Card>
           ) : null}
 
           {!isLoading && error ? (
             <Card padding={5} style={styles.stateCard}>
-              <Text style={styles.stateTitle}>Nao foi possivel carregar</Text>
+              <Text style={styles.stateTitle}>Não foi possível carregar</Text>
               <Text style={styles.stateText}>{error}</Text>
               <Button title="Tentar novamente" variant="secondary" onPress={() => void refetch()} />
             </Card>
@@ -58,7 +58,7 @@ export default function HomeScreen() {
                     source={require('@/assets/images/guardian-placeholder.png')}
                     style={styles.guardianImage}
                     contentFit="cover"
-                    accessibilityLabel="Placeholder do Guardiao"
+                    accessibilityLabel="Placeholder do Guardião"
                   />
                 </View>
 
@@ -66,7 +66,7 @@ export default function HomeScreen() {
                   <View style={styles.guardianTextBlock}>
                     <View style={styles.guardianEyebrowRow}>
                       <View style={styles.guardianStatusDot} />
-                      <Text style={styles.eyebrow}>Guardiao ativo</Text>
+                      <Text style={styles.eyebrow}>Guardião ativo</Text>
                     </View>
                     <Text style={styles.guardianTitle}>{dashboard.guardianName}</Text>
                     <Text style={styles.guardianStatus}>{dashboard.guardianStatus}</Text>
@@ -80,7 +80,7 @@ export default function HomeScreen() {
                     <View style={styles.guardianMetaDivider} />
                     <View style={styles.guardianMetaItem}>
                       <Text style={styles.guardianMetaValue}>{dashboard.xp.next}</Text>
-                      <Text style={styles.guardianMetaLabel}>Proximo nivel</Text>
+                      <Text style={styles.guardianMetaLabel}>Próximo nível</Text>
                     </View>
                   </View>
 
@@ -96,7 +96,7 @@ export default function HomeScreen() {
               </Card>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Acoes rapidas</Text>
+                <Text style={styles.sectionTitle}>Ações rápidas</Text>
                 <View style={styles.quickActionsGrid}>
                   {dashboard.quickActions.map((action, index) => (
                     <Card key={action.title} padding={4} style={styles.quickActionCard}>
@@ -104,7 +104,7 @@ export default function HomeScreen() {
                         <View style={styles.quickActionMark}>
                           <Text style={styles.quickActionMarkText}>{index + 1}</Text>
                         </View>
-                        <Text style={styles.quickActionHint}>Rapido</Text>
+                        <Text style={styles.quickActionHint}>Rápido</Text>
                       </View>
                       <View style={styles.quickActionCopy}>
                         <Text style={styles.cardTitle}>{action.title}</Text>
@@ -116,7 +116,7 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Visao do dia</Text>
+                <Text style={styles.sectionTitle}>Visão do dia</Text>
                 <View style={styles.metricsGrid}>
                   <MetricCard
                     title="Volume"
@@ -128,7 +128,7 @@ export default function HomeScreen() {
                     style={styles.metricCard}
                   />
                   <MetricCard
-                    title="Agua"
+                    title="Água"
                     value={dashboard.metrics.water.value}
                     unit={dashboard.metrics.water.unit}
                     secondaryText={dashboard.metrics.water.secondaryText}
@@ -294,8 +294,8 @@ const styles = StyleSheet.create({
   },
   guardianCardShell: {
     minHeight: Platform.select({
-      web: guardianImageSize - spacing[6],
-      default: guardianImageSize - spacing[4],
+      web: guardianImageSize - spacing[8],
+      default: guardianImageSize - spacing[6],
     }),
     overflow: 'hidden',
   },
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   guardianHeat: {
     position: 'absolute',
     top: spacing[4],
-    right: -spacing[8],
+    right: -spacing[10],
     width: guardianImageSize,
     height: guardianImageSize,
     borderRadius: radius.circular,
@@ -321,8 +321,8 @@ const styles = StyleSheet.create({
   },
   guardianImageFrame: {
     position: 'absolute',
-    right: -spacing[12],
-    bottom: -spacing[6],
+    right: -spacing[10],
+    bottom: -spacing[8],
     width: guardianImageSize,
     height: guardianImageSize,
     alignItems: 'center',
@@ -340,12 +340,12 @@ const styles = StyleSheet.create({
   },
   guardianContent: {
     width: Platform.select({
-      web: '68%',
-      default: '74%',
+      web: '72%',
+      default: '78%',
     }),
     minHeight: Platform.select({
-      web: guardianImageSize - spacing[6],
-      default: guardianImageSize - spacing[4],
+      web: guardianImageSize - spacing[8],
+      default: guardianImageSize - spacing[6],
     }),
     justifyContent: 'space-between',
     gap: spacing[5],

@@ -32,6 +32,10 @@ class ApiClient {
     return this.request<TResponse>(path, { ...options, method: 'GET' });
   }
 
+  async post<TResponse>(path: string, body?: unknown, options: RequestOptions = {}): Promise<TResponse> {
+    return this.request<TResponse>(path, { ...options, body, method: 'POST' });
+  }
+
   private async request<TResponse>(path: string, options: RequestOptions): Promise<TResponse> {
     if (!this.baseUrl) {
       throw new ApiError('Configure EXPO_PUBLIC_API_BASE_URL para carregar os dados da API.');
@@ -53,7 +57,7 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        throw new ApiError('Nao foi possivel carregar os dados da API.', response.status);
+        throw new ApiError('Não foi possível carregar os dados da API.', response.status);
       }
 
       if (response.status === 204) {
@@ -70,7 +74,7 @@ class ApiClient {
         throw new ApiError('A API demorou demais para responder.');
       }
 
-      throw new ApiError('Falha de conexao com a API.');
+      throw new ApiError('Falha de conexão com a API.');
     } finally {
       clearTimeout(timeoutId);
     }

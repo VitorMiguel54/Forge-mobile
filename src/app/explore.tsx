@@ -15,12 +15,12 @@ export default function ExploreScreen() {
             <Text style={styles.eyebrow}>Forge</Text>
             <Text style={styles.title}>Explorar</Text>
             <Text style={styles.description}>
-              Rota preservada para experimentos futuros, fora da navegacao principal atual.
+              Rota preservada para experimentos futuros, fora da navegação principal atual.
             </Text>
           </View>
 
           <Card padding={5}>
-            <Text style={styles.cardText}>As abas principais ja estao disponiveis na Home.</Text>
+            <Text style={styles.cardText}>As abas principais já estão disponíveis na Home.</Text>
           </Card>
         </View>
       </ScrollView>

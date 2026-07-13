@@ -71,8 +71,8 @@ export function useDashboard(): UseDashboardResult {
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    return error.status ? `${error.message} Codigo ${error.status}.` : error.message;
+    return error.status ? `${error.message} Código ${error.status}.` : error.message;
   }
 
-  return 'Nao foi possivel carregar a Home.';
+  return 'Não foi possível carregar a Home.';
 }
