@@ -1,6 +1,6 @@
 # Forge Mobile - Project Status
 
-Atualizado em: 10/07/2026
+Atualizado em: 13/07/2026
 
 ---
 
@@ -14,6 +14,8 @@ Nenhuma tela nova foi criada.
 
 A Home ainda nao foi implementada.
 
+O projeto ainda esta no template inicial do Expo Router nas telas existentes.
+
 ---
 
 # Documentos de Referencia
@@ -26,6 +28,14 @@ Foram usados como base:
 - `MOBILE_UI_SPEC.md`
 - `DESIGN_SYSTEM.md`
 - `FRONTEND_GUIDELINES.md`
+
+Documentos adicionais existentes no projeto:
+
+- `API_CONTRACTS.md`
+- `HOME_LAYOUT.md`
+- `HOME_SCREEN_SPEC.md`
+- `PRODUCT_VISION.md`
+- `README.md`
 
 ---
 
@@ -100,25 +110,25 @@ Nenhuma tela temporaria foi criada.
 
 # Validacoes
 
-Comandos executados:
+Ultimos comandos executados em 13/07/2026:
 
 ```txt
-npx tsc --noEmit
-npm run lint
-npm run web -- --port 8082
+npx.cmd tsc --noEmit
+npm.cmd run lint
+npm.cmd run web -- --port 8082
 ```
 
 Resultados:
 
-- `npx tsc --noEmit`: passou.
-- `npm run lint`: passou.
-- `npm run web -- --port 8082`: falhou por incompatibilidade do Node atual.
+- `npx.cmd tsc --noEmit`: passou.
+- `npm.cmd run lint`: passou.
+- `npm.cmd run web -- --port 8082`: passou e respondeu em `http://localhost:8082`.
 
-Detalhe do bloqueio:
+Ambiente atual:
 
-- Node atual: `v21.7.1`.
-- React Native/Metro do projeto exige Node `^20.19.4`, `^22.13.0`, `^24.3.0` ou `>=25.0.0`.
-- O erro ocorre dentro do Metro/Expo CLI com `TypeError [ERR_INVALID_ARG_VALUE]` em `util.styleText`.
+- Node atual: `v22.22.0`.
+- A versao atual do Node esta dentro da faixa suportada por React Native/Metro.
+- Em PowerShell, `npm -v` via `npm.ps1` pode ser bloqueado por execution policy. Usar `npm.cmd` evita esse problema.
 
 ---
 
@@ -141,4 +151,4 @@ Detalhe do bloqueio:
 - Validar o uso de `boxShadow` nos cards em Android, iOS e Web.
 - Definir duracoes exatas de microinteracoes.
 - Validar radius dos cards e botoes em prototipo visual.
-- Reexecutar `npm run web` com uma versao suportada do Node.
+- Implementar a Home apenas quando o layout/spec estiver fechado.
