@@ -5,11 +5,11 @@ import { borders, colors, componentSizes, radius, spacing, typography } from '@/
 
 export type BottomNavigationItem = {
   readonly label: string;
-  readonly href: string;
+  readonly href: Href;
 };
 
 export type BottomNavigationProps = {
-  readonly activeHref: string;
+  readonly activeHref: Href;
   readonly items?: readonly BottomNavigationItem[];
 };
 
@@ -29,7 +29,7 @@ export function BottomNavigation({ activeHref, items = defaultItems }: BottomNav
           const isActive = item.href === activeHref;
 
           return (
-            <Link key={item.label} href={item.href as Href} asChild>
+            <Link key={item.label} href={item.href} asChild>
               <Pressable
                 accessibilityRole="link"
                 accessibilityState={{ selected: isActive }}

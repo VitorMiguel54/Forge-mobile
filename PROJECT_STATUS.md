@@ -17,7 +17,15 @@ As primeiras telas mobile-first foram criadas com dados mockados, sem integracao
 - `/profile`: Perfil.
 - `/design-preview`: tela temporaria para validar componentes e tokens.
 
-O app usa uma bottom navigation propria em `src/components/navigation/BottomNavigation.tsx`.
+O app usa Expo Router com `Stack` sem header em `src/app/_layout.tsx`.
+
+A navegacao principal usa uma bottom navigation propria em `src/components/navigation/BottomNavigation.tsx`, com links definitivos para:
+
+- Home: `/`
+- Treinos: `/workouts`
+- Historico: `/history`
+- Conquistas: `/achievements`
+- Perfil: `/profile`
 
 ---
 
@@ -137,6 +145,14 @@ Rotas principais:
 - `http://localhost:8082/achievements`
 - `http://localhost:8082/profile`
 - `http://localhost:8082/design-preview`
+
+Rotas auxiliares preservadas:
+
+- `http://localhost:8082/explore`
+
+Observacao:
+
+- `/explore` nao faz parte da bottom navigation principal e foi mantida como rota neutra para experimentos futuros.
 
 ---
 
