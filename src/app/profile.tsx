@@ -59,7 +59,7 @@ export default function ProfileScreen() {
 
                   <View style={styles.profileIdentity}>
                     <Text style={styles.profileName}>{profile.name}</Text>
-                    <Text style={styles.secondaryText}>{profile.email}</Text>
+                    <Text style={styles.secondaryText}>{profile.email ?? 'Email não informado'}</Text>
                     <View style={styles.levelBadge}>
                       <Text style={styles.levelBadgeText}>Nível {profile.level}</Text>
                     </View>
@@ -77,9 +77,9 @@ export default function ProfileScreen() {
                 <ProfileStatCard label="Peso atual" value={formatWeight(profile.currentWeight)} />
                 <ProfileStatCard label="Peso inicial" value={formatWeight(profile.initialWeight)} />
                 <ProfileStatCard label="Criado em" value={formatDate(profile.createdAt)} />
-                <ProfileStatCard label="Meta semanal" value={`${profile.weeklyWorkoutGoal} treinos`} />
-                <ProfileStatCard label="Meta de água" value={`${profile.dailyWaterGoalInLiters} L`} />
-                <ProfileStatCard label="Meta de sono" value={`${profile.dailySleepGoalInHours} h`} />
+                <ProfileStatCard label="Meta semanal" value={formatWeeklyGoal(profile.weeklyWorkoutGoal)} />
+                <ProfileStatCard label="Meta de água" value={formatLiters(profile.dailyWaterGoalInLiters)} />
+                <ProfileStatCard label="Meta de sono" value={formatHours(profile.dailySleepGoalInHours)} />
               </View>
 
               <View style={styles.section}>
@@ -124,14 +124,22 @@ function ProfileStatCard({ label, value }: ProfileStat) {
   );
 }
 
-function formatWeight(weight: number): string {
+function formatWeight(weight?: number): string {
+  if (weight === undefined) {
+    return 'Não informado';
+  }
+
   return `${new Intl.NumberFormat('pt-BR', {
     maximumFractionDigits: 1,
     minimumFractionDigits: Number.isInteger(weight) ? 0 : 1,
   }).format(weight)} kg`;
 }
 
-function formatDate(date: string): string {
+function formatDate(date?: string): string {
+  if (!date) {
+    return 'Não informada';
+  }
+
   const parsedDate = new Date(date);
 
   if (Number.isNaN(parsedDate.getTime())) {
@@ -146,12 +154,33 @@ function formatDate(date: string): string {
 }
 
 function getInitials(name: string): string {
-  return name
+  const initials = name
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('');
+
+  return initials || '??';
+}
+
+function formatWeeklyGoal(goal?: number): string {
+  return goal === undefined ? 'Não informada' : `${goal} treinos`;
+}
+
+function formatLiters(value?: number): string {
+  return value === undefined ? 'Não informada' : `${formatDecimal(value)} L`;
+}
+
+function formatHours(value?: number): string {
+  return value === undefined ? 'Não informada' : `${formatDecimal(value)} h`;
+}
+
+function formatDecimal(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
+  }).format(value);
 }
 
 const styles = StyleSheet.create({

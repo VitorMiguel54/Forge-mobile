@@ -173,10 +173,12 @@ Perfil (`/profile`):
 - Avatar textual com iniciais derivadas do nome real retornado pela API.
 - Nome, email, nivel, XP, peso atual, peso inicial e data de criacao vindos da API.
 - Metas reais do perfil: treinos semanais, agua diaria e sono diario.
-- Estatisticas gerais exibidas conforme a API fornece: treinos, treinos na semana, tempo total, volume semanal e volume total.
+- Estatisticas gerais exibidas conforme a API fornece: treinos, treinos na semana, tempo total, volume semanal, volume total, agua de hoje e sono recente.
 - Integrada ao hook `useProfile`, com estados de loading, erro, vazio e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/profileService.ts`.
-- Sem campos mockados; dados ausentes nos contratos atuais nao sao inventados.
+- Sem campos numericos mockados; dados ausentes nos contratos atuais aparecem como nao informados ou sao omitidos da lista de estatisticas.
+- Fallbacks antigos de zero para peso, metas e datas ausentes foram removidos para nao parecerem dados reais.
+- Mocks/pendencias restantes: avatar visual real, Guardiao no Perfil, conquistas e streak nao possuem contrato exposto para esta tela.
 - Botoes `Editar perfil` e `Configuracoes` preservados visualmente, desabilitados ate existirem fluxos reais.
 
 Configuracao de API para Perfil:

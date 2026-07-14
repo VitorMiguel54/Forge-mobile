@@ -8,17 +8,17 @@ export type ProfileStat = {
 export type ProfileData = {
   readonly id: string;
   readonly name: string;
-  readonly email: string;
+  readonly email?: string;
   readonly level: number;
   readonly currentXp: number;
   readonly xpToNextLevel?: number;
-  readonly initialWeight: number;
-  readonly currentWeight: number;
-  readonly dailyWaterGoalInLiters: number;
-  readonly dailySleepGoalInHours: number;
-  readonly weeklyWorkoutGoal: number;
-  readonly createdAt: string;
-  readonly updatedAt: string;
+  readonly initialWeight?: number;
+  readonly currentWeight?: number;
+  readonly dailyWaterGoalInLiters?: number;
+  readonly dailySleepGoalInHours?: number;
+  readonly weeklyWorkoutGoal?: number;
+  readonly createdAt?: string;
+  readonly updatedAt?: string;
   readonly stats: readonly ProfileStat[];
 };
 
@@ -62,6 +62,9 @@ function mapProfileResponse(
   const metricsSummary = getObject(getField(home, 'metricsSummary', 'metrics_summary'));
   const historySummary = getObject(getField(history, 'summary'));
   const weeklyProgress = getObject(getField(home, 'weeklyProgress', 'weekly_progress'));
+  const weight = getObject(getField(home, 'weight'));
+  const water = getObject(getField(home, 'water'));
+  const sleep = getObject(getField(home, 'sleep'));
   const totalWorkouts =
     getNumber(metricsSummary, ['completedWorkouts', 'completed_workouts']) ??
     getNumber(historySummary, ['workouts']);
@@ -71,32 +74,51 @@ function mapProfileResponse(
   const totalVolume = getNumber(metricsSummary, ['totalVolumeMoved', 'total_volume_moved']);
   const totalDurationMinutes = getNumber(historySummary, ['totalDurationMinutes', 'total_duration_minutes']);
   const weeklyCompletedWorkouts = getNumber(weeklyProgress, ['completedWorkouts', 'completed_workouts']);
+  const weeklyWorkoutGoal =
+    getNumber(profile, ['weeklyWorkoutGoal', 'weekly_workout_goal']) ??
+    getNumber(weeklyProgress, ['workoutGoal', 'workout_goal']);
+  const todayWaterConsumption =
+    getNumber(water, ['todayConsumption', 'today_consumption']) ??
+    getNumber(metricsSummary, ['todayWaterConsumption', 'today_water_consumption']);
+  const latestSleepHours =
+    getNumber(sleep, ['latestHours', 'latest_hours']) ??
+    getNumber(metricsSummary, ['latestSleepHours', 'latest_sleep_hours']);
+  const currentWeight =
+    getNumber(profile, ['currentWeight', 'current_weight']) ??
+    getNumber(weight, ['currentWeight', 'current_weight']);
+  const initialWeight =
+    getNumber(profile, ['initialWeight', 'initial_weight']) ??
+    getNumber(weight, ['initialWeight', 'initial_weight']);
 
   return {
     id: getString(profile, ['id']) ?? '',
     name: getString(profile, ['name']) ?? '',
-    email: getString(profile, ['email']) ?? '',
+    email: getString(profile, ['email']),
     level: getNumber(gamification, ['level']) ?? getNumber(profile, ['level']) ?? 0,
     currentXp:
       getNumber(gamification, ['currentXp', 'current_xp']) ??
       getNumber(profile, ['totalXp', 'total_xp']) ??
       0,
     xpToNextLevel: getNumber(gamification, ['xpToNextLevel', 'xp_to_next_level']),
-    initialWeight: getNumber(profile, ['initialWeight', 'initial_weight']) ?? 0,
-    currentWeight: getNumber(profile, ['currentWeight', 'current_weight']) ?? 0,
+    initialWeight,
+    currentWeight,
     dailyWaterGoalInLiters:
-      getNumber(profile, ['dailyWaterGoalInLiters', 'daily_water_goal_in_liters']) ?? 0,
+      getNumber(profile, ['dailyWaterGoalInLiters', 'daily_water_goal_in_liters']) ??
+      getNumber(water, ['dailyGoal', 'daily_goal']),
     dailySleepGoalInHours:
-      getNumber(profile, ['dailySleepGoalInHours', 'daily_sleep_goal_in_hours']) ?? 0,
-    weeklyWorkoutGoal: getNumber(profile, ['weeklyWorkoutGoal', 'weekly_workout_goal']) ?? 0,
-    createdAt: getString(profile, ['createdAt', 'created_at']) ?? '',
-    updatedAt: getString(profile, ['updatedAt', 'updated_at']) ?? '',
+      getNumber(profile, ['dailySleepGoalInHours', 'daily_sleep_goal_in_hours']) ??
+      getNumber(sleep, ['dailyGoal', 'daily_goal']),
+    weeklyWorkoutGoal,
+    createdAt: getString(profile, ['createdAt', 'created_at']),
+    updatedAt: getString(profile, ['updatedAt', 'updated_at']),
     stats: [
       mapOptionalStat('Treinos', totalWorkouts),
       mapOptionalStat('Treinos na semana', weeklyCompletedWorkouts),
       mapOptionalStat('Tempo total', totalDurationMinutes, formatDuration),
       mapOptionalStat('Volume semanal', weeklyVolume, formatVolume),
       mapOptionalStat('Volume total', totalVolume, formatVolume),
+      mapOptionalStat('Água hoje', todayWaterConsumption, formatLiters),
+      mapOptionalStat('Sono recente', latestSleepHours, formatHours),
     ].filter((stat): stat is ProfileStat => stat !== undefined),
   };
 }
@@ -133,6 +155,21 @@ function formatVolume(volume: number): string {
   }
 
   return `${volume} kg`;
+}
+
+function formatLiters(value: number): string {
+  return `${formatDecimal(value)} L`;
+}
+
+function formatHours(value: number): string {
+  return `${formatDecimal(value)} h`;
+}
+
+function formatDecimal(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
+  }).format(value);
 }
 
 function getField(object: ApiRecord | undefined, ...keys: string[]): unknown {
