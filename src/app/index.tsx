@@ -1,9 +1,21 @@
 import { Image } from 'expo-image';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomNavigation, Button, Card, MetricCard, XPProgress } from '@/components';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useQuickActions, type QuickActionConfig } from '@/hooks/useQuickActions';
+import type { QuickActionKind } from '@/services/quickActionsService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
 const webContentMaxWidth = spacing[10] * spacing[5];
@@ -12,6 +24,7 @@ const compactProgressTrackWidth = spacing[12] + spacing[10];
 
 export default function HomeScreen() {
   const { dashboard, error, isLoading, refetch } = useDashboard();
+  const quickActions = useQuickActions(refetch);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -39,6 +52,12 @@ export default function HomeScreen() {
 
           {!isLoading && !error && dashboard ? (
             <>
+              {quickActions.successMessage ? (
+                <Card padding={4} style={styles.successCard}>
+                  <Text style={styles.stateText}>{quickActions.successMessage}</Text>
+                </Card>
+              ) : null}
+
               <View style={styles.header}>
                 <View style={styles.headerCopy}>
                   <Text style={styles.eyebrow}>{dashboard.dayLabel}</Text>
@@ -99,7 +118,19 @@ export default function HomeScreen() {
                 <Text style={styles.sectionTitle}>Ações rápidas</Text>
                 <View style={styles.quickActionsGrid}>
                   {dashboard.quickActions.map((action, index) => (
-                    <Card key={action.title} padding={4} style={styles.quickActionCard}>
+                    <Pressable
+                      key={action.title}
+                      disabled={!getQuickActionKind(action.title)}
+                      onPress={() => {
+                        const kind = getQuickActionKind(action.title);
+
+                        if (kind) {
+                          quickActions.openAction(kind);
+                        }
+                      }}
+                      style={styles.quickActionPressable}
+                    >
+                    <Card padding={4} style={styles.quickActionCard}>
                       <View style={styles.quickActionTopRow}>
                         <View style={styles.quickActionMark}>
                           <Text style={styles.quickActionMarkText}>{index + 1}</Text>
@@ -111,6 +142,7 @@ export default function HomeScreen() {
                         <Text style={styles.secondaryText}>{action.detail}</Text>
                       </View>
                     </Card>
+                    </Pressable>
                   ))}
                 </View>
               </View>
@@ -228,9 +260,91 @@ export default function HomeScreen() {
           ) : null}
         </View>
       </ScrollView>
+      <QuickActionModal
+        action={quickActions.activeAction}
+        error={quickActions.error}
+        isSubmitting={quickActions.isSubmitting}
+        value={quickActions.value}
+        onChangeValue={quickActions.setValue}
+        onClose={quickActions.closeAction}
+        onSubmit={() => void quickActions.submit()}
+      />
       <BottomNavigation activeHref="/" />
     </SafeAreaView>
   );
+}
+
+function QuickActionModal({
+  action,
+  error,
+  isSubmitting,
+  onChangeValue,
+  onClose,
+  onSubmit,
+  value,
+}: {
+  readonly action?: QuickActionConfig;
+  readonly error?: string;
+  readonly isSubmitting: boolean;
+  readonly onChangeValue: (value: string) => void;
+  readonly onClose: () => void;
+  readonly onSubmit: () => void;
+  readonly value: string;
+}) {
+  return (
+    <Modal animationType="fade" transparent visible={Boolean(action)} onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <Card padding={5} style={styles.modalCard}>
+          {action ? (
+            <View style={styles.modalContent}>
+              <View style={styles.headerCopy}>
+                <Text style={styles.eyebrow}>{action.title}</Text>
+                <Text style={styles.sectionTitle}>{action.label}</Text>
+                <Text style={styles.secondaryText}>Informe o valor em {action.unit}.</Text>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Valor</Text>
+                <TextInput
+                  keyboardType="decimal-pad"
+                  onChangeText={onChangeValue}
+                  placeholder={action.placeholder}
+                  placeholderTextColor={colors.text.disabled}
+                  style={styles.input}
+                  value={value}
+                />
+              </View>
+
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+              <View style={styles.modalActions}>
+                <Button title="Cancelar" variant="secondary" disabled={isSubmitting} onPress={onClose} />
+                <Button title="Registrar" loading={isSubmitting} onPress={onSubmit} />
+              </View>
+            </View>
+          ) : null}
+        </Card>
+      </View>
+    </Modal>
+  );
+}
+
+function getQuickActionKind(title: string): QuickActionKind | undefined {
+  const normalizedTitle = title.toLowerCase();
+
+  if (normalizedTitle.includes('peso')) {
+    return 'weight';
+  }
+
+  if (normalizedTitle.includes('gua')) {
+    return 'water';
+  }
+
+  if (normalizedTitle.includes('sono')) {
+    return 'sleep';
+  }
+
+  return undefined;
 }
 
 const styles = StyleSheet.create({
@@ -438,6 +552,9 @@ const styles = StyleSheet.create({
     }),
     gap: spacing[3],
   },
+  quickActionPressable: {
+    flex: 1,
+  },
   quickActionCard: {
     flex: 1,
     minHeight: componentSizes.buttonHeight.xl + spacing[10],
@@ -601,5 +718,50 @@ const styles = StyleSheet.create({
   activityCopy: {
     flex: 1,
     gap: spacing[1],
+  },
+  successCard: {
+    borderColor: colors.semantic.success,
+  },
+  modalOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing[4],
+    backgroundColor: 'rgba(0, 0, 0, 0.64)',
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: spacing[10] * spacing[4],
+  },
+  modalContent: {
+    gap: spacing[5],
+  },
+  inputGroup: {
+    gap: spacing[2],
+  },
+  inputLabel: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  input: {
+    minHeight: componentSizes.buttonHeight.lg,
+    borderRadius: radius.lg,
+    borderWidth: borders.width.default,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.default,
+    color: colors.text.primary,
+    paddingHorizontal: spacing[3],
+    ...typography.body.default,
+  },
+  errorText: {
+    ...typography.body.secondary,
+    color: colors.semantic.error,
+  },
+  modalActions: {
+    flexDirection: Platform.select({
+      web: 'row',
+      default: 'column',
+    }),
+    gap: spacing[3],
   },
 });

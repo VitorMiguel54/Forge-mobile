@@ -79,6 +79,12 @@ Home (`/`):
 - Card do Guardiao ajustado para melhor aproveitamento de espaco no Web/mobile.
 - XP e nivel.
 - Acoes rapidas com cards mais destacados.
+- Acoes rapidas integradas a API real:
+  - Peso: `POST /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}/weight-records`.
+  - Agua: `POST /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}/water-intakes`.
+  - Sono: `POST /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}/sleep-records`.
+- Acoes rapidas abrem modal simples com validacao, loading, erro e confirmacao.
+- Apos registrar uma acao rapida, a Home recarrega automaticamente via `useDashboard`.
 - Metricas do dia com melhor proporcao e espacamento.
 - Resumo semanal com hierarquia visual reforcada.
 - Proximo treino.
@@ -86,6 +92,7 @@ Home (`/`):
 - Atividade recente.
 - Integrada ao hook `useDashboard`, com estados de loading, erro e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/dashboardService.ts`.
+- Registro das acoes rapidas centralizado em `src/services/quickActionsService.ts` e `src/hooks/useQuickActions.ts`.
 - Refinamento visual aplicado sem alterar services, hooks ou contratos da API.
 - Bottom navigation mantida como unica barra fixa, com z-index/elevation para evitar duplicidade visual/empilhamento no Web.
 - Diferenca de peso normalizada com arredondamento e formato pt-BR antes da exibicao.
@@ -208,6 +215,7 @@ Resultados da ultima validacao:
 - Web respondendo `200 OK` em `http://localhost:8082/workouts/test-workout-id`, validando a rota dinamica de treino.
 - Web respondendo `200 OK` em `http://localhost:8082/profile`.
 - Web respondendo `200 OK` em `http://localhost:8082/workouts/test-workout-id/execute`, validando a rota de execucao.
+- Web respondendo `200 OK` em `http://localhost:8082`, validando a Home com acoes rapidas.
 
 Observacao da validacao da API:
 
