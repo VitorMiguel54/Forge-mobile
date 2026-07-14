@@ -10,8 +10,18 @@ export type TypographyStyle = {
 
 export type Typography = {
   readonly fontFamily: {
-    readonly primary: FontFamilyToken;
-    readonly display: FontFamilyToken;
+    readonly identity: {
+      readonly semibold: FontFamilyToken;
+      readonly bold: FontFamilyToken;
+      readonly extrabold: FontFamilyToken;
+    };
+    readonly interface: {
+      readonly regular: FontFamilyToken;
+      readonly medium: FontFamilyToken;
+      readonly semibold: FontFamilyToken;
+      readonly bold: FontFamilyToken;
+      readonly extrabold: FontFamilyToken;
+    };
     readonly fallback: FontFamilyToken;
   };
   readonly fontWeight: {
@@ -25,6 +35,11 @@ export type Typography = {
     readonly main: TypographyStyle;
     readonly section: TypographyStyle;
     readonly card: TypographyStyle;
+  };
+  readonly identity: {
+    readonly logo: TypographyStyle;
+    readonly section: TypographyStyle;
+    readonly guardian: TypographyStyle;
   };
   readonly body: {
     readonly default: TypographyStyle;
@@ -43,8 +58,18 @@ export type Typography = {
 };
 
 const fontFamily = {
-  primary: 'Inter',
-  display: 'Sora',
+  identity: {
+    semibold: 'Cinzel_600SemiBold',
+    bold: 'Cinzel_700Bold',
+    extrabold: 'Cinzel_800ExtraBold',
+  },
+  interface: {
+    regular: 'Inter_400Regular',
+    medium: 'Inter_500Medium',
+    semibold: 'Inter_600SemiBold',
+    bold: 'Inter_700Bold',
+    extrabold: 'Inter_800ExtraBold',
+  },
   fallback: 'system-ui',
 } as const;
 
@@ -59,59 +84,79 @@ export const typography: Typography = {
   },
   title: {
     main: {
-      fontFamily: fontFamily.display,
+      fontFamily: fontFamily.interface.bold,
       fontWeight: 700,
       fontSize: 28,
       lineHeight: 34,
     },
     section: {
-      fontFamily: fontFamily.primary,
+      fontFamily: fontFamily.interface.bold,
       fontWeight: 700,
       fontSize: 20,
       lineHeight: 26,
     },
     card: {
-      fontFamily: fontFamily.primary,
+      fontFamily: fontFamily.interface.semibold,
       fontWeight: 600,
       fontSize: 16,
       lineHeight: 22,
     },
   },
+  identity: {
+    logo: {
+      fontFamily: fontFamily.identity.bold,
+      fontWeight: 700,
+      fontSize: 20,
+      lineHeight: 26,
+    },
+    section: {
+      fontFamily: fontFamily.identity.semibold,
+      fontWeight: 600,
+      fontSize: 16,
+      lineHeight: 22,
+    },
+    guardian: {
+      fontFamily: fontFamily.identity.bold,
+      fontWeight: 700,
+      fontSize: 28,
+      lineHeight: 34,
+    },
+  },
   body: {
     default: {
-      fontFamily: fontFamily.primary,
+      fontFamily: fontFamily.interface.regular,
       fontWeight: 400,
       fontSize: 15,
       lineHeight: 22,
     },
     secondary: {
-      fontFamily: fontFamily.primary,
+      fontFamily: fontFamily.interface.regular,
       fontWeight: 400,
       fontSize: 13,
       lineHeight: 19,
     },
   },
   caption: {
-    fontFamily: fontFamily.primary,
+    fontFamily: fontFamily.interface.medium,
     fontWeight: 500,
     fontSize: 12,
     lineHeight: 16,
   },
   button: {
-    fontFamily: fontFamily.primary,
+    fontFamily: fontFamily.interface.bold,
     fontWeight: 700,
     fontSize: 15,
     lineHeight: 20,
   },
   number: {
     highlight: {
-      fontFamily: fontFamily.display,
+      fontFamily: fontFamily.interface.extrabold,
       fontWeight: 800,
       fontSize: 32,
       lineHeight: 38,
     },
     compact: {
-      fontFamily: fontFamily.display,
+      fontFamily: fontFamily.interface.bold,
       fontWeight: 700,
       fontSize: 22,
       lineHeight: 28,
@@ -119,13 +164,13 @@ export const typography: Typography = {
   },
   gamification: {
     level: {
-      fontFamily: fontFamily.display,
+      fontFamily: fontFamily.identity.extrabold,
       fontWeight: 800,
       fontSize: 18,
       lineHeight: 24,
     },
     xp: {
-      fontFamily: fontFamily.display,
+      fontFamily: fontFamily.interface.bold,
       fontWeight: 700,
       fontSize: 14,
       lineHeight: 20,

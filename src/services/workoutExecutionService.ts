@@ -1,6 +1,6 @@
 import { apiClient } from '@/api/apiClient';
 import { getDashboard } from '@/services/dashboardService';
-import { getGamification } from '@/services/gamificationService';
+import { getGamification, type AchievementItem } from '@/services/gamificationService';
 import { getMobileHistory } from '@/services/historyService';
 import { getProfile } from '@/services/profileService';
 import { getMobileWorkouts, type WorkoutStatus } from '@/services/workoutsService';
@@ -39,6 +39,14 @@ export type WorkoutExecutionData = {
     readonly isFinalized: boolean;
   };
   readonly exercises: readonly WorkoutExecutionExercise[];
+};
+
+export type WorkoutCompletionSummary = {
+  readonly xpGained: number;
+  readonly totalXp: number;
+  readonly previousLevel: number;
+  readonly newLevel: number;
+  readonly unlockedAchievements: readonly AchievementItem[];
 };
 
 type ApiRecord = Record<string, unknown>;
@@ -109,9 +117,34 @@ export async function deleteWorkoutSet(workoutSetId: string): Promise<void> {
   await apiClient.delete<unknown>(`/workout-sets/${workoutSetId}`);
 }
 
-export async function finishWorkout(workoutId: string): Promise<void> {
+export async function finishWorkout(workoutId: string): Promise<WorkoutCompletionSummary> {
+  const previousGamification = await getGamification();
+
   await apiClient.post<unknown>(`/workouts/${workoutId}/finish`);
-  await Promise.all([getDashboard(), getGamification(), getMobileHistory(), getMobileWorkouts(), getProfile()]);
+  const nextGamification = await getGamification();
+
+  await Promise.all([getDashboard(), getMobileHistory(), getMobileWorkouts(), getProfile()]);
+
+  return buildCompletionSummary(previousGamification, nextGamification);
+}
+
+function buildCompletionSummary(
+  previousGamification: Awaited<ReturnType<typeof getGamification>>,
+  nextGamification: Awaited<ReturnType<typeof getGamification>>,
+): WorkoutCompletionSummary {
+  const previousUnlockedAchievementIds = new Set(
+    previousGamification.unlockedAchievements.map((achievement) => achievement.id),
+  );
+
+  return {
+    xpGained: Math.max(nextGamification.xp.totalXp - previousGamification.xp.totalXp, 0),
+    totalXp: nextGamification.xp.totalXp,
+    previousLevel: previousGamification.xp.level,
+    newLevel: nextGamification.xp.level,
+    unlockedAchievements: nextGamification.unlockedAchievements.filter(
+      (achievement) => !previousUnlockedAchievementIds.has(achievement.id),
+    ),
+  };
 }
 
 function mapWorkout(response: unknown, status: WorkoutStatus): WorkoutExecutionData['workout'] {

@@ -1,9 +1,7 @@
-import { Image } from 'expo-image';
 import {
   ActivityIndicator,
   Modal,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,26 +10,36 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomNavigation, Button, Card, MetricCard, XPProgress } from '@/components';
+import {
+  BottomNavigation,
+  Button,
+  Card,
+  HomeHeader,
+  HomeHero,
+  QuickActions,
+  TodayWorkoutCard,
+  WeeklyProgress,
+  type HomeQuickAction,
+  type WeeklyProgressDay,
+} from '@/components';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useQuickActions, type QuickActionConfig } from '@/hooks/useQuickActions';
 import type { QuickActionKind } from '@/services/quickActionsService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
-const webContentMaxWidth = spacing[10] * spacing[5];
-const guardianImageSize = componentSizes.avatar.xl + componentSizes.avatar.lg + spacing[12] + spacing[4];
-const compactProgressTrackWidth = spacing[12] + spacing[10];
+const webContentMaxWidth = spacing[10] * spacing[10] + spacing[8];
 
 export default function HomeScreen() {
   const { dashboard, error, isLoading, refetch } = useDashboard();
   const quickActions = useQuickActions(refetch);
+  const weeklyWorkoutProgress = dashboard ? getWeeklyWorkoutProgress(dashboard.weeklyProgress) : undefined;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
-        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        style={styles.scrollView}
       >
         <View style={styles.page}>
           {isLoading ? (
@@ -50,7 +58,7 @@ export default function HomeScreen() {
             </Card>
           ) : null}
 
-          {!isLoading && !error && dashboard ? (
+          {!isLoading && !error && dashboard && weeklyWorkoutProgress ? (
             <>
               {quickActions.successMessage ? (
                 <Card padding={4} style={styles.successCard}>
@@ -58,216 +66,50 @@ export default function HomeScreen() {
                 </Card>
               ) : null}
 
-              <View style={styles.header}>
-                <View style={styles.headerCopy}>
-                  <Text style={styles.eyebrow}>{dashboard.dayLabel}</Text>
-                  <Text style={styles.title}>Boa tarde, {dashboard.userName}</Text>
-                  <Text style={styles.description}>{dashboard.weeklyGoal}</Text>
-                </View>
-                <View style={styles.levelBadge}>
-                  <Text style={styles.levelBadgeText}>Nvl {dashboard.xp.level}</Text>
-                </View>
-              </View>
+              <HomeHeader />
 
-              <Card variant="highlighted" padding={5} style={styles.guardianCardShell}>
-                <View style={styles.guardianAccentBar} />
-                <View style={styles.guardianHeat} />
-                <View style={styles.guardianImageFrame}>
-                  <Image
-                    source={require('@/assets/images/guardian-placeholder.png')}
-                    style={styles.guardianImage}
-                    contentFit="cover"
-                    accessibilityLabel="Placeholder do Guardião"
-                  />
-                </View>
+              <HomeHero
+                dayLabel={dashboard.dayLabel}
+                guardianName={dashboard.guardianName}
+                guardianStatus={dashboard.guardianStatus}
+                xp={getLevelXpSummary(dashboard.xp)}
+              />
 
-                <View style={styles.guardianContent}>
-                  <View style={styles.guardianTextBlock}>
-                    <View style={styles.guardianEyebrowRow}>
-                      <View style={styles.guardianStatusDot} />
-                      <Text style={styles.eyebrow}>Guardião ativo</Text>
-                    </View>
-                    <Text style={styles.guardianTitle}>{dashboard.guardianName}</Text>
-                    <Text style={styles.guardianStatus}>{dashboard.guardianStatus}</Text>
-                  </View>
+              <TodayWorkoutCard
+                detail={dashboard.nextWorkout.detail}
+                estimate={dashboard.nextWorkout.estimate}
+                title={dashboard.nextWorkout.title}
+                volumeText={`${dashboard.metrics.volume.value} ${dashboard.metrics.volume.unit ?? ''}`.trim()}
+              />
 
-                  <View style={styles.guardianMetaRow}>
-                    <View style={styles.guardianMetaItem}>
-                      <Text style={styles.guardianMetaValue}>{dashboard.xp.current}</Text>
-                      <Text style={styles.guardianMetaLabel}>XP atual</Text>
-                    </View>
-                    <View style={styles.guardianMetaDivider} />
-                    <View style={styles.guardianMetaItem}>
-                      <Text style={styles.guardianMetaValue}>{dashboard.xp.next}</Text>
-                      <Text style={styles.guardianMetaLabel}>Próximo nível</Text>
-                    </View>
-                  </View>
+              <QuickActions
+                actions={getHomeQuickActions(dashboard.quickActions)}
+                onActionPress={(action) => {
+                  if (isQuickActionKind(action.id)) {
+                    quickActions.openAction(action.id);
+                  }
+                }}
+              />
 
-                  <XPProgress
-                    currentLevel={dashboard.xp.level}
-                    currentXp={dashboard.xp.current}
-                    xpToNextLevel={dashboard.xp.next}
-                    style={styles.xpProgress}
-                  />
-
-                  <Button title="Iniciar treino" style={styles.guardianButton} />
-                </View>
-              </Card>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Ações rápidas</Text>
-                <View style={styles.quickActionsGrid}>
-                  {dashboard.quickActions.map((action, index) => (
-                    <Pressable
-                      key={action.title}
-                      disabled={!getQuickActionKind(action.title)}
-                      onPress={() => {
-                        const kind = getQuickActionKind(action.title);
-
-                        if (kind) {
-                          quickActions.openAction(kind);
-                        }
-                      }}
-                      style={styles.quickActionPressable}
-                    >
-                    <Card padding={4} style={styles.quickActionCard}>
-                      <View style={styles.quickActionTopRow}>
-                        <View style={styles.quickActionMark}>
-                          <Text style={styles.quickActionMarkText}>{index + 1}</Text>
-                        </View>
-                        <Text style={styles.quickActionHint}>Rápido</Text>
-                      </View>
-                      <View style={styles.quickActionCopy}>
-                        <Text style={styles.cardTitle}>{action.title}</Text>
-                        <Text style={styles.secondaryText}>{action.detail}</Text>
-                      </View>
-                    </Card>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Visão do dia</Text>
-                <View style={styles.metricsGrid}>
-                  <MetricCard
-                    title="Volume"
-                    value={dashboard.metrics.volume.value}
-                    unit={dashboard.metrics.volume.unit}
-                    secondaryText={dashboard.metrics.volume.secondaryText}
-                    accent="volume"
-                    variant="elevated"
-                    style={styles.metricCard}
-                  />
-                  <MetricCard
-                    title="Água"
-                    value={dashboard.metrics.water.value}
-                    unit={dashboard.metrics.water.unit}
-                    secondaryText={dashboard.metrics.water.secondaryText}
-                    accent="water"
-                    progress={dashboard.metrics.water.progress}
-                    style={styles.metricCard}
-                  />
-                  <MetricCard
-                    title="Sono"
-                    value={dashboard.metrics.sleep.value}
-                    unit={dashboard.metrics.sleep.unit}
-                    secondaryText={dashboard.metrics.sleep.secondaryText}
-                    accent="sleep"
-                    progress={dashboard.metrics.sleep.progress}
-                    style={styles.metricCard}
-                  />
-                  <MetricCard
-                    title="Peso"
-                    value={dashboard.metrics.weight.value}
-                    unit={dashboard.metrics.weight.unit}
-                    secondaryText={dashboard.metrics.weight.secondaryText}
-                    accent="weight"
-                    style={styles.metricCard}
-                  />
-                </View>
-              </View>
-
-              <Card padding={5} style={styles.weeklySummaryCard}>
-                <View style={styles.cardStack}>
-                  <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionTitle}>Resumo semanal</Text>
-                    <Text style={styles.sectionMeta}>Meta</Text>
-                  </View>
-                  {dashboard.weeklyProgress.map((item) => (
-                    <View key={item.label} style={styles.progressRow}>
-                      <View style={styles.progressLabelGroup}>
-                        <Text style={styles.cardTitle}>{item.label}</Text>
-                        <Text style={styles.secondaryText}>
-                          {item.current} de {item.target}
-                        </Text>
-                      </View>
-                      <View style={styles.compactProgressTrack}>
-                        <View
-                          style={[
-                            styles.compactProgressFill,
-                            { width: `${getProgressFillPercent(item.current, item.target)}%` },
-                          ]}
-                        />
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </Card>
-
-              <Card padding={5} style={styles.nextWorkoutCard}>
-                <View style={styles.nextWorkout}>
-                  <View style={styles.nextWorkoutCopy}>
-                    <Text style={styles.sectionTitle}>{dashboard.nextWorkout.title}</Text>
-                    <Text style={styles.secondaryText}>{dashboard.nextWorkout.detail}</Text>
-                  </View>
-                  <View style={styles.workoutBadge}>
-                    <Text style={styles.workoutBadgeText}>{dashboard.nextWorkout.estimate}</Text>
-                  </View>
-                </View>
-              </Card>
-
-              <Card variant="elevated" padding={5}>
-                <View style={styles.achievementCard}>
-                  <View style={styles.achievementMark}>
-                    <Text style={styles.achievementMarkText}>XP</Text>
-                  </View>
-                  <View style={styles.achievementCopy}>
-                    <Text style={styles.sectionTitle}>{dashboard.achievement.title}</Text>
-                    <Text style={styles.secondaryText}>{dashboard.achievement.detail}</Text>
-                  </View>
-                  <View style={styles.statusBadge}>
-                    <Text style={styles.statusBadgeText}>{dashboard.achievement.status}</Text>
-                  </View>
-                </View>
-              </Card>
-
-              <Card padding={5}>
-                <View style={styles.cardStack}>
-                  <Text style={styles.sectionTitle}>Atividade recente</Text>
-                  {dashboard.recentActivity.map((activity) => (
-                    <View key={activity.title} style={styles.activityRow}>
-                      <View style={styles.activityIndicator} />
-                      <View style={styles.activityCopy}>
-                        <Text style={styles.cardTitle}>{activity.title}</Text>
-                        <Text style={styles.secondaryText}>{activity.detail}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </Card>
+              <WeeklyProgress
+                current={weeklyWorkoutProgress.current}
+                days={getWeekDayProgress(weeklyWorkoutProgress)}
+                motivation={dashboard.achievement.detail}
+                target={weeklyWorkoutProgress.target}
+              />
             </>
           ) : null}
         </View>
       </ScrollView>
+
       <QuickActionModal
         action={quickActions.activeAction}
         error={quickActions.error}
         isSubmitting={quickActions.isSubmitting}
-        value={quickActions.value}
         onChangeValue={quickActions.setValue}
         onClose={quickActions.closeAction}
         onSubmit={() => void quickActions.submit()}
+        value={quickActions.value}
       />
       <BottomNavigation activeHref="/" />
     </SafeAreaView>
@@ -292,7 +134,7 @@ function QuickActionModal({
   readonly value: string;
 }) {
   return (
-    <Modal animationType="fade" transparent visible={Boolean(action)} onRequestClose={onClose}>
+    <Modal animationType="fade" onRequestClose={onClose} transparent visible={Boolean(action)}>
       <View style={styles.modalOverlay}>
         <Card padding={5} style={styles.modalCard}>
           {action ? (
@@ -318,8 +160,8 @@ function QuickActionModal({
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
               <View style={styles.modalActions}>
-                <Button title="Cancelar" variant="secondary" disabled={isSubmitting} onPress={onClose} />
-                <Button title="Registrar" loading={isSubmitting} onPress={onSubmit} />
+                <Button disabled={isSubmitting} onPress={onClose} title="Cancelar" variant="secondary" />
+                <Button loading={isSubmitting} onPress={onSubmit} title="Registrar" />
               </View>
             </View>
           ) : null}
@@ -336,7 +178,7 @@ function getQuickActionKind(title: string): QuickActionKind | undefined {
     return 'weight';
   }
 
-  if (normalizedTitle.includes('gua')) {
+  if (normalizedTitle.includes('água') || normalizedTitle.includes('agua')) {
     return 'water';
   }
 
@@ -347,12 +189,80 @@ function getQuickActionKind(title: string): QuickActionKind | undefined {
   return undefined;
 }
 
+function isQuickActionKind(id: string): id is QuickActionKind {
+  return id === 'weight' || id === 'water' || id === 'sleep';
+}
+
 function getProgressFillPercent(current: number, target: number): number {
   if (target <= 0) {
     return 0;
   }
 
   return Math.min((current / target) * 100, 100);
+}
+
+function getHomeQuickActions(actions: readonly { readonly title: string; readonly detail: string }[]): readonly HomeQuickAction[] {
+  const weightAction = actions.find((action) => getQuickActionKind(action.title) === 'weight');
+  const waterAction = actions.find((action) => getQuickActionKind(action.title) === 'water');
+  const sleepAction = actions.find((action) => getQuickActionKind(action.title) === 'sleep');
+
+  return [
+    {
+      id: 'new-workout',
+      icon: { ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' },
+      iconFallback: 'T',
+      isDisabled: true,
+      title: 'Novo treino',
+    },
+    {
+      id: 'weight',
+      icon: { ios: 'scalemass', android: 'scale', web: 'scale' },
+      iconFallback: 'kg',
+      title: weightAction?.title ?? 'Registrar peso',
+    },
+    {
+      id: 'water',
+      icon: { ios: 'drop', android: 'water_drop', web: 'water_drop' },
+      iconFallback: 'L',
+      title: waterAction?.title ?? 'Água',
+    },
+    {
+      id: 'sleep',
+      icon: { ios: 'moon', android: 'moon_stars', web: 'moon_stars' },
+      iconFallback: 'Zz',
+      title: sleepAction?.title ?? 'Sono',
+    },
+  ];
+}
+
+function getWeeklyWorkoutProgress(
+  weeklyProgress: readonly { readonly label: string; readonly current: number; readonly target: number }[],
+) {
+  return weeklyProgress.find((item) => item.label.toLowerCase().includes('treino')) ?? {
+    current: 0,
+    target: 0,
+  };
+}
+
+function getWeekDayProgress(progress: { readonly current: number; readonly target: number }): readonly WeeklyProgressDay[] {
+  const days = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+  const completedCount = Math.min(Math.max(Math.floor(progress.current), 0), days.length);
+  const targetIndex = Math.min(Math.max(progress.target - 1, completedCount), days.length - 1);
+
+  return days.map((label, index) => ({
+    label,
+    completed: index < completedCount,
+    current: index === targetIndex && index >= completedCount,
+  }));
+}
+
+function getLevelXpSummary(xp: { readonly level: number; readonly current: number; readonly next: number }) {
+  const completedLevelXp = Math.max(xp.level - 1, 0) * 500;
+  const current = Math.max(xp.current - completedLevelXp, 0);
+  const target = current + Math.max(xp.next, 0);
+  const percent = getProgressFillPercent(current, target);
+
+  return { current, level: xp.level, next: xp.next, percent, target };
 }
 
 const styles = StyleSheet.create({
@@ -365,9 +275,15 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingTop: spacing[8],
-    paddingBottom: componentSizes.bottomNavigation.height + spacing[10],
+    paddingHorizontal: Platform.select({
+      web: spacing[5],
+      default: spacing[4],
+    }),
+    paddingTop: Platform.select({
+      web: spacing[8],
+      default: spacing[5],
+    }),
+    paddingBottom: componentSizes.bottomNavigation.height + spacing[12],
   },
   page: {
     width: '100%',
@@ -375,13 +291,7 @@ const styles = StyleSheet.create({
       web: webContentMaxWidth,
       default: undefined,
     }),
-    gap: spacing[8],
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing[5],
+    gap: spacing[4],
   },
   headerCopy: {
     flex: 1,
@@ -391,136 +301,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.brand.primary,
     textTransform: 'uppercase',
-  },
-  title: {
-    ...typography.title.main,
-    color: colors.text.primary,
-  },
-  description: {
-    ...typography.body.secondary,
-    color: colors.text.secondary,
-  },
-  levelBadge: {
-    minHeight: componentSizes.badge.minHeight,
-    paddingHorizontal: spacing[4],
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.circular,
-    borderWidth: borders.width.default,
-    borderColor: colors.gamification.level,
-    backgroundColor: colors.surface.default,
-  },
-  levelBadgeText: {
-    ...typography.caption,
-    color: colors.gamification.level,
-  },
-  guardianCardShell: {
-    minHeight: Platform.select({
-      web: guardianImageSize - spacing[8],
-      default: guardianImageSize - spacing[6],
-    }),
-    overflow: 'hidden',
-  },
-  guardianAccentBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: spacing[1],
-    backgroundColor: colors.forge.hotOrange,
-  },
-  guardianHeat: {
-    position: 'absolute',
-    top: spacing[4],
-    right: -spacing[10],
-    width: guardianImageSize,
-    height: guardianImageSize,
-    borderRadius: radius.circular,
-    backgroundColor: colors.background.secondary,
-    borderWidth: borders.width.default,
-    borderColor: colors.material.bronze,
-    opacity: 0.72,
-  },
-  guardianImageFrame: {
-    position: 'absolute',
-    right: -spacing[10],
-    bottom: -spacing[8],
-    width: guardianImageSize,
-    height: guardianImageSize,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.circular,
-    borderWidth: borders.width.default,
-    borderColor: colors.material.bronze,
-    backgroundColor: colors.background.secondary,
-    overflow: 'hidden',
-    opacity: 0.94,
-  },
-  guardianImage: {
-    width: '100%',
-    height: '100%',
-  },
-  guardianContent: {
-    width: Platform.select({
-      web: '72%',
-      default: '78%',
-    }),
-    minHeight: Platform.select({
-      web: guardianImageSize - spacing[8],
-      default: guardianImageSize - spacing[6],
-    }),
-    justifyContent: 'space-between',
-    gap: spacing[5],
-  },
-  guardianTextBlock: {
-    gap: spacing[2],
-  },
-  guardianTitle: {
-    ...typography.title.main,
-    color: colors.text.primary,
-  },
-  guardianStatus: {
-    ...typography.body.default,
-    color: colors.text.secondary,
-  },
-  guardianEyebrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  guardianStatusDot: {
-    width: spacing[2],
-    height: spacing[2],
-    borderRadius: radius.circular,
-    backgroundColor: colors.semantic.success,
-  },
-  guardianMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: spacing[5],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[5],
-    borderRadius: radius.lg,
-    borderWidth: borders.width.default,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.default,
-  },
-  guardianMetaItem: {
-    gap: spacing[1],
-  },
-  guardianMetaValue: {
-    ...typography.number.compact,
-    color: colors.text.primary,
-  },
-  guardianMetaLabel: {
-    ...typography.caption,
-    color: colors.text.secondary,
-  },
-  guardianMetaDivider: {
-    width: borders.width.default,
-    alignSelf: 'stretch',
-    backgroundColor: colors.border.default,
   },
   sectionTitle: {
     ...typography.title.section,
@@ -543,189 +323,6 @@ const styles = StyleSheet.create({
     ...typography.body.secondary,
     color: colors.text.secondary,
     textAlign: 'center',
-  },
-  xpProgress: {
-    maxWidth: spacing[12] * spacing[4],
-  },
-  guardianButton: {
-    alignSelf: 'stretch',
-  },
-  section: {
-    gap: spacing[4],
-  },
-  quickActionsGrid: {
-    flexDirection: Platform.select({
-      web: 'row',
-      default: 'column',
-    }),
-    gap: spacing[3],
-  },
-  quickActionPressable: {
-    flex: 1,
-  },
-  quickActionCard: {
-    flex: 1,
-    minHeight: componentSizes.buttonHeight.xl + spacing[10],
-    justifyContent: 'space-between',
-    gap: spacing[5],
-    borderColor: colors.border.default,
-  },
-  quickActionTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[3],
-  },
-  quickActionMark: {
-    width: componentSizes.avatar.sm,
-    height: componentSizes.avatar.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.circular,
-    borderWidth: borders.width.default,
-    borderColor: colors.brand.primary,
-    backgroundColor: colors.surface.default,
-  },
-  quickActionMarkText: {
-    ...typography.caption,
-    color: colors.brand.primary,
-  },
-  quickActionHint: {
-    ...typography.caption,
-    color: colors.text.secondary,
-  },
-  quickActionCopy: {
-    gap: spacing[2],
-  },
-  cardStack: {
-    gap: spacing[5],
-  },
-  cardTitle: {
-    ...typography.title.card,
-    color: colors.text.primary,
-  },
-  metricsGrid: {
-    flexDirection: Platform.select({
-      web: 'row',
-      default: 'column',
-    }),
-    flexWrap: 'wrap',
-    gap: spacing[3],
-  },
-  metricCard: {
-    flexBasis: Platform.select({
-      web: '48%',
-      default: 'auto',
-    }),
-    flexGrow: 1,
-    minHeight: componentSizes.avatar.xl + spacing[10],
-  },
-  weeklySummaryCard: {
-    gap: spacing[4],
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[4],
-  },
-  sectionMeta: {
-    ...typography.caption,
-    color: colors.text.secondary,
-  },
-  nextWorkout: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[5],
-  },
-  nextWorkoutCard: {
-    borderColor: colors.material.steel,
-  },
-  nextWorkoutCopy: {
-    flex: 1,
-    gap: spacing[2],
-  },
-  workoutBadge: {
-    minHeight: componentSizes.chip.height,
-    paddingHorizontal: spacing[3],
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.circular,
-    backgroundColor: colors.surface.default,
-    borderWidth: borders.width.default,
-    borderColor: colors.border.default,
-  },
-  workoutBadgeText: {
-    ...typography.caption,
-    color: colors.text.primary,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[4],
-  },
-  progressLabelGroup: {
-    flex: 1,
-    gap: spacing[1],
-  },
-  compactProgressTrack: {
-    width: compactProgressTrackWidth,
-    height: componentSizes.progressBar.height,
-    borderRadius: radius.circular,
-    backgroundColor: colors.border.default,
-    overflow: 'hidden',
-  },
-  compactProgressFill: {
-    height: componentSizes.progressBar.height,
-    borderRadius: radius.circular,
-    backgroundColor: colors.brand.primary,
-  },
-  achievementCard: {
-    gap: spacing[4],
-  },
-  achievementMark: {
-    width: componentSizes.avatar.md,
-    height: componentSizes.avatar.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.circular,
-    backgroundColor: colors.gamification.achievement,
-  },
-  achievementMarkText: {
-    ...typography.caption,
-    color: colors.text.primary,
-  },
-  achievementCopy: {
-    gap: spacing[2],
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    minHeight: componentSizes.badge.minHeight,
-    paddingHorizontal: spacing[3],
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.circular,
-    borderWidth: borders.width.default,
-    borderColor: colors.gamification.achievement,
-  },
-  statusBadgeText: {
-    ...typography.caption,
-    color: colors.gamification.achievement,
-  },
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  activityIndicator: {
-    width: spacing[2],
-    height: spacing[2],
-    borderRadius: radius.circular,
-    backgroundColor: colors.brand.primary,
-  },
-  activityCopy: {
-    flex: 1,
-    gap: spacing[1],
   },
   successCard: {
     borderColor: colors.semantic.success,

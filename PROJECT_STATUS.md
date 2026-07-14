@@ -4,6 +4,25 @@ Atualizado em: 14/07/2026
 
 ---
 
+# Auditoria de Preparacao para Polimento
+
+Auditoria completa de Backend + Mobile criada em `PROJECT_AUDIT.md`.
+Auditoria visual completa do Mobile criada em `UI_AUDIT.md`.
+
+Resumo da auditoria:
+
+- O nucleo funcional esta integrado: Home, Treinos, Historico, Perfil e Conquistas consomem API real.
+- O fluxo de criar, executar e finalizar treino funciona usando endpoints reais.
+- XP e conquistas reais estao integrados ao Mobile.
+- A Forge API ja possui status explicito de treino, duracao real, finalizacao transacional/idempotente e seed oficial de conquistas.
+- A fase de refinamento visual deve comecar pelos achados P1 de `UI_AUDIT.md`; o P0 de encoding foi tratado nesta revisao de higiene.
+- Antes do polimento visual, prioridades tecnicas recomendadas:
+  - manter a confirmacao de migrations/seed da API em ambientes novos;
+  - testes para XP, conquistas e services/hooks mobile;
+  - contrato real para Guardiao, streaks e progresso parcial de conquistas.
+
+---
+
 # Estado Atual
 
 A fundacao visual do Forge esta implementada no app Expo Router, seguindo os documentos de marca e os tokens de `src/theme`.
@@ -47,9 +66,15 @@ As telas novas usam apenas tokens do tema para cores, espacamentos, tipografia, 
 
 Fontes:
 
-- Tokens de tipografia usam Inter para texto e Sora para titulos/numeros.
-- No Web, `src/global.css` carrega Inter e Sora e e importado em `src/app/_layout.tsx`.
-- Em native, ainda nao ha arquivos de fonte bundled em `assets`; quando houver build nativo real, as fontes devem ser empacotadas via `expo-font`.
+- Tokens de tipografia usam Inter para interface, textos, valores, botoes, formularios, cards e navegacao.
+- Tokens de identidade/gamificacao usam Cinzel com moderacao para logo/nome FORGE, titulos especiais, Guardiao, nivel, rank e conquistas.
+- Fontes carregadas pelo mecanismo oficial `expo-font` em `src/app/_layout.tsx` usando `@expo-google-fonts/inter` e `@expo-google-fonts/cinzel`.
+- Pesos carregados:
+  - Inter: 400, 500, 600, 700 e 800.
+  - Cinzel: 600, 700 e 800.
+- No Web, `src/global.css` tambem importa Inter e Cinzel como apoio.
+- Enquanto as fontes carregam, o layout raiz preserva fallback seguro antes de renderizar as telas.
+- Excecao tecnica: `ThemedText` mantem fonte monoespacada apenas para o tipo `code`.
 
 ---
 
@@ -62,12 +87,19 @@ Componentes atuais:
 - `MetricCard`
 - `XPProgress`
 - `BottomNavigation`
+- `HomeHeader`
+- `HomeHero`
+- `TodayWorkoutCard`
+- `QuickActions`
+- `WeeklyProgress`
+- `ForgeSymbol`
 
 Exports centralizados em `src/components/index.ts`.
 
 Observacao:
 
 - Textos visiveis das telas e componentes foram revisados em portugues com acentuacao em UTF-8, sem alterar nomes de propriedades da API, rotas ou identificadores internos.
+- Revisao de higiene de 14/07/2026 confirmou ausencia de mojibake real em `src`; a unica ocorrencia restante era uma anotacao documental na auditoria visual e foi atualizada.
 
 ---
 
@@ -75,10 +107,14 @@ Observacao:
 
 Home (`/`):
 
-- Guardiao temporario com imagem mockada e card principal refinado visualmente.
-- Card do Guardiao ajustado para melhor aproveitamento de espaco no Web/mobile.
+- Guardiao temporario com imagem mockada em Hero Section sem card.
+- Topo da Home reorganizado como Hero sobre o fundo preto da tela, mantendo logo/cabecalho, data, status do Guardiao, saudacao, frase motivacional, Guardiao, nivel, XP, barra de progresso e XP restante.
+- Hero exibe nivel atual, XP do nivel atual / XP necessario, barra de progresso e texto de XP restante.
+- Botao `Iniciar treino` removido da Hero para evitar disputa de espaco no mobile.
+- Guardiao posicionado com mais destaque a direita, integrado ao fundo com efeitos sutis usando tokens existentes.
 - Nome do usuario, XP, nivel, peso, agua, sono, volume, progresso semanal e treino em andamento vindos do endpoint mobile real.
 - Proximo treino usa `activeWorkout` real; duracao e derivada da quantidade real de exercicios quando o endpoint nao envia duracao textual.
+- A API ja retorna duracao real para treino em andamento quando ha `StartedAt`; manter fallback apenas para compatibilidade com payloads antigos.
 - Atividade recente deixou de usar itens mockados e agora e derivada de treino em andamento, agua, sono e peso retornados pela API.
 - Acoes rapidas com cards mais destacados.
 - Acoes rapidas integradas a API real:
@@ -87,11 +123,10 @@ Home (`/`):
   - Sono: `POST /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}/sleep-records`.
 - Acoes rapidas abrem modal simples com validacao, loading, erro e confirmacao.
 - Apos registrar uma acao rapida, a Home recarrega automaticamente via `useDashboard`.
-- Metricas do dia com melhor proporcao e espacamento.
-- Resumo semanal com hierarquia visual reforcada.
-- Proximo treino.
-- Conquista em progresso.
-- Atividade recente.
+- Card `Treino de hoje` ocupa 100% da largura e usa o proximo treino/treino ativo real retornado pela Home.
+- `Acoes rapidas` usa quatro cards compactos em linha, reaproveitando as acoes reais disponiveis de peso, agua e sono e mantendo o primeiro card visual de treino sem criar fluxo novo.
+- Card `Progresso da semana` ocupa 100% da largura, usa o progresso semanal real de treinos e inclui frase motivacional derivada de dados reais de conquista.
+- Blocos antigos removidos da Home mobile atual: `Visao do dia`, `Resumo semanal`, `Atividade recente` e grid antigo de metricas.
 - Integrada ao hook `useDashboard`, com estados de loading, erro e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/dashboardService.ts`.
 - Registro das acoes rapidas centralizado em `src/services/quickActionsService.ts` e `src/hooks/useQuickActions.ts`.
@@ -100,9 +135,50 @@ Home (`/`):
 - Diferenca de peso normalizada com arredondamento e formato pt-BR antes da exibicao.
 - Auditoria de dados da Home:
   - Dados reais: usuario, gamificacao recebida da API, conquistas desbloqueadas, peso atual/diferenca, agua do dia/meta, sono recente/meta, progresso semanal, volume semanal, treino em andamento e registros das acoes rapidas.
-  - Dados derivados localmente de dados reais: rotulo do dia, status textual do Guardiao, duracao estimada do treino em andamento e atividade recente.
+  - Dados derivados localmente de dados reais: rotulo do dia, status textual do Guardiao, fallback de duracao para payloads antigos e atividade recente.
   - Mock restante: nome/imagem do Guardiao, marcado com TODO em `dashboardService.ts`.
   - Pendencias da API: identidade/status real do Guardiao, imagem do Guardiao e feed dedicado de atividade recente.
+- Sprint Home iniciada em 14/07/2026 com refinamento estrutural sem alterar integracoes:
+  - espacamento geral da tela e respiro do header revisados;
+  - area do Guardiao ganhou proporcao mais dominante e pequenos ajustes de posicionamento;
+  - secoes de acoes rapidas e visao do dia receberam cabecalhos secundarios e melhor alinhamento;
+  - cards de acoes rapidas e metricas ganharam alturas mais padronizadas;
+  - resumo semanal, proximo treino e conquista foram reorganizados em grid responsivo para melhorar hierarquia;
+  - atividade recente recebeu card com mais profundidade e linhas com alinhamento mais limpo;
+  - dados, hooks, services, rotas e contratos da API foram preservados.
+- Refinamento da Hero da Home em 14/07/2026:
+  - removido o card que envolvia Guardiao, nivel, XP e botao;
+  - removidos os blocos separados de `XP atual` e `Proximo nivel`;
+  - mantidos dados reais, imagem temporaria do Guardiao e integracoes atuais;
+  - cards e secoes abaixo da Hero preservados.
+- Correcao responsiva mobile da Home em 14/07/2026:
+  - Hero ajustada para layout em coluna no mobile, evitando sobreposicao entre texto e Guardiao em larguras de 360 a 430 px;
+  - Guardiao deixou de usar posicionamento absoluto no mobile e passou a ocupar fluxo proprio dentro da Hero;
+  - bloco `Visao do dia` foi removido da Home mobile atual para seguir a referencia;
+  - resumo semanal, treino atual, conquista e atividade recente ocupam 100% da largura no mobile;
+  - larguras fixas incompatíveis com celular foram removidas da Hero e dos progressos;
+  - padding inferior aumentado para a bottom navigation fixa nao cobrir o final do conteudo;
+  - layout Web permanece centralizado e limitado.
+- Refatoracao da Home conforme referencia visual em 14/07/2026:
+  - Web larga passa a manter largura maxima mobile, sem virar dashboard desktop;
+  - Logo/cabecalho adicionado acima da Hero;
+  - Hero simplificada para data, status, saudacao do Guardiao, subtitulo, Guardiao, nivel, XP e barra;
+  - `Treino de hoje`, `Acoes rapidas` e `Progresso da semana` viraram as secoes principais abaixo da Hero;
+  - grids/colunas antigos foram removidos da renderizacao da Home;
+  - dados reais, hooks, services, integracoes e backend foram preservados.
+- Reconstrucao visual da Home pela referencia `docs/references/home-mobile-reference.png` em 14/07/2026:
+  - composicao visual antiga da Home foi substituida por componentes dedicados `HomeHeader`, `HomeHero`, `TodayWorkoutCard`, `QuickActions` e `WeeklyProgress`;
+  - Hero ficou sem card, com Guardiao temporario a direita, data, status, saudacao, subtitulo, nivel, XP, barra e XP restante;
+  - cards principais permanecem em largura total dentro de uma largura maxima mobile tambem no Web;
+  - quatro acoes rapidas foram mantidas em uma unica linha, usando dados/acoes reais ja disponiveis;
+  - `BottomNavigation` passou a usar icones via `expo-symbols`, biblioteca ja presente no projeto;
+  - nenhum hook, service, contrato de API ou backend foi alterado.
+- Ajustes visuais pontuais da Home em 14/07/2026:
+  - card `Treino de hoje` corrigido para o estado vazio `Nenhum treino em andamento`, preservando quebra por palavras e usando a largura disponivel do card;
+  - icones de treino e acoes rapidas ganharam tamanho maior, cor primaria e peso visual mais consistente;
+  - acoes rapidas usam equivalentes premium da biblioteca atual: treino, peso, agua e sono;
+  - `BottomNavigation` foi realinhada para uma estrutura unica por item: icone centralizado acima do texto centralizado;
+  - Hero, hooks, services, contratos de API, backend e dados reais foram preservados.
 
 Configuracao de API:
 
@@ -119,7 +195,7 @@ Treinos (`/workouts`):
 - Header com acao `Novo treino`.
 - Card de treino do dia/em andamento destacado quando a API retornar `activeWorkout`.
 - Lista de treinos salvos vinda da API.
-- Cada card exibe nome, grupos musculares, duracao estimada e quantidade de exercicios.
+- Cada card exibe nome, grupos musculares, duracao e quantidade de exercicios.
 - Botoes `Iniciar treino` no destaque e nos cards de treino.
 - Botao `Novo treino` cria um treino real via `POST /api/workouts` usando `EXPO_PUBLIC_USER_PROFILE_ID`.
 - Fluxo `/workouts/new` lista exercicios globais e customizados disponiveis para o usuario via `GET /api/exercises`.
@@ -132,6 +208,12 @@ Treinos (`/workouts`):
 - Execucao permite editar e excluir series registradas usando `PUT /api/workout-sets/{id}` e `DELETE /api/workout-sets/{id}`.
 - Execucao bloqueia criacao, edicao, exclusao e finalizacao quando o status mobile do treino e `completed`.
 - Finalização usa `POST /api/workouts/{id}/finish` e força recarga dos dados reais de Home, Treinos, Histórico, Perfil e Conquistas após sucesso.
+- Apos finalizar com sucesso, a tela exibe modal de conclusao antes de navegar para Historico.
+- Modal de conclusao usa dados reais da API comparando gamificacao antes/depois da finalizacao:
+  - XP ganho;
+  - XP total;
+  - nivel anterior e novo nivel;
+  - conquistas desbloqueadas nesta finalizacao, ocultando a secao quando nao houver novas conquistas.
 - Estados visuais: disponivel, em andamento e concluido.
 - Integrada ao hook `useWorkouts`, com estados de loading, erro, vazio e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/workoutsService.ts`.
@@ -144,7 +226,7 @@ Configuracao de API para Treinos:
 
 - `EXPO_PUBLIC_USER_PROFILE_ID`: perfil usado para montar as rotas mobile por usuario.
 - `EXPO_PUBLIC_WORKOUTS_ENDPOINT`: endpoint opcional de Treinos; padrao atual: `/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/workouts`.
-- Nao ha campos mockados na tela Treinos; a duracao estimada vem do endpoint mobile.
+- Nao ha campos mockados na tela Treinos; `durationMinutes`/`estimatedDurationMinutes` vem do endpoint mobile e agora e baseado em tempo real na API.
 - O detalhe de treino usa a rota existente `/api/workouts/{id}`; campos nao presentes nesse contrato nao sao mockados.
 - A execucao usa as rotas existentes `/api/workouts/{id}`, `/api/workouts/{id}/exercises`, `/api/exercises`, `/api/workout-exercises/{workoutExerciseId}/sets`, `/api/workout-sets/{id}` e `/api/workouts/{id}/finish`.
 - Descanso nao existe no contrato atual de series; por isso nao e exibido nem mockado.
@@ -153,6 +235,7 @@ Historico (`/history`):
 
 - Resumo de treinos, tempo total e volume semanal.
 - Lista cronologica dos ultimos treinos vinda da API.
+- Tempo total e duracao dos treinos agora usam duracao real calculada pela Forge API a partir de `StartedAt` e `FinishedAt`.
 - Integrada ao hook `useHistory`, com estados de loading, erro, vazio e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/historyService.ts`.
 
@@ -171,7 +254,8 @@ Conquistas (`/achievements`):
 - XP do usuario vindo de `GET /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}/xp`.
 - Integrada ao hook `useGamification`, com estados de loading, erro, vazio e sucesso.
 - Consumo centralizado em `src/services/gamificationService.ts`.
-- Sem mocks de conquistas; ambiente sem catalogo exibe estado vazio.
+- Sem mocks de conquistas; ambiente sem catalogo exibe estado vazio, mas a Forge API agora possui seed oficial para ambientes novos.
+- A Forge API possui seed oficial idempotente com 11 conquistas iniciais; ambientes novos devem receber catalogo ao subir a API.
 
 Perfil (`/profile`):
 
@@ -226,6 +310,7 @@ Resultados da ultima validacao:
 
 - TypeScript sem erros.
 - Lint sem erros.
+- Web respondendo `200 OK` em `http://localhost:8082/workouts/test-workout-id/execute` apos implementacao do modal de conclusao.
 - Web respondendo `200 OK` em `http://localhost:8082/workouts`.
 - Web respondendo `200 OK` em `http://localhost:8082/workouts/test-workout-id`, validando a rota dinamica de treino.
 - Web respondendo `200 OK` em `http://localhost:8082/profile`.
@@ -257,12 +342,115 @@ Observacao:
 
 - `/explore` nao faz parte da bottom navigation principal e foi mantida como rota neutra para experimentos futuros.
 
+## Revisao de Higiene - 14/07/2026
+
+Itens executados:
+
+- Busca por mojibake/encoding em `src`, `PROJECT_STATUS.md`, `PROJECT_AUDIT.md` e `UI_AUDIT.md` sem ocorrencias restantes.
+- `UI_AUDIT.md` atualizado para marcar o P0 de encoding como resolvido.
+- `PROJECT_AUDIT.md` atualizado para registrar o modal de conclusao de treino como implementado e reclassificar encoding como manutencao.
+- `PROJECT_STATUS.md` atualizado para remover encoding como pendencia ativa e manter os proximos passos reais de polimento.
+- Confirmacao backend em ambiente limpo registrada no status da Forge API:
+  - migrations aplicadas do zero em banco temporario;
+  - seed oficial retornando 11 conquistas;
+  - banco temporario removido apos validacao.
+- Validacao final:
+  - `npx.cmd tsc --noEmit`: sucesso;
+  - `npm.cmd run lint`: sucesso;
+  - `npm.cmd run web -- --port 8082`: Web respondeu `200 OK` em `http://localhost:8082`.
+
+Validacao da Sprint Home em 14/07/2026:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- `npm.cmd run web -- --port 8082`: Web respondeu `200 OK` em `http://localhost:8082`.
+
+Validacao do refinamento da Hero da Home em 14/07/2026:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- `npm.cmd run web -- --port 8082`: Web respondeu `200 OK` em `http://localhost:8082`.
+
+Validacao da responsividade mobile da Home em 14/07/2026:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- `npm.cmd run web -- --port 8082`: Web respondeu `200 OK` em `http://localhost:8082`.
+- Ajustes revisados para os alvos 360 px, 390 px, 430 px e largura Web atual; tentativa de screenshot headless por Edge/Chrome falhou no ambiente por erro de GPU do navegador, sem erro da aplicacao.
+
+Validacao da refatoracao da Home conforme referencia em 14/07/2026:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- `npm.cmd run web -- --port 8082`: Web respondeu `200 OK` em `http://localhost:8082`.
+- Teste automatizado por screenshots em 360 px, 390 px, 430 px e Web larga foi tentado com Chrome/Edge headless, mas o navegador local falhou por GPU/timeout no ambiente; revisar visualmente no DevTools local nessas larguras.
+
+Validacao da reconstrucao visual da Home com componentes dedicados em 14/07/2026:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- `npm.cmd run web -- --port 8082`: Web respondeu `200 OK` em `http://localhost:8082`.
+- Chrome headless gerou apenas paginas de erro `ERR_CONNECTION_REFUSED` durante a captura automatizada de viewports neste ambiente; validar visualmente no DevTools em 360 px, 390 px, 412 px, 430 px e Web larga.
+
+Validacao dos ajustes visuais pontuais da Home em 14/07/2026:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- `npm.cmd run web`: Expo iniciou e ficou aguardando em `http://localhost:8081`.
+
+Padronizacao tipografica Cinzel + Inter em 14/07/2026:
+
+- `src/theme/typography.ts` passou a expor:
+  - `typography.identity.logo`;
+  - `typography.identity.section`;
+  - `typography.identity.guardian`;
+  - `typography.title.*` em Inter;
+  - `typography.number.*` em Inter;
+  - `typography.gamification.level` em Cinzel;
+  - `typography.gamification.xp` em Inter.
+- Design Preview atualizada para demonstrar Cinzel em identidade/titulos especiais/gamificacao e Inter em interface/corpo/labels/numeros/botoes.
+- Home, Treinos, Execucao de treino, Historico, Conquistas, Perfil, modais e componentes compartilhados seguem consumindo tokens tipograficos.
+- Validacao:
+  - `npx.cmd tsc --noEmit`: sucesso.
+  - `npm.cmd run lint`: sucesso.
+  - `npm.cmd run web -- --port 8082`: Expo iniciou e ficou aguardando em `http://localhost:8082`.
+
+---
+
+# Auditoria Visual
+
+Arquivo criado:
+
+- `UI_AUDIT.md`
+
+Escopo analisado:
+
+- Home.
+- Treinos.
+- Criacao de treino.
+- Detalhe de treino.
+- Execucao de treino.
+- Historico.
+- Perfil.
+- Conquistas.
+
+Principais prioridades visuais antes do refinamento:
+
+- Padronizar estados de loading, erro, vazio e sucesso.
+- Criar componentes reutilizaveis para header, scaffold, status pills, stat tiles, inputs e feedback.
+- Revisar a Execucao de treino como fluxo operacional com header/footer mais ergonomicos.
+- Adicionar icones na bottom navigation e nas acoes rapidas.
+- Revisar contraste, acessibilidade e estados bloqueados.
+- Definir roadmap de animacoes para progresso, XP, conquistas e transicao entre exercicios.
+
 ---
 
 # Proximos Passos
 
+- Executar Fase 1 do `UI_AUDIT.md`: contraste, estados padronizados e CTAs por status.
 - Refinar visual das telas em dispositivo real.
-- Implementar icones oficiais da bottom navigation.
-- Definir fluxos reais de criacao/edicao.
+- Implementar icones oficiais da bottom navigation e das acoes rapidas.
+- Extrair componentes repetidos antes de refinamentos visuais maiores.
+- Reprojetar a Execucao de treino como ferramenta operacional.
 - Completar o contrato real do endpoint mobile da Home para remover o TODO de Guardiao.
 - Expandir gamificacao quando a API expuser streaks, progresso parcial por conquista e dados especificos do Guardiao.

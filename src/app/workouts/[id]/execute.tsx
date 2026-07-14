@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -14,7 +15,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomNavigation, Button, Card } from '@/components';
 import { useWorkoutExecution } from '@/hooks/useWorkoutExecution';
-import type { WorkoutExecutionExercise, WorkoutExecutionSet } from '@/services/workoutExecutionService';
+import type {
+  WorkoutCompletionSummary,
+  WorkoutExecutionExercise,
+  WorkoutExecutionSet,
+} from '@/services/workoutExecutionService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
 const webContentMaxWidth = spacing[10] * spacing[5];
@@ -46,6 +51,7 @@ export default function WorkoutExecutionScreen() {
   const [draftWeight, setDraftWeight] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
   const [draftError, setDraftError] = useState<string>();
+  const [completionSummary, setCompletionSummary] = useState<WorkoutCompletionSummary>();
 
   async function handleAddSet(exercise: WorkoutExecutionExercise) {
     const repetitions = Number(draftRepetitions.replace(',', '.'));
@@ -75,11 +81,16 @@ export default function WorkoutExecutionScreen() {
       return;
     }
 
-    const finished = await finish();
+    const summary = await finish();
 
-    if (finished) {
-      router.replace('/history' as Href);
+    if (summary) {
+      setCompletionSummary(summary);
     }
+  }
+
+  function handleCloseCompletionModal() {
+    setCompletionSummary(undefined);
+    router.replace('/history' as Href);
   }
 
   return (
@@ -233,8 +244,81 @@ export default function WorkoutExecutionScreen() {
           ) : null}
         </View>
       </ScrollView>
+      <WorkoutCompletionModal
+        onClose={handleCloseCompletionModal}
+        summary={completionSummary}
+      />
       <BottomNavigation activeHref="/workouts" />
     </SafeAreaView>
+  );
+}
+
+function WorkoutCompletionModal({
+  onClose,
+  summary,
+}: {
+  readonly onClose: () => void;
+  readonly summary?: WorkoutCompletionSummary;
+}) {
+  const leveledUp = summary ? summary.newLevel > summary.previousLevel : false;
+
+  return (
+    <Modal animationType="fade" transparent visible={Boolean(summary)} onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <Card padding={5} style={styles.completionModalCard}>
+          {summary ? (
+            <View style={styles.completionContent}>
+              <View style={styles.completionHeader}>
+                <Text style={styles.eyebrow}>Treino concluído</Text>
+                <Text style={styles.completionTitle}>Resumo da evolução</Text>
+                <Text style={styles.secondaryText}>
+                  Dados atualizados pela Forge API após a finalização.
+                </Text>
+              </View>
+
+              <View style={styles.completionStatsGrid}>
+                <CompletionStat label="XP ganho" value={`+${summary.xpGained}`} />
+                <CompletionStat label="XP total" value={summary.totalXp} />
+              </View>
+
+              <View style={styles.levelSummary}>
+                <Text style={styles.levelTitle}>Nível</Text>
+                <Text style={styles.secondaryText}>
+                  {leveledUp
+                    ? `${summary.previousLevel} → ${summary.newLevel}`
+                    : `Permaneceu no nível ${summary.newLevel}`}
+                </Text>
+              </View>
+
+              {summary.unlockedAchievements.length > 0 ? (
+                <View style={styles.completionSection}>
+                  <Text style={styles.achievementSectionTitle}>Conquistas desbloqueadas</Text>
+                  <View style={styles.unlockedAchievementList}>
+                    {summary.unlockedAchievements.map((achievement) => (
+                      <View key={achievement.id} style={styles.unlockedAchievementItem}>
+                        <Text style={styles.achievementTitle}>{achievement.name}</Text>
+                        <Text style={styles.secondaryText}>{achievement.description}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              <Button title="Ver histórico" onPress={onClose} />
+            </View>
+          ) : null}
+        </Card>
+      </View>
+    </Modal>
+  );
+}
+
+function CompletionStat({ label, value }: { readonly label: string; readonly value: string | number }) {
+  return (
+    <View style={styles.completionStat}>
+      <Text style={styles.completionStatValue}>{value}</Text>
+      <Text style={styles.completionStatLabel}>{label}</Text>
+    </View>
   );
 }
 
@@ -533,6 +617,18 @@ const styles = StyleSheet.create({
     ...typography.title.card,
     color: colors.text.primary,
   },
+  levelTitle: {
+    ...typography.gamification.level,
+    color: colors.gamification.level,
+  },
+  achievementSectionTitle: {
+    ...typography.identity.section,
+    color: colors.text.primary,
+  },
+  achievementTitle: {
+    ...typography.identity.section,
+    color: colors.text.primary,
+  },
   secondaryText: {
     ...typography.body.secondary,
     color: colors.text.secondary,
@@ -644,6 +740,73 @@ const styles = StyleSheet.create({
       web: 'flex-start',
       default: 'stretch',
     }),
+  },
+  modalOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing[4],
+    backgroundColor: 'rgba(0, 0, 0, 0.64)',
+  },
+  completionModalCard: {
+    width: '100%',
+    maxWidth: spacing[10] * spacing[4],
+  },
+  completionContent: {
+    gap: spacing[5],
+  },
+  completionHeader: {
+    gap: spacing[2],
+  },
+  completionTitle: {
+    ...typography.identity.guardian,
+    color: colors.text.primary,
+  },
+  completionStatsGrid: {
+    flexDirection: Platform.select({
+      web: 'row',
+      default: 'column',
+    }),
+    gap: spacing[3],
+  },
+  completionStat: {
+    flex: 1,
+    gap: spacing[1],
+    padding: spacing[3],
+    borderRadius: radius.lg,
+    borderWidth: borders.width.default,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.default,
+  },
+  completionStatValue: {
+    ...typography.number.compact,
+    color: colors.text.primary,
+  },
+  completionStatLabel: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  levelSummary: {
+    gap: spacing[1],
+    padding: spacing[4],
+    borderRadius: radius.lg,
+    borderWidth: borders.width.default,
+    borderColor: colors.gamification.level,
+    backgroundColor: colors.surface.default,
+  },
+  completionSection: {
+    gap: spacing[3],
+  },
+  unlockedAchievementList: {
+    gap: spacing[3],
+  },
+  unlockedAchievementItem: {
+    gap: spacing[1],
+    padding: spacing[3],
+    borderRadius: radius.lg,
+    borderWidth: borders.width.default,
+    borderColor: colors.gamification.achievement,
+    backgroundColor: colors.surface.default,
   },
   stateCard: {
     alignItems: 'center',

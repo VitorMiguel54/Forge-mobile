@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   sectionTitle: {
-    ...typography.title.section,
+    ...typography.identity.section,
     color: colors.text.primary,
   },
   stateCard: {
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     gap: spacing[1],
   },
   cardTitle: {
-    ...typography.title.card,
+    ...typography.identity.section,
     color: colors.text.primary,
   },
   rarityLabel: {

@@ -7,6 +7,7 @@ import {
   finishWorkout,
   getWorkoutExecution,
   updateWorkoutSet,
+  type WorkoutCompletionSummary,
   type WorkoutExecutionData,
   type WorkoutExecutionSet,
   type WorkoutExecutionSetInput,
@@ -28,7 +29,7 @@ export type UseWorkoutExecutionResult = {
   readonly updateSet: (setId: string, input: WorkoutExecutionSetInput) => Promise<void>;
   readonly deleteSet: (setId: string) => Promise<void>;
   readonly registerNewSet: (workoutExerciseId: string, input: WorkoutExecutionSetInput) => Promise<void>;
-  readonly finish: () => Promise<boolean>;
+  readonly finish: () => Promise<WorkoutCompletionSummary | undefined>;
 };
 
 export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResult {
@@ -148,12 +149,12 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
   const finish = useCallback(async () => {
     if (!workoutId) {
       setActionError('Treino não informado.');
-      return false;
+      return undefined;
     }
 
     if (isFinalized) {
       setActionError('Este treino já está finalizado.');
-      return false;
+      return undefined;
     }
 
     setIsFinishing(true);
@@ -161,12 +162,12 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
     setSuccessMessage(undefined);
 
     try {
-      await finishWorkout(workoutId);
+      const completionSummary = await finishWorkout(workoutId);
       setSuccessMessage('Treino finalizado. Home, Treinos, Histórico, Perfil e Conquistas foram atualizados pela API.');
-      return true;
+      return completionSummary;
     } catch (requestError) {
       setActionError(getErrorMessage(requestError));
-      return false;
+      return undefined;
     } finally {
       setIsFinishing(false);
     }

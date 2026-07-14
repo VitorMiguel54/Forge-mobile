@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.default,
   },
   levelBadgeText: {
-    ...typography.caption,
+    ...typography.gamification.level,
     color: colors.gamification.level,
   },
   section: {

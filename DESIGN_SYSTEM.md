@@ -134,8 +134,8 @@ O uso de azul, bronze, dourado e laranja deve ser pontual e significativo.
 
 | Papel | Familia | Status | Uso |
 | --- | --- | --- | --- |
-| Principal | `Inter` | Provisorio v1 | Interface, textos, labels, botoes e navegacao. |
-| Destaque | `Sora` | Provisorio v1 | Numeros fortes, nivel, XP, titulos especiais e momentos de progresso. |
+| Interface | `Inter` | Definitivo v1 | Interface, textos, labels, numeros, botoes, formularios, cards e navegacao. |
+| Identidade | `Cinzel` | Definitivo v1 | Logo/nome FORGE, titulos especiais, nivel, rank, Guardiao e conquistas. Usar com moderacao. |
 | Fallback | System sans-serif | Definitivo | Fallback nativo Android/iOS quando a fonte nao estiver carregada. |
 
 ## Pesos
@@ -146,29 +146,34 @@ O uso de azul, bronze, dourado e laranja deve ser pontual e significativo.
 | `font.weight.medium` | 500 | Definitivo | Labels, legendas e apoio. |
 | `font.weight.semibold` | 600 | Definitivo | Titulos de card e destaques moderados. |
 | `font.weight.bold` | 700 | Definitivo | Titulos e botoes. |
-| `font.weight.extrabold` | 800 | Definitivo | Numeros em destaque, XP e nivel. |
+| `font.weight.extrabold` | 800 | Definitivo | Numeros em destaque e nivel. |
 
 ## Escala Tipografica
 
 | Token | Familia | Peso | Tamanho | Altura de linha | Status | Uso |
 | --- | --- | --- | --- | --- | --- | --- |
-| `typography.title.main` | Sora | 700 | 28 | 34 | Definitivo v1 | Titulo principal, saudacao e contexto forte. |
+| `typography.title.main` | Inter | 700 | 28 | 34 | Definitivo v1 | Titulo principal, saudacao e contexto forte. |
 | `typography.title.section` | Inter | 700 | 20 | 26 | Definitivo v1 | Titulos de secao. |
 | `typography.title.card` | Inter | 600 | 16 | 22 | Definitivo v1 | Titulos internos de cards. |
+| `typography.identity.logo` | Cinzel | 700 | 20 | 26 | Definitivo v1 | Logo/nome FORGE. |
+| `typography.identity.section` | Cinzel | 600 | 16 | 22 | Definitivo v1 | Titulos especiais como TREINO DE HOJE, ACOES RAPIDAS e PROGRESSO DA SEMANA. |
+| `typography.identity.guardian` | Cinzel | 700 | 28 | 34 | Definitivo v1 | Titulos ligados ao Guardiao e momentos de evolucao. |
 | `typography.body.default` | Inter | 400 | 15 | 22 | Definitivo v1 | Texto padrao. |
 | `typography.body.secondary` | Inter | 400 | 13 | 19 | Definitivo v1 | Texto de apoio e metadados. |
 | `typography.caption` | Inter | 500 | 12 | 16 | Definitivo v1 | Legendas, badges e timestamps. |
 | `typography.button` | Inter | 700 | 15 | 20 | Definitivo v1 | Texto de botoes. |
-| `typography.number.highlight` | Sora | 800 | 32 | 38 | Definitivo v1 | Numero principal de cards e metricas. |
-| `typography.number.compact` | Sora | 700 | 22 | 28 | Definitivo v1 | Numeros medios em cards compactos. |
-| `typography.gamification.level` | Sora | 800 | 18 | 24 | Definitivo v1 | Nivel e rank. |
-| `typography.gamification.xp` | Sora | 700 | 14 | 20 | Definitivo v1 | XP atual e XP necessario. |
+| `typography.number.highlight` | Inter | 800 | 32 | 38 | Definitivo v1 | Numero principal de cards e metricas. |
+| `typography.number.compact` | Inter | 700 | 22 | 28 | Definitivo v1 | Numeros medios em cards compactos. |
+| `typography.gamification.level` | Cinzel | 800 | 18 | 24 | Definitivo v1 | Nivel e rank. |
+| `typography.gamification.xp` | Inter | 700 | 14 | 20 | Definitivo v1 | XP atual e XP necessario. |
 
 ## Regras
 
 - Nenhum componente deve declarar fonte, tamanho, peso ou line-height diretamente.
 - Todos os textos devem consumir tokens.
-- Numeros importantes usam `Sora`.
+- `Cinzel` deve aparecer com moderacao, em aproximadamente 10-15% da interface.
+- `Cinzel` nao deve ser usado em textos longos ou muito pequenos.
+- Numeros, metricas, botoes, formularios, cards e navegacao usam `Inter`.
 - Textos funcionais usam `Inter`.
 - A escala precisa ser validada em Android e iOS antes de congelar como versao final.
 
@@ -596,8 +601,8 @@ Estas regras sao definitivas.
 # 16. Decisoes Ainda em Aberto
 
 - Validar contraste real da paleta em Android e iOS.
-- Validar se `Inter` e `Sora` serao mantidas ou substituidas por fontes nativas.
-- Validar leitura de `Sora` em numeros pequenos.
+- Confirmar leitura de `Cinzel` apenas nos contextos especiais definidos.
+- Manter `Inter` como base da interface em Android, iOS e Web.
 - Validar intensidade das sombras em dispositivos Android intermediarios.
 - Confirmar `lucide-react-native` como biblioteca oficial.
 - Definir duracoes exatas de microinteracoes.
