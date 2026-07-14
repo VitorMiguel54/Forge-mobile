@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -27,6 +28,7 @@ export default function WorkoutExecutionScreen() {
     actionError,
     currentExerciseIndex,
     error,
+    deleteSet,
     finish,
     goToNextExercise,
     goToPreviousExercise,
@@ -34,10 +36,10 @@ export default function WorkoutExecutionScreen() {
     isLoading,
     isRegistering,
     refetch,
-    registerExistingSet,
     registerNewSet,
     registeredSetIds,
     successMessage,
+    updateSet,
   } = useWorkoutExecution(workoutId);
   const currentExercise = execution?.exercises[currentExerciseIndex];
   const [draftRepetitions, setDraftRepetitions] = useState('');
@@ -67,6 +69,12 @@ export default function WorkoutExecutionScreen() {
   }
 
   async function handleFinish() {
+    const confirmed = await confirmAction('Finalizar treino?', 'Depois de finalizado, o treino não poderá ser alterado.');
+
+    if (!confirmed) {
+      return;
+    }
+
     const finished = await finish();
 
     if (finished) {
@@ -155,10 +163,12 @@ export default function WorkoutExecutionScreen() {
                           currentExercise.sets.map((set) => (
                             <WorkoutSetRow
                               key={set.id}
+                              isFinalized={execution.workout.isFinalized}
                               isRegistered={registeredSetIds.has(set.id)}
                               isRegistering={isRegistering}
                               set={set}
-                              onRegister={() => void registerExistingSet(set)}
+                              onDelete={(setId) => void deleteSet(setId)}
+                              onUpdate={(setId, input) => void updateSet(setId, input)}
                             />
                           ))
                         ) : (
@@ -194,6 +204,7 @@ export default function WorkoutExecutionScreen() {
                           />
                           <Button
                             title="Registrar série"
+                            disabled={execution.workout.isFinalized}
                             loading={isRegistering}
                             onPress={() => void handleAddSet(currentExercise)}
                           />
@@ -204,6 +215,7 @@ export default function WorkoutExecutionScreen() {
 
                   <Button
                     title="Finalizar treino"
+                    disabled={execution.workout.isFinalized}
                     loading={isFinishing}
                     style={styles.finishButton}
                     onPress={() => void handleFinish()}
@@ -261,16 +273,68 @@ function ExerciseNavigator({
 }
 
 function WorkoutSetRow({
+  isFinalized,
   isRegistered,
   isRegistering,
-  onRegister,
+  onDelete,
+  onUpdate,
   set,
 }: {
+  readonly isFinalized: boolean;
   readonly isRegistered: boolean;
   readonly isRegistering: boolean;
-  readonly onRegister: () => void;
+  readonly onDelete: (setId: string) => void;
+  readonly onUpdate: (
+    setId: string,
+    input: {
+      readonly setNumber: number;
+      readonly repetitions: number;
+      readonly weight: number;
+      readonly notes?: string;
+    },
+  ) => void;
   readonly set: WorkoutExecutionSet;
 }) {
+  const [setNumber, setSetNumber] = useState(String(set.setNumber));
+  const [repetitions, setRepetitions] = useState(String(set.repetitions));
+  const [weight, setWeight] = useState(String(set.weight));
+  const [notes, setNotes] = useState(set.notes ?? '');
+  const [rowError, setRowError] = useState<string>();
+
+  async function handleDelete() {
+    const confirmed = await confirmAction('Excluir série?', 'A série será removida do treino.');
+
+    if (confirmed) {
+      onDelete(set.id);
+    }
+  }
+
+  function handleUpdate() {
+    const nextSetNumber = Number(setNumber.replace(',', '.'));
+    const nextRepetitions = Number(repetitions.replace(',', '.'));
+    const nextWeight = Number(weight.replace(',', '.'));
+
+    if (
+      !Number.isFinite(nextSetNumber) ||
+      nextSetNumber <= 0 ||
+      !Number.isFinite(nextRepetitions) ||
+      nextRepetitions <= 0 ||
+      !Number.isFinite(nextWeight) ||
+      nextWeight < 0
+    ) {
+      setRowError('Informe série, repetições e carga válidas.');
+      return;
+    }
+
+    setRowError(undefined);
+    onUpdate(set.id, {
+      setNumber: nextSetNumber,
+      repetitions: nextRepetitions,
+      weight: nextWeight,
+      notes,
+    });
+  }
+
   return (
     <Card padding={4} style={styles.setCard}>
       <View style={styles.setHeader}>
@@ -287,12 +351,32 @@ function WorkoutSetRow({
 
       {set.notes ? <Text style={styles.secondaryText}>{set.notes}</Text> : null}
 
-      <Button
-        title={isRegistered ? 'Registrar novamente' : 'Registrar execução'}
-        variant="secondary"
-        loading={isRegistering}
-        onPress={onRegister}
-      />
+      <View style={styles.editSetGrid}>
+        <LabeledInput label="Série" value={setNumber} onChangeText={setSetNumber} />
+        <LabeledInput label="Repetições" value={repetitions} onChangeText={setRepetitions} />
+        <LabeledInput label="Carga" value={weight} onChangeText={setWeight} />
+      </View>
+      <LabeledInput label="Observações" value={notes} onChangeText={setNotes} keyboardType="default" />
+
+      {rowError ? <Text style={styles.errorText}>{rowError}</Text> : null}
+
+      <View style={styles.setActions}>
+        <Button
+          title={isRegistered ? 'Salvar novamente' : 'Salvar série'}
+          variant="secondary"
+          disabled={isFinalized}
+          loading={isRegistering}
+          onPress={handleUpdate}
+          style={styles.setActionButton}
+        />
+        <Button
+          title="Excluir"
+          variant="outline"
+          disabled={isFinalized}
+          onPress={() => void handleDelete()}
+          style={styles.setActionButton}
+        />
+      </View>
     </Card>
   );
 }
@@ -324,6 +408,19 @@ function LabeledInput({
 
 function getNextSetNumber(sets: readonly WorkoutExecutionSet[]): number {
   return sets.reduce((maxSetNumber, set) => Math.max(maxSetNumber, set.setNumber), 0) + 1;
+}
+
+function confirmAction(title: string, message: string): Promise<boolean> {
+  if (Platform.OS === 'web') {
+    return Promise.resolve(globalThis.confirm(`${title}\n\n${message}`));
+  }
+
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Confirmar', style: 'destructive', onPress: () => resolve(true) },
+    ]);
+  });
 }
 
 function formatWeight(weight: number): string {
@@ -485,6 +582,27 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: spacing[3],
+  },
+  editSetGrid: {
+    flexDirection: Platform.select({
+      web: 'row',
+      default: 'column',
+    }),
+    gap: spacing[3],
+  },
+  setActions: {
+    flexDirection: Platform.select({
+      web: 'row',
+      default: 'column',
+    }),
+    gap: spacing[3],
+  },
+  setActionButton: {
+    flex: 1,
+  },
+  errorText: {
+    ...typography.body.secondary,
+    color: colors.semantic.error,
   },
   emptySetsCard: {
     alignItems: 'center',

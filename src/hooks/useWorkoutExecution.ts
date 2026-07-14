@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ApiError } from '@/api/apiClient';
 import {
   createWorkoutSet,
+  deleteWorkoutSet,
   finishWorkout,
   getWorkoutExecution,
   updateWorkoutSet,
@@ -24,7 +25,8 @@ export type UseWorkoutExecutionResult = {
   readonly refetch: () => Promise<void>;
   readonly goToNextExercise: () => void;
   readonly goToPreviousExercise: () => void;
-  readonly registerExistingSet: (set: WorkoutExecutionSet) => Promise<void>;
+  readonly updateSet: (setId: string, input: WorkoutExecutionSetInput) => Promise<void>;
+  readonly deleteSet: (setId: string) => Promise<void>;
   readonly registerNewSet: (workoutExerciseId: string, input: WorkoutExecutionSetInput) => Promise<void>;
   readonly finish: () => Promise<boolean>;
 };
@@ -40,6 +42,7 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
   const [successMessage, setSuccessMessage] = useState<string>();
   const [registeredSetIds, setRegisteredSetIds] = useState<ReadonlySet<string>>(new Set());
   const missingWorkoutIdError = workoutId ? undefined : 'Treino não informado.';
+  const isFinalized = execution?.workout.isFinalized ?? false;
 
   const loadExecution = useCallback(async () => {
     if (!workoutId) {
@@ -63,30 +66,67 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
     }
   }, [workoutId]);
 
-  const registerExistingSet = useCallback(async (set: WorkoutExecutionSet) => {
-    setIsRegistering(true);
-    setActionError(undefined);
-    setSuccessMessage(undefined);
+  const updateSet = useCallback(
+    async (setId: string, input: WorkoutExecutionSetInput) => {
+      if (isFinalized) {
+        setActionError('Treino finalizado não permite alterações.');
+        return;
+      }
 
-    try {
-      const updatedSet = await updateWorkoutSet(set.id, {
-        setNumber: set.setNumber,
-        repetitions: set.repetitions,
-        weight: set.weight,
-        notes: set.notes,
-      });
-      setExecution((currentExecution) => replaceSet(currentExecution, updatedSet));
-      setRegisteredSetIds((currentIds) => new Set(currentIds).add(updatedSet.id));
-      setSuccessMessage(`Série ${updatedSet.setNumber} registrada.`);
-    } catch (requestError) {
-      setActionError(getErrorMessage(requestError));
-    } finally {
-      setIsRegistering(false);
-    }
-  }, []);
+      setIsRegistering(true);
+      setActionError(undefined);
+      setSuccessMessage(undefined);
+
+      try {
+        const updatedSet = await updateWorkoutSet(setId, input);
+        setExecution((currentExecution) => replaceSet(currentExecution, updatedSet));
+        setRegisteredSetIds((currentIds) => new Set(currentIds).add(updatedSet.id));
+        setSuccessMessage(`Série ${updatedSet.setNumber} atualizada.`);
+      } catch (requestError) {
+        setActionError(getErrorMessage(requestError));
+      } finally {
+        setIsRegistering(false);
+      }
+    },
+    [isFinalized],
+  );
+
+  const deleteSet = useCallback(
+    async (setId: string) => {
+      if (isFinalized) {
+        setActionError('Treino finalizado não permite alterações.');
+        return;
+      }
+
+      setIsRegistering(true);
+      setActionError(undefined);
+      setSuccessMessage(undefined);
+
+      try {
+        await deleteWorkoutSet(setId);
+        setExecution((currentExecution) => removeSet(currentExecution, setId));
+        setRegisteredSetIds((currentIds) => {
+          const nextIds = new Set(currentIds);
+          nextIds.delete(setId);
+          return nextIds;
+        });
+        setSuccessMessage('Série excluída.');
+      } catch (requestError) {
+        setActionError(getErrorMessage(requestError));
+      } finally {
+        setIsRegistering(false);
+      }
+    },
+    [isFinalized],
+  );
 
   const registerNewSet = useCallback(
     async (workoutExerciseId: string, input: WorkoutExecutionSetInput) => {
+      if (isFinalized) {
+        setActionError('Treino finalizado não permite alterações.');
+        return;
+      }
+
       setIsRegistering(true);
       setActionError(undefined);
       setSuccessMessage(undefined);
@@ -102,12 +142,17 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
         setIsRegistering(false);
       }
     },
-    [],
+    [isFinalized],
   );
 
   const finish = useCallback(async () => {
     if (!workoutId) {
       setActionError('Treino não informado.');
+      return false;
+    }
+
+    if (isFinalized) {
+      setActionError('Este treino já está finalizado.');
       return false;
     }
 
@@ -117,7 +162,7 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
 
     try {
       await finishWorkout(workoutId);
-      setSuccessMessage('Treino finalizado. Home, Histórico e Perfil foram atualizados pela API.');
+      setSuccessMessage('Treino finalizado. Home, Treinos, Histórico e Perfil foram atualizados pela API.');
       return true;
     } catch (requestError) {
       setActionError(getErrorMessage(requestError));
@@ -125,7 +170,7 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
     } finally {
       setIsFinishing(false);
     }
-  }, [workoutId]);
+  }, [isFinalized, workoutId]);
 
   useEffect(() => {
     let isActive = true;
@@ -179,7 +224,8 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
         Math.min(index + 1, Math.max((execution?.exercises.length ?? 1) - 1, 0)),
       ),
     goToPreviousExercise: () => setCurrentExerciseIndex((index) => Math.max(index - 1, 0)),
-    registerExistingSet,
+    updateSet,
+    deleteSet,
     registerNewSet,
     finish,
   };
@@ -224,6 +270,23 @@ function appendSet(
           }
         : exercise,
     ),
+  };
+}
+
+function removeSet(
+  execution: WorkoutExecutionData | undefined,
+  setId: string,
+): WorkoutExecutionData | undefined {
+  if (!execution) {
+    return execution;
+  }
+
+  return {
+    ...execution,
+    exercises: execution.exercises.map((exercise) => ({
+      ...exercise,
+      sets: exercise.sets.filter((set) => set.id !== setId),
+    })),
   };
 }
 

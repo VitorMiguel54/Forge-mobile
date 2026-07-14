@@ -40,6 +40,10 @@ class ApiClient {
     return this.request<TResponse>(path, { ...options, body, method: 'PUT' });
   }
 
+  async delete<TResponse>(path: string, options: RequestOptions = {}): Promise<TResponse> {
+    return this.request<TResponse>(path, { ...options, method: 'DELETE' });
+  }
+
   private async request<TResponse>(path: string, options: RequestOptions): Promise<TResponse> {
     if (!this.baseUrl) {
       throw new ApiError('Configure EXPO_PUBLIC_API_BASE_URL para carregar os dados da API.');

@@ -11,18 +11,10 @@ const webContentMaxWidth = spacing[10] * spacing[5];
 
 export default function WorkoutsScreen() {
   const router = useRouter();
-  const { workouts, actionError, createWorkout, error, isCreating, isLoading, refetch } = useWorkouts();
+  const { workouts, error, isLoading, refetch } = useWorkouts();
   const activeWorkout = workouts?.activeWorkout;
   const hasWorkouts = Boolean(activeWorkout || workouts?.savedWorkouts.length);
   const hasSavedWorkouts = Boolean(workouts?.savedWorkouts.length);
-
-  async function handleCreateWorkout() {
-    const createdWorkout = await createWorkout();
-
-    if (createdWorkout?.id) {
-      router.push(getWorkoutHref(createdWorkout.id));
-    }
-  }
 
   function handleOpenWorkout(id: string) {
     router.push(getWorkoutHref(id));
@@ -44,17 +36,10 @@ export default function WorkoutsScreen() {
             </View>
             <Button
               title="Novo treino"
-              loading={isCreating}
               style={styles.newWorkoutButton}
-              onPress={() => void handleCreateWorkout()}
+              onPress={() => router.push('/workouts/new' as Href)}
             />
           </View>
-
-          {actionError ? (
-            <Card padding={4} style={styles.inlineErrorCard}>
-              <Text style={styles.stateText}>{actionError}</Text>
-            </Card>
-          ) : null}
 
           {isLoading ? (
             <Card padding={5} style={styles.stateCard}>

@@ -2,6 +2,7 @@ import { apiClient } from '@/api/apiClient';
 import { getDashboard } from '@/services/dashboardService';
 import { getMobileHistory } from '@/services/historyService';
 import { getProfile } from '@/services/profileService';
+import { getMobileWorkouts, type WorkoutStatus } from '@/services/workoutsService';
 
 export type WorkoutExecutionSetInput = {
   readonly setNumber: number;
@@ -33,6 +34,8 @@ export type WorkoutExecutionData = {
     readonly name: string;
     readonly workoutDate: string;
     readonly totalVolume: number;
+    readonly status: WorkoutStatus;
+    readonly isFinalized: boolean;
   };
   readonly exercises: readonly WorkoutExecutionExercise[];
 };
@@ -40,12 +43,14 @@ export type WorkoutExecutionData = {
 type ApiRecord = Record<string, unknown>;
 
 export async function getWorkoutExecution(workoutId: string): Promise<WorkoutExecutionData> {
-  const [workoutResponse, workoutExercisesResponse, exerciseCatalogResponse] = await Promise.all([
+  const [workoutResponse, workoutExercisesResponse, exerciseCatalogResponse, mobileWorkouts] = await Promise.all([
     apiClient.get<unknown>(`/workouts/${workoutId}`),
     apiClient.get<unknown>(`/workouts/${workoutId}/exercises`),
     apiClient.get<unknown>('/exercises'),
+    getMobileWorkouts(),
   ]);
-  const workout = mapWorkout(workoutResponse);
+  const workoutStatus = getWorkoutStatus(workoutId, mobileWorkouts);
+  const workout = mapWorkout(workoutResponse, workoutStatus);
   const workoutExercises = mapWorkoutExercises(workoutExercisesResponse);
   const exerciseCatalog = mapExerciseCatalog(exerciseCatalogResponse);
   const setLists = await Promise.all(
@@ -99,12 +104,16 @@ export async function updateWorkoutSet(
   return mapWorkoutSet(response);
 }
 
-export async function finishWorkout(workoutId: string): Promise<void> {
-  await apiClient.post<unknown>(`/workouts/${workoutId}/finish`);
-  await Promise.all([getDashboard(), getMobileHistory(), getProfile()]);
+export async function deleteWorkoutSet(workoutSetId: string): Promise<void> {
+  await apiClient.delete<unknown>(`/workout-sets/${workoutSetId}`);
 }
 
-function mapWorkout(response: unknown): WorkoutExecutionData['workout'] {
+export async function finishWorkout(workoutId: string): Promise<void> {
+  await apiClient.post<unknown>(`/workouts/${workoutId}/finish`);
+  await Promise.all([getDashboard(), getMobileHistory(), getMobileWorkouts(), getProfile()]);
+}
+
+function mapWorkout(response: unknown, status: WorkoutStatus): WorkoutExecutionData['workout'] {
   const workout = getObject(getField(asObject(response), 'data')) ?? asObject(response) ?? {};
 
   return {
@@ -112,7 +121,21 @@ function mapWorkout(response: unknown): WorkoutExecutionData['workout'] {
     name: getString(workout, ['name']) ?? '',
     workoutDate: getString(workout, ['workoutDate', 'workout_date']) ?? '',
     totalVolume: getNumber(workout, ['totalVolume', 'total_volume']) ?? 0,
+    status,
+    isFinalized: status === 'completed',
   };
+}
+
+function getWorkoutStatus(
+  workoutId: string,
+  mobileWorkouts: Awaited<ReturnType<typeof getMobileWorkouts>>,
+): WorkoutStatus {
+  const workouts = [
+    ...(mobileWorkouts.activeWorkout ? [mobileWorkouts.activeWorkout] : []),
+    ...mobileWorkouts.savedWorkouts,
+  ];
+
+  return workouts.find((workout) => workout.id === workoutId)?.status ?? 'available';
 }
 
 function mapWorkoutExercises(response: unknown): readonly Omit<WorkoutExecutionExercise, 'name' | 'sets'>[] {

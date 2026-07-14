@@ -108,10 +108,15 @@ Treinos (`/workouts`):
 - Cada card exibe nome, grupos musculares, duracao estimada e quantidade de exercicios.
 - Botoes `Iniciar treino` no destaque e nos cards de treino.
 - Botao `Novo treino` cria um treino real via `POST /api/workouts` usando `EXPO_PUBLIC_USER_PROFILE_ID`.
+- Fluxo `/workouts/new` lista exercicios globais e customizados disponiveis para o usuario via `GET /api/exercises`.
+- Novo treino exige nome e ao menos um exercicio selecionado antes de criar.
+- Criacao de treino vincula exercicios selecionados usando `POST /api/workouts/{workoutId}/exercises`.
 - Botoes `Iniciar treino` abrem `/workouts/{id}` usando o ID real retornado pela API.
 - Tela `/workouts/[id]` carrega o treino selecionado via `GET /api/workouts/{id}`.
 - Tela `/workouts/[id]/execute` executa o treino com exercícios e séries reais da API.
 - Execução permite navegar entre exercícios, registrar séries existentes via `PUT /api/workout-sets/{id}` e criar novas séries via `POST /api/workout-exercises/{workoutExerciseId}/sets`.
+- Execucao permite editar e excluir series registradas usando `PUT /api/workout-sets/{id}` e `DELETE /api/workout-sets/{id}`.
+- Execucao bloqueia criacao, edicao, exclusao e finalizacao quando o status mobile do treino e `completed`.
 - Finalização usa `POST /api/workouts/{id}/finish` e força recarga dos dados reais de Home, Histórico e Perfil após sucesso.
 - Estados visuais: disponivel, em andamento e concluido.
 - Integrada ao hook `useWorkouts`, com estados de loading, erro, vazio e sucesso.
