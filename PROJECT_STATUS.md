@@ -1,6 +1,6 @@
 # Forge Mobile - Project Status
 
-Atualizado em: 13/07/2026
+Atualizado em: 14/07/2026
 
 ---
 
@@ -77,7 +77,9 @@ Home (`/`):
 
 - Guardiao temporario com imagem mockada e card principal refinado visualmente.
 - Card do Guardiao ajustado para melhor aproveitamento de espaco no Web/mobile.
-- XP e nivel.
+- Nome do usuario, XP, nivel, peso, agua, sono, volume, progresso semanal e treino em andamento vindos do endpoint mobile real.
+- Proximo treino usa `activeWorkout` real; duracao e derivada da quantidade real de exercicios quando o endpoint nao envia duracao textual.
+- Atividade recente deixou de usar itens mockados e agora e derivada de treino em andamento, agua, sono e peso retornados pela API.
 - Acoes rapidas com cards mais destacados.
 - Acoes rapidas integradas a API real:
   - Peso: `POST /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}/weight-records`.
@@ -96,6 +98,11 @@ Home (`/`):
 - Refinamento visual aplicado sem alterar services, hooks ou contratos da API.
 - Bottom navigation mantida como unica barra fixa, com z-index/elevation para evitar duplicidade visual/empilhamento no Web.
 - Diferenca de peso normalizada com arredondamento e formato pt-BR antes da exibicao.
+- Auditoria de dados da Home:
+  - Dados reais: usuario, gamificacao recebida da API, peso atual/diferenca, agua do dia/meta, sono recente/meta, progresso semanal, volume semanal, treino em andamento e registros das acoes rapidas.
+  - Dados derivados localmente de dados reais: rotulo do dia, status textual do Guardiao, duracao estimada do treino em andamento e atividade recente.
+  - Mocks restantes: nome/imagem do Guardiao e card de conquista, ambos marcados com TODO em `dashboardService.ts`.
+  - Pendencias da API: identidade/status real do Guardiao, imagem do Guardiao, conquistas/achievement reais para Home, feed dedicado de atividade recente e XP/conquistas calculados de forma definitiva no backend.
 
 Configuracao de API:
 
@@ -103,7 +110,7 @@ Configuracao de API:
 - `EXPO_PUBLIC_API_BASE_URL` pode ser informado com ou sem `/api`; o `apiClient` normaliza para incluir `/api`.
 - `EXPO_PUBLIC_USER_PROFILE_ID`: perfil usado para montar as rotas mobile por usuario.
 - `EXPO_PUBLIC_DASHBOARD_ENDPOINT`: endpoint opcional da Home; padrao atual: `/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/home`.
-- Campos ainda ausentes no endpoint usam fallback temporario marcado com TODO em `dashboardService.ts`.
+- Campos ainda ausentes no endpoint usam fallback especifico marcado com TODO em `dashboardService.ts`; valores numericos antigos de mock foram removidos.
 - Se `EXPO_PUBLIC_USER_PROFILE_ID` nao for exportado pelo Expo, a Home falha antes de chamar `fetch`; nesse caso nenhuma requisicao aparece no Network.
 - Apos alterar `.env`, reiniciar o servidor Expo para que as variaveis `EXPO_PUBLIC_*` sejam rebundladas.
 
@@ -199,7 +206,7 @@ Uso atual:
 
 # Validacoes
 
-Ultimos comandos executados em 13/07/2026:
+Ultimos comandos executados em 14/07/2026:
 
 ```txt
 npx.cmd tsc --noEmit
@@ -248,5 +255,5 @@ Observacao:
 - Refinar visual das telas em dispositivo real.
 - Implementar icones oficiais da bottom navigation.
 - Definir fluxos reais de criacao/edicao.
-- Completar o contrato real do endpoint mobile e remover fallbacks TODO do dashboard.
+- Completar o contrato real do endpoint mobile da Home para remover os TODOs de Guardiao e conquistas.
 - Integrar API nas demais telas apos estabilizar layout e contratos.

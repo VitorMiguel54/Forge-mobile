@@ -206,7 +206,7 @@ export default function HomeScreen() {
                         <View
                           style={[
                             styles.compactProgressFill,
-                            { width: `${Math.min((item.current / item.target) * 100, 100)}%` },
+                            { width: `${getProgressFillPercent(item.current, item.target)}%` },
                           ]}
                         />
                       </View>
@@ -345,6 +345,14 @@ function getQuickActionKind(title: string): QuickActionKind | undefined {
   }
 
   return undefined;
+}
+
+function getProgressFillPercent(current: number, target: number): number {
+  if (target <= 0) {
+    return 0;
+  }
+
+  return Math.min((current / target) * 100, 100);
 }
 
 const styles = StyleSheet.create({
