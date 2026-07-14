@@ -162,7 +162,7 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
 
     try {
       await finishWorkout(workoutId);
-      setSuccessMessage('Treino finalizado. Home, Treinos, Histórico e Perfil foram atualizados pela API.');
+      setSuccessMessage('Treino finalizado. Home, Treinos, Histórico, Perfil e Conquistas foram atualizados pela API.');
       return true;
     } catch (requestError) {
       setActionError(getErrorMessage(requestError));

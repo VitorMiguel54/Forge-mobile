@@ -1,4 +1,5 @@
 import { ApiError, apiClient } from '@/api/apiClient';
+import { getXpSummary } from '@/services/gamificationService';
 
 export type ProfileStat = {
   readonly label: string;
@@ -26,13 +27,14 @@ type ApiRecord = Record<string, unknown>;
 
 export async function getProfile(): Promise<ProfileData> {
   const userProfileId = getUserProfileId();
-  const [profileResponse, homeResponse, historyResponse] = await Promise.all([
+  const [profileResponse, homeResponse, historyResponse, xpSummary] = await Promise.all([
     apiClient.get<unknown>(`/user-profiles/${userProfileId}`),
     apiClient.get<unknown>(`/mobile/users/${userProfileId}/home`).catch(() => undefined),
     apiClient.get<unknown>(`/mobile/users/${userProfileId}/history?page=1&pageSize=1`).catch(() => undefined),
+    getXpSummary().catch(() => undefined),
   ]);
 
-  return mapProfileResponse(profileResponse, homeResponse, historyResponse);
+  return mapProfileResponse(profileResponse, homeResponse, historyResponse, xpSummary);
 }
 
 function getUserProfileId(): string {
@@ -49,6 +51,7 @@ function mapProfileResponse(
   profileResponse: unknown,
   homeResponse: unknown,
   historyResponse: unknown,
+  xpSummary: Awaited<ReturnType<typeof getXpSummary>> | undefined,
 ): ProfileData {
   const profile = getObject(getField(asObject(profileResponse), 'data')) ?? asObject(profileResponse);
 
@@ -94,12 +97,14 @@ function mapProfileResponse(
     id: getString(profile, ['id']) ?? '',
     name: getString(profile, ['name']) ?? '',
     email: getString(profile, ['email']),
-    level: getNumber(gamification, ['level']) ?? getNumber(profile, ['level']) ?? 0,
+    level: xpSummary?.level ?? getNumber(gamification, ['level']) ?? getNumber(profile, ['level']) ?? 0,
     currentXp:
+      xpSummary?.totalXp ??
       getNumber(gamification, ['currentXp', 'current_xp']) ??
       getNumber(profile, ['totalXp', 'total_xp']) ??
       0,
-    xpToNextLevel: getNumber(gamification, ['xpToNextLevel', 'xp_to_next_level']),
+    xpToNextLevel:
+      xpSummary?.xpToNextLevel ?? getNumber(gamification, ['xpToNextLevel', 'xp_to_next_level']),
     initialWeight,
     currentWeight,
     dailyWaterGoalInLiters:

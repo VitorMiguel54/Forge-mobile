@@ -1,75 +1,20 @@
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomNavigation, Card } from '@/components';
+import { BottomNavigation, Button, Card } from '@/components';
+import { useGamification } from '@/hooks/useGamification';
+import type { AchievementItem } from '@/services/gamificationService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
 type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
-type AchievementMock = {
-  readonly name: string;
-  readonly description: string;
-  readonly rarity: Rarity;
-  readonly unlocked: boolean;
-  readonly progress?: {
-    readonly current: number;
-    readonly target: number;
-  };
-};
-
-const achievementsSummary = {
-  unlocked: 7,
-  available: 18,
-} as const;
-
-const achievementsMock: readonly AchievementMock[] = [
-  {
-    name: 'Primeira Forja',
-    description: 'Conclua seu primeiro treino registrado.',
-    rarity: 'common',
-    unlocked: true,
-  },
-  {
-    name: 'Ritmo de Aço',
-    description: 'Complete 3 treinos na mesma semana.',
-    rarity: 'rare',
-    unlocked: true,
-  },
-  {
-    name: 'Volume Crescente',
-    description: 'Movimente 20k kg em uma semana.',
-    rarity: 'epic',
-    unlocked: false,
-    progress: { current: 12800, target: 20000 },
-  },
-  {
-    name: 'Lenda da Forja',
-    description: 'Mantenha consistência por 12 semanas.',
-    rarity: 'legendary',
-    unlocked: false,
-    progress: { current: 3, target: 12 },
-  },
-  {
-    name: 'Hidratação Sólida',
-    description: 'Bata a meta de água por 5 dias.',
-    rarity: 'common',
-    unlocked: false,
-    progress: { current: 2, target: 5 },
-  },
-  {
-    name: 'Recuperação Firme',
-    description: 'Registre sono adequado por 7 noites.',
-    rarity: 'rare',
-    unlocked: false,
-    progress: { current: 4, target: 7 },
-  },
-] as const;
-
 const rarityFilters: readonly Rarity[] = ['common', 'rare', 'epic', 'legendary'];
 const webContentMaxWidth = spacing[10] * spacing[5];
-const overallProgress = Math.round((achievementsSummary.unlocked / achievementsSummary.available) * 100);
 
 export default function AchievementsScreen() {
+  const { gamification, error, isLoading, refetch } = useGamification();
+  const overallProgress = gamification?.summary.progressPercent ?? 0;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -86,36 +31,65 @@ export default function AchievementsScreen() {
             </Text>
           </View>
 
-          <Card variant="elevated" padding={5}>
-            <View style={styles.summary}>
-              <View style={styles.summaryGrid}>
-                <SummaryStat label="Desbloqueadas" value={achievementsSummary.unlocked} />
-                <SummaryStat label="Disponíveis" value={achievementsSummary.available} />
-                <SummaryStat label="Progresso" value={`${overallProgress}%`} />
-              </View>
-              <View style={styles.overallTrack}>
-                <View style={[styles.overallFill, { width: `${overallProgress}%` }]} />
-              </View>
-            </View>
-          </Card>
+          {isLoading ? (
+            <Card padding={5} style={styles.stateCard}>
+              <ActivityIndicator color={colors.brand.primary} />
+              <Text style={styles.stateTitle}>Carregando conquistas</Text>
+              <Text style={styles.stateText}>Buscando XP e marcos desbloqueados.</Text>
+            </Card>
+          ) : null}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Raridade</Text>
-            <View style={styles.filterRow}>
-              {rarityFilters.map((rarity) => (
-                <RarityFilter key={rarity} rarity={rarity} />
-              ))}
-            </View>
-          </View>
+          {!isLoading && error ? (
+            <Card padding={5} style={styles.stateCard}>
+              <Text style={styles.stateTitle}>Não foi possível carregar</Text>
+              <Text style={styles.stateText}>{error}</Text>
+              <Button title="Tentar novamente" variant="secondary" onPress={() => void refetch()} />
+            </Card>
+          ) : null}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Coleção</Text>
-            <View style={styles.achievementGrid}>
-              {achievementsMock.map((achievement) => (
-                <AchievementCard key={achievement.name} achievement={achievement} />
-              ))}
-            </View>
-          </View>
+          {!isLoading && !error && gamification ? (
+            <>
+              <Card variant="elevated" padding={5}>
+                <View style={styles.summary}>
+                  <View style={styles.summaryGrid}>
+                    <SummaryStat label="Desbloqueadas" value={gamification.summary.unlocked} />
+                    <SummaryStat label="Disponíveis" value={gamification.summary.available} />
+                    <SummaryStat label="Progresso" value={`${overallProgress}%`} />
+                  </View>
+                  <View style={styles.overallTrack}>
+                    <View style={[styles.overallFill, { width: `${overallProgress}%` }]} />
+                  </View>
+                </View>
+              </Card>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Raridade</Text>
+                <View style={styles.filterRow}>
+                  {rarityFilters.map((rarity) => (
+                    <RarityFilter key={rarity} rarity={rarity} />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Coleção</Text>
+                {gamification.achievements.length > 0 ? (
+                  <View style={styles.achievementGrid}>
+                    {gamification.achievements.map((achievement) => (
+                      <AchievementCard key={achievement.id} achievement={achievement} />
+                    ))}
+                  </View>
+                ) : (
+                  <Card padding={5} style={styles.stateCard}>
+                    <Text style={styles.stateTitle}>Nenhuma conquista disponível</Text>
+                    <Text style={styles.stateText}>
+                      O catálogo de conquistas ainda não retornou itens para este ambiente.
+                    </Text>
+                  </Card>
+                )}
+              </View>
+            </>
+          ) : null}
         </View>
       </ScrollView>
       <BottomNavigation activeHref="/achievements" />
@@ -143,11 +117,9 @@ function RarityFilter({ rarity }: { readonly rarity: Rarity }) {
   );
 }
 
-function AchievementCard({ achievement }: { readonly achievement: AchievementMock }) {
-  const tone = rarityTone[achievement.rarity];
-  const progress = achievement.progress
-    ? Math.min((achievement.progress.current / achievement.progress.target) * 100, 100)
-    : undefined;
+function AchievementCard({ achievement }: { readonly achievement: AchievementItem }) {
+  const tone = rarityTone[getRarity(achievement)];
+  const progress = achievement.unlocked ? 100 : 0;
 
   return (
     <Card padding={4} style={!achievement.unlocked && styles.lockedCard}>
@@ -169,25 +141,32 @@ function AchievementCard({ achievement }: { readonly achievement: AchievementMoc
 
         <Text style={styles.secondaryText}>{achievement.description}</Text>
 
-        {achievement.progress ? (
-          <View style={styles.progressBlock}>
-            <View style={styles.progressCopy}>
-              <Text style={styles.progressLabel}>Progresso</Text>
-              <Text style={styles.progressValue}>
-                {achievement.progress.current} / {achievement.progress.target}
-              </Text>
-            </View>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    backgroundColor: tone.color,
-                    width: `${progress ?? 0}%`,
-                  },
-                ]}
-              />
-            </View>
+        <View style={styles.progressBlock}>
+          <View style={styles.progressCopy}>
+            <Text style={styles.progressLabel}>{achievement.unlocked ? 'Desbloqueada em' : 'Requisito'}</Text>
+            <Text style={styles.progressValue}>
+              {achievement.unlocked && achievement.unlockedAt
+                ? formatDate(achievement.unlockedAt)
+                : formatRequirement(achievement)}
+            </Text>
+          </View>
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  backgroundColor: tone.color,
+                  width: `${progress}%`,
+                },
+              ]}
+            />
+          </View>
+        </View>
+
+        {achievement.xpReward > 0 ? (
+          <View style={styles.progressCopy}>
+            <Text style={styles.progressLabel}>Recompensa</Text>
+            <Text style={styles.progressValue}>{achievement.xpReward} XP</Text>
           </View>
         ) : null}
       </View>
@@ -213,6 +192,56 @@ const rarityTone = {
     color: colors.gamification.level,
   },
 } as const;
+
+function getRarity(achievement: AchievementItem): Rarity {
+  if (achievement.category === 'Secret' || achievement.isSecret) {
+    return 'legendary';
+  }
+
+  if (achievement.category === 'Progression') {
+    return 'epic';
+  }
+
+  if (achievement.category === 'Consistency') {
+    return 'rare';
+  }
+
+  return 'common';
+}
+
+function formatRequirement(achievement: AchievementItem): string {
+  if (achievement.requiredValue <= 0) {
+    return 'Critério definido pela API';
+  }
+
+  return `${achievement.requiredValue} ${getCategoryUnit(achievement.category)}`;
+}
+
+function getCategoryUnit(category: string): string {
+  const units: Record<string, string> = {
+    Consistency: 'treinos na semana',
+    Hydration: 'metas de água',
+    Progression: 'kg movimentados',
+    Sleep: 'metas de sono',
+    Workout: 'treinos',
+  };
+
+  return units[category] ?? 'pontos';
+}
+
+function formatDate(date: string): string {
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'Data não informada';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(parsedDate);
+}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -291,6 +320,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.title.section,
     color: colors.text.primary,
+  },
+  stateCard: {
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  stateTitle: {
+    ...typography.title.section,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  stateText: {
+    ...typography.body.secondary,
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
   filterRow: {
     flexDirection: 'row',

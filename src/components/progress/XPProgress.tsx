@@ -15,32 +15,33 @@ export function XPProgress({
   xpToNextLevel,
   style,
 }: XPProgressProps) {
-  const percent = getXpPercent(currentXp, xpToNextLevel);
+  const levelProgress = getLevelProgress(currentLevel, currentXp, xpToNextLevel);
 
   return (
     <View style={[styles.container, style]}>
       <View style={styles.header}>
         <Text style={styles.level}>Nível {currentLevel}</Text>
         <Text style={styles.xp}>
-          {currentXp} / {xpToNextLevel} XP
+          {levelProgress.current} / {levelProgress.target} XP
         </Text>
       </View>
 
       <View style={styles.track}>
-        <View style={[styles.fill, { width: `${percent}%` }]} />
+        <View style={[styles.fill, { width: `${levelProgress.percent}%` }]} />
       </View>
 
-      <Text style={styles.percent}>{Math.round(percent)}%</Text>
+      <Text style={styles.percent}>{Math.round(levelProgress.percent)}%</Text>
     </View>
   );
 }
 
-function getXpPercent(currentXp: number, xpToNextLevel: number): number {
-  if (xpToNextLevel <= 0 || currentXp <= 0) {
-    return 0;
-  }
+function getLevelProgress(currentLevel: number, currentXp: number, xpToNextLevel: number) {
+  const completedLevelXp = Math.max(currentLevel - 1, 0) * 500;
+  const current = Math.max(currentXp - completedLevelXp, 0);
+  const target = current + Math.max(xpToNextLevel, 0);
+  const percent = target > 0 ? Math.min((current / target) * 100, 100) : 0;
 
-  return Math.min((currentXp / xpToNextLevel) * 100, 100);
+  return { current, target, percent };
 }
 
 const styles = StyleSheet.create({

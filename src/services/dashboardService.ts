@@ -1,4 +1,5 @@
 import { ApiError, apiClient } from '@/api/apiClient';
+import { getGamification, type GamificationData } from '@/services/gamificationService';
 
 export type DashboardProgress = {
   readonly current: number;
@@ -62,17 +63,14 @@ const guardianFallback = {
   name: 'Guardião da Forja',
 };
 
-// TODO: A API ainda não fornece conquistas/achievement para a Home.
-const achievementFallback: DashboardData['achievement'] = {
-  title: 'Consistência de Aço',
-  detail: 'Conquistas reais pendentes na API.',
-  status: 'Pendente',
-};
-
 export async function getDashboard(): Promise<DashboardData> {
   const endpoint = resolveDashboardEndpoint();
-  const response = await apiClient.get<unknown>(endpoint);
-  return mapDashboardResponse(response);
+  const [response, gamification] = await Promise.all([
+    apiClient.get<unknown>(endpoint),
+    getGamification().catch(() => undefined),
+  ]);
+
+  return mapDashboardResponse(response, gamification);
 }
 
 function resolveDashboardEndpoint(): string {
@@ -90,7 +88,7 @@ function resolveDashboardEndpoint(): string {
   return `/mobile/users/${userProfileId}/home`;
 }
 
-function mapDashboardResponse(response: unknown): DashboardData {
+function mapDashboardResponse(response: unknown, gamificationData?: GamificationData): DashboardData {
   const payload = getObject(getField(asObject(response), 'data')) ?? asObject(response) ?? {};
   const user = getObject(getField(payload, 'user'));
   const gamification = getObject(getField(payload, 'gamification'));
@@ -143,7 +141,7 @@ function mapDashboardResponse(response: unknown): DashboardData {
         dailySleepGoal,
       },
     ),
-    achievement: mapAchievement(getObject(getField(payload, 'achievement'))),
+    achievement: mapAchievement(getObject(getField(payload, 'achievement')), gamificationData),
     recentActivity: mapList(
       getField(payload, 'recentActivity', 'recent_activity'),
       buildRecentActivity({
@@ -153,7 +151,7 @@ function mapDashboardResponse(response: unknown): DashboardData {
         todayWaterConsumption: Number(todayWaterConsumption),
       }),
     ),
-    xp: mapXp(getObject(getField(payload, 'xp')) ?? gamification),
+    xp: mapXp(getObject(getField(payload, 'xp')) ?? gamification, gamificationData),
     metrics: mapMetrics(getObject(getField(payload, 'metrics')), {
       weeklyVolumeMoved,
       todayWaterConsumption: Number(todayWaterConsumption),
@@ -189,19 +187,33 @@ function mapNextWorkout(value?: ApiRecord): DashboardData['nextWorkout'] {
   };
 }
 
-function mapAchievement(value?: ApiRecord): DashboardData['achievement'] {
+function mapAchievement(value?: ApiRecord, gamificationData?: GamificationData): DashboardData['achievement'] {
+  const latestUnlockedAchievement = gamificationData?.unlockedAchievements[0];
+
+  if (!value && latestUnlockedAchievement) {
+    return {
+      title: latestUnlockedAchievement.name,
+      detail: latestUnlockedAchievement.description,
+      status: 'Desbloqueada',
+    };
+  }
+
   return {
-    title: getString(value, ['title']) ?? achievementFallback.title,
-    detail: getString(value, ['detail', 'description']) ?? achievementFallback.detail,
-    status: getString(value, ['status']) ?? achievementFallback.status,
+    title: getString(value, ['title']) ?? 'Nenhuma conquista desbloqueada',
+    detail:
+      getString(value, ['detail', 'description']) ??
+      'Finalize treinos para desbloquear conquistas da Forja.',
+    status: getString(value, ['status']) ?? 'Em aberto',
   };
 }
 
-function mapXp(value?: ApiRecord): DashboardData['xp'] {
+function mapXp(value?: ApiRecord, gamificationData?: GamificationData): DashboardData['xp'] {
   return {
-    level: getNumber(value, ['level']) ?? 0,
-    current: getNumber(value, ['current', 'currentXp', 'current_xp']) ?? 0,
+    level: gamificationData?.xp.level ?? getNumber(value, ['level']) ?? 0,
+    current:
+      gamificationData?.xp.totalXp ?? getNumber(value, ['current', 'currentXp', 'current_xp']) ?? 0,
     next:
+      gamificationData?.xp.xpToNextLevel ??
       getNumber(value, ['next', 'nextLevelXp', 'next_level_xp', 'xpToNextLevel', 'xp_to_next_level']) ??
       0,
   };

@@ -8,7 +8,7 @@ Atualizado em: 14/07/2026
 
 A fundacao visual do Forge esta implementada no app Expo Router, seguindo os documentos de marca e os tokens de `src/theme`.
 
-As primeiras telas mobile-first foram criadas. A Home, Treinos e Historico ja consomem endpoints mobile via camada dedicada de API; as demais telas ainda usam dados mockados:
+As primeiras telas mobile-first foram criadas. A Home, Treinos, Historico, Conquistas e Perfil ja consomem endpoints reais via camada dedicada de API; telas auxiliares seguem focadas em validacao visual:
 
 - `/`: Home.
 - `/workouts`: Treinos.
@@ -99,10 +99,10 @@ Home (`/`):
 - Bottom navigation mantida como unica barra fixa, com z-index/elevation para evitar duplicidade visual/empilhamento no Web.
 - Diferenca de peso normalizada com arredondamento e formato pt-BR antes da exibicao.
 - Auditoria de dados da Home:
-  - Dados reais: usuario, gamificacao recebida da API, peso atual/diferenca, agua do dia/meta, sono recente/meta, progresso semanal, volume semanal, treino em andamento e registros das acoes rapidas.
+  - Dados reais: usuario, gamificacao recebida da API, conquistas desbloqueadas, peso atual/diferenca, agua do dia/meta, sono recente/meta, progresso semanal, volume semanal, treino em andamento e registros das acoes rapidas.
   - Dados derivados localmente de dados reais: rotulo do dia, status textual do Guardiao, duracao estimada do treino em andamento e atividade recente.
-  - Mocks restantes: nome/imagem do Guardiao e card de conquista, ambos marcados com TODO em `dashboardService.ts`.
-  - Pendencias da API: identidade/status real do Guardiao, imagem do Guardiao, conquistas/achievement reais para Home, feed dedicado de atividade recente e XP/conquistas calculados de forma definitiva no backend.
+  - Mock restante: nome/imagem do Guardiao, marcado com TODO em `dashboardService.ts`.
+  - Pendencias da API: identidade/status real do Guardiao, imagem do Guardiao e feed dedicado de atividade recente.
 
 Configuracao de API:
 
@@ -131,7 +131,7 @@ Treinos (`/workouts`):
 - Execução permite navegar entre exercícios, registrar séries existentes via `PUT /api/workout-sets/{id}` e criar novas séries via `POST /api/workout-exercises/{workoutExerciseId}/sets`.
 - Execucao permite editar e excluir series registradas usando `PUT /api/workout-sets/{id}` e `DELETE /api/workout-sets/{id}`.
 - Execucao bloqueia criacao, edicao, exclusao e finalizacao quando o status mobile do treino e `completed`.
-- Finalização usa `POST /api/workouts/{id}/finish` e força recarga dos dados reais de Home, Histórico e Perfil após sucesso.
+- Finalização usa `POST /api/workouts/{id}/finish` e força recarga dos dados reais de Home, Treinos, Histórico, Perfil e Conquistas após sucesso.
 - Estados visuais: disponivel, em andamento e concluido.
 - Integrada ao hook `useWorkouts`, com estados de loading, erro, vazio e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/workoutsService.ts`.
@@ -164,28 +164,34 @@ Configuracao de API para Historico:
 
 Conquistas (`/achievements`):
 
-- Resumo de desbloqueadas, disponiveis e progresso geral.
-- Filtros visuais por raridade.
-- Lista mockada de conquistas com raridade, estado e progresso.
+- Resumo de desbloqueadas, disponiveis e progresso geral vindo da API.
+- Filtros visuais por raridade preservados.
+- Catalogo real de conquistas vindo de `GET /api/achievements`.
+- Conquistas desbloqueadas do usuario vindas de `GET /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}/achievements`.
+- XP do usuario vindo de `GET /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}/xp`.
+- Integrada ao hook `useGamification`, com estados de loading, erro, vazio e sucesso.
+- Consumo centralizado em `src/services/gamificationService.ts`.
+- Sem mocks de conquistas; ambiente sem catalogo exibe estado vazio.
 
 Perfil (`/profile`):
 
 - Avatar textual com iniciais derivadas do nome real retornado pela API.
 - Nome, email, nivel, XP, peso atual, peso inicial e data de criacao vindos da API.
+- Nivel, XP atual e progresso para o proximo nivel priorizam `GET /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}/xp`.
 - Metas reais do perfil: treinos semanais, agua diaria e sono diario.
 - Estatisticas gerais exibidas conforme a API fornece: treinos, treinos na semana, tempo total, volume semanal, volume total, agua de hoje e sono recente.
 - Integrada ao hook `useProfile`, com estados de loading, erro, vazio e sucesso.
 - Consumo centralizado em `src/api/apiClient.ts` e `src/services/profileService.ts`.
 - Sem campos numericos mockados; dados ausentes nos contratos atuais aparecem como nao informados ou sao omitidos da lista de estatisticas.
 - Fallbacks antigos de zero para peso, metas e datas ausentes foram removidos para nao parecerem dados reais.
-- Mocks/pendencias restantes: avatar visual real, Guardiao no Perfil, conquistas e streak nao possuem contrato exposto para esta tela.
+- Mocks/pendencias restantes: avatar visual real, Guardiao no Perfil e streak nao possuem contrato exposto para esta tela.
 - Botoes `Editar perfil` e `Configuracoes` preservados visualmente, desabilitados ate existirem fluxos reais.
 
 Configuracao de API para Perfil:
 
 - `EXPO_PUBLIC_USER_PROFILE_ID`: perfil usado para buscar os dados do usuario.
 - Endpoint principal: `GET /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}`.
-- Dados auxiliares reais: `GET /api/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/home` e `GET /api/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/history?page=1&pageSize=1`.
+- Dados auxiliares reais: `GET /api/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/home`, `GET /api/mobile/users/{EXPO_PUBLIC_USER_PROFILE_ID}/history?page=1&pageSize=1` e `GET /api/user-profiles/{EXPO_PUBLIC_USER_PROFILE_ID}/xp`.
 
 Design Preview (`/design-preview`):
 
@@ -223,6 +229,7 @@ Resultados da ultima validacao:
 - Web respondendo `200 OK` em `http://localhost:8082/workouts`.
 - Web respondendo `200 OK` em `http://localhost:8082/workouts/test-workout-id`, validando a rota dinamica de treino.
 - Web respondendo `200 OK` em `http://localhost:8082/profile`.
+- Web respondendo `200 OK` em `http://localhost:8082/achievements`.
 - Web respondendo `200 OK` em `http://localhost:8082/workouts/test-workout-id/execute`, validando a rota de execucao.
 - Web respondendo `200 OK` em `http://localhost:8082`, validando a Home com acoes rapidas.
 
@@ -257,5 +264,5 @@ Observacao:
 - Refinar visual das telas em dispositivo real.
 - Implementar icones oficiais da bottom navigation.
 - Definir fluxos reais de criacao/edicao.
-- Completar o contrato real do endpoint mobile da Home para remover os TODOs de Guardiao e conquistas.
-- Integrar API nas demais telas apos estabilizar layout e contratos.
+- Completar o contrato real do endpoint mobile da Home para remover o TODO de Guardiao.
+- Expandir gamificacao quando a API expuser streaks, progresso parcial por conquista e dados especificos do Guardiao.

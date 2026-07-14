@@ -1,5 +1,6 @@
 import { apiClient } from '@/api/apiClient';
 import { getDashboard } from '@/services/dashboardService';
+import { getGamification } from '@/services/gamificationService';
 import { getMobileHistory } from '@/services/historyService';
 import { getProfile } from '@/services/profileService';
 import { getMobileWorkouts, type WorkoutStatus } from '@/services/workoutsService';
@@ -110,7 +111,7 @@ export async function deleteWorkoutSet(workoutSetId: string): Promise<void> {
 
 export async function finishWorkout(workoutId: string): Promise<void> {
   await apiClient.post<unknown>(`/workouts/${workoutId}/finish`);
-  await Promise.all([getDashboard(), getMobileHistory(), getMobileWorkouts(), getProfile()]);
+  await Promise.all([getDashboard(), getGamification(), getMobileHistory(), getMobileWorkouts(), getProfile()]);
 }
 
 function mapWorkout(response: unknown, status: WorkoutStatus): WorkoutExecutionData['workout'] {
