@@ -13,7 +13,7 @@ export default function DesignPreviewScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Forge Design Preview</Text>
         <Text style={styles.description}>
-          Tela temporária para validação visual do tema, componentes e tipografia.
+          Tela temporária para validação visual do tema, componentes e tipografia oficial.
         </Text>
       </View>
 
@@ -87,23 +87,23 @@ export default function DesignPreviewScreen() {
 
       <Section title="Tipografia">
         <View style={styles.typeGroup}>
-          <Text style={styles.typeLabel}>Cinzel: identidade, especiais e gamificação</Text>
+          <Text style={styles.typeLabel}>Cinzel: identidade, títulos especiais e gamificação</Text>
           <Text style={styles.identityLogo}>FORGE</Text>
           <Text style={styles.identitySection}>TREINO DE HOJE</Text>
           <Text style={styles.identityGuardian}>Guardião da Forja</Text>
-          <Text style={styles.gamificationLevel}>Nível 12</Text>
+          <Text style={styles.gamificationLevel}>NÍVEL 12</Text>
         </View>
 
         <View style={styles.typeGroup}>
-          <Text style={styles.typeLabel}>Inter: interface, textos, valores e botões</Text>
-          <Text style={styles.mainTitle}>Título principal em Inter</Text>
-          <Text style={styles.sectionTitle}>Título de seção em Inter</Text>
+          <Text style={styles.typeLabel}>Inter: interface, corpo, números, botões e navegação</Text>
+          <Text style={styles.screenTitle}>Título principal em Inter</Text>
           <Text style={styles.cardTitle}>Título de card em Inter</Text>
           <Text style={styles.body}>Texto principal do Forge em Inter.</Text>
           <Text style={styles.secondaryText}>Texto secundário para informações de apoio.</Text>
-          <Text style={styles.caption}>LEGENDA E METADADOS</Text>
+          <Text style={styles.label}>LABEL E METADADOS</Text>
           <Text style={styles.highlightNumber}>8.450</Text>
           <Text style={styles.compactNumber}>63,2 kg</Text>
+          <Text style={styles.navigation}>Home  Treinos  Histórico  Conquistas  Perfil</Text>
         </View>
       </Section>
     </ScrollView>
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text.primary,
-    ...typography.title.main,
+    ...typography.screenTitle,
   },
   description: {
     color: colors.text.secondary,
@@ -158,8 +158,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing[4],
   },
   sectionLabel: {
-    color: colors.text.primary,
-    ...typography.identity.section,
+    color: colors.gamification.level,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    ...typography.sectionTitle,
   },
   divider: {
     height: 1,
@@ -170,27 +172,29 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: colors.text.primary,
-    ...typography.title.card,
+    ...typography.cardTitle,
   },
   cardText: {
     color: colors.text.secondary,
-    ...typography.body.secondary,
     marginTop: spacing[2],
+    ...typography.body.secondary,
   },
   typeGroup: {
     gap: spacing[2],
   },
   typeLabel: {
     color: colors.text.secondary,
-    ...typography.caption,
+    ...typography.label,
   },
   identityLogo: {
     color: colors.text.primary,
     ...typography.identity.logo,
   },
   identitySection: {
-    color: colors.text.primary,
-    ...typography.identity.section,
+    color: colors.gamification.level,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    ...typography.sectionTitle,
   },
   identityGuardian: {
     color: colors.forge.hotOrange,
@@ -200,13 +204,9 @@ const styles = StyleSheet.create({
     color: colors.gamification.level,
     ...typography.gamification.level,
   },
-  mainTitle: {
+  screenTitle: {
     color: colors.text.primary,
-    ...typography.title.main,
-  },
-  sectionTitle: {
-    color: colors.text.primary,
-    ...typography.title.section,
+    ...typography.screenTitle,
   },
   body: {
     color: colors.text.primary,
@@ -216,16 +216,20 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     ...typography.body.secondary,
   },
-  caption: {
+  label: {
     color: colors.text.secondary,
-    ...typography.caption,
+    ...typography.label,
   },
   highlightNumber: {
     color: colors.text.primary,
-    ...typography.number.highlight,
+    ...typography.metric.highlight,
   },
   compactNumber: {
     color: colors.text.primary,
-    ...typography.number.compact,
+    ...typography.metric.compact,
+  },
+  navigation: {
+    color: colors.text.secondary,
+    ...typography.navigation,
   },
 });

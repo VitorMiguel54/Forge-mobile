@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   title: {
-    ...typography.title.main,
+    ...typography.screenTitle,
     color: colors.text.primary,
   },
   description: {
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarInitials: {
-    ...typography.title.main,
+    ...typography.screenTitle,
     color: colors.text.primary,
   },
   profileIdentity: {
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   profileName: {
-    ...typography.title.main,
+    ...typography.screenTitle,
     color: colors.text.primary,
     textAlign: 'center',
   },
@@ -270,8 +270,10 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   sectionTitle: {
-    ...typography.title.section,
-    color: colors.text.primary,
+    ...typography.sectionTitle,
+    color: colors.gamification.level,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   statsGrid: {
     flexDirection: Platform.select({
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
     gap: spacing[1],
   },
   statValue: {
-    ...typography.number.compact,
+    ...typography.metric.compact,
     color: colors.text.primary,
   },
   statLabel: {
@@ -302,7 +304,7 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   stateTitle: {
-    ...typography.title.section,
+    ...typography.cardTitle,
     color: colors.text.primary,
     textAlign: 'center',
   },

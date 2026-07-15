@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   title: {
-    ...typography.title.main,
+    ...typography.screenTitle,
     color: colors.text.primary,
   },
   description: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.default,
   },
   summaryValue: {
-    ...typography.number.compact,
+    ...typography.metric.compact,
     color: colors.text.primary,
   },
   summaryLabel: {
@@ -231,15 +231,17 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   sectionTitle: {
-    ...typography.title.section,
-    color: colors.text.primary,
+    ...typography.sectionTitle,
+    color: colors.gamification.level,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   stateCard: {
     alignItems: 'center',
     gap: spacing[3],
   },
   stateTitle: {
-    ...typography.title.section,
+    ...typography.cardTitle,
     color: colors.text.primary,
     textAlign: 'center',
   },
@@ -265,7 +267,7 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   cardTitle: {
-    ...typography.title.card,
+    ...typography.cardTitle,
     color: colors.text.primary,
   },
   secondaryText: {
@@ -300,7 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.default,
   },
   metaValue: {
-    ...typography.number.compact,
+    ...typography.metric.compact,
     color: colors.text.primary,
   },
   metaLabel: {

@@ -1,24 +1,97 @@
 import { ApiError, apiClient } from '@/api/apiClient';
+import { getMobileWorkouts, getWorkoutById, type MobileWorkout } from '@/services/workoutsService';
 
 export type AvailableExercise = {
   readonly id: string;
   readonly name: string;
   readonly description?: string;
   readonly muscleGroup: string;
+  readonly muscleGroupId?: string;
+  readonly muscleGroupDisplayName?: string;
   readonly isCustom: boolean;
   readonly userProfileId?: string;
+  readonly media?: ExerciseMedia;
+};
+
+export type MuscleGroupOption = {
+  readonly id: string;
+  readonly name: string;
+  readonly displayName: string;
+  readonly icon?: string;
+  readonly displayOrder: number;
+};
+
+export type ExerciseMedia = {
+  readonly type: 'placeholder' | 'image' | 'gif' | 'video';
+  readonly uri?: string;
+};
+
+export type WorkoutBuilderWorkout = MobileWorkout;
+
+export type WorkoutExerciseLink = {
+  readonly id: string;
+  readonly exerciseId: string;
+  readonly order: number;
+};
+
+export type SaveWorkoutPlanInput = {
+  readonly exerciseIds: readonly string[];
+  readonly name: string;
+  readonly workoutId?: string;
 };
 
 type ApiRecord = Record<string, unknown>;
 
+export async function getWorkoutBuilderData(): Promise<{
+  readonly exercises: readonly AvailableExercise[];
+  readonly muscleGroups: readonly MuscleGroupOption[];
+  readonly workouts: readonly WorkoutBuilderWorkout[];
+}> {
+  const [exercises, muscleGroups, workoutsData] = await Promise.all([
+    getAvailableExercises(),
+    getMuscleGroups(),
+    getMobileWorkouts(),
+  ]);
+  const workouts = [
+    ...(workoutsData.activeWorkout ? [workoutsData.activeWorkout] : []),
+    ...workoutsData.savedWorkouts,
+  ];
+
+  return { exercises, muscleGroups, workouts: dedupeWorkouts(workouts) };
+}
+
 export async function getAvailableExercises(): Promise<readonly AvailableExercise[]> {
   const userProfileId = getUserProfileId('listar exercícios');
-  const response = await apiClient.get<unknown>('/exercises');
+  const response = await apiClient.get<unknown>('/mobile/exercises');
   const exercises = mapExercises(response);
 
   return exercises.filter(
     (exercise) => !exercise.isCustom || normalizeId(exercise.userProfileId) === normalizeId(userProfileId),
   );
+}
+
+export async function getMuscleGroups(): Promise<readonly MuscleGroupOption[]> {
+  const response = await apiClient.get<unknown>('/mobile/muscle-groups');
+  return mapMuscleGroups(response);
+}
+
+export async function getWorkoutExerciseLinks(workoutId: string): Promise<readonly WorkoutExerciseLink[]> {
+  const response = await apiClient.get<unknown>(`/workouts/${workoutId}/exercises`);
+  return mapWorkoutExerciseLinks(response);
+}
+
+export async function saveWorkoutPlan({
+  exerciseIds,
+  name,
+  workoutId,
+}: SaveWorkoutPlanInput): Promise<string> {
+  if (workoutId) {
+    await updateWorkoutName(workoutId, name);
+    await replaceWorkoutExercises(workoutId, exerciseIds);
+    return workoutId;
+  }
+
+  return createWorkoutWithExercises({ exerciseIds, name });
 }
 
 export async function createWorkoutWithExercises({
@@ -37,12 +110,42 @@ export async function createWorkoutWithExercises({
     notes: null,
   });
   const workout = getObject(getField(asObject(workoutResponse), 'data')) ?? asObject(workoutResponse) ?? {};
-  const workoutId = getString(workout, ['id']);
+  const nextWorkoutId = getString(workout, ['id']);
 
-  if (!workoutId) {
+  if (!nextWorkoutId) {
     throw new ApiError('A API não retornou o treino criado.');
   }
 
+  await addWorkoutExercises(nextWorkoutId, exerciseIds);
+
+  return nextWorkoutId;
+}
+
+async function updateWorkoutName(workoutId: string, name: string): Promise<void> {
+  const workout = await getWorkoutById(workoutId);
+
+  await apiClient.put<unknown>(`/workouts/${workoutId}`, {
+    userProfileId: workout.userProfileId || getUserProfileId('editar um treino'),
+    name: name.trim(),
+    workoutDate: workout.workoutDate || new Date().toISOString(),
+    location: workout.location ?? null,
+    notes: workout.notes ?? null,
+  });
+}
+
+async function replaceWorkoutExercises(
+  workoutId: string,
+  exerciseIds: readonly string[],
+): Promise<void> {
+  const currentLinks = await getWorkoutExerciseLinks(workoutId);
+
+  await Promise.all(
+    currentLinks.map((link) => apiClient.delete<unknown>(`/workouts/${workoutId}/exercises/${link.id}`)),
+  );
+  await addWorkoutExercises(workoutId, exerciseIds);
+}
+
+async function addWorkoutExercises(workoutId: string, exerciseIds: readonly string[]): Promise<void> {
   await Promise.all(
     exerciseIds.map((exerciseId, index) =>
       apiClient.post<unknown>(`/workouts/${workoutId}/exercises`, {
@@ -52,8 +155,19 @@ export async function createWorkoutWithExercises({
       }),
     ),
   );
+}
 
-  return workoutId;
+function dedupeWorkouts(workouts: readonly WorkoutBuilderWorkout[]): readonly WorkoutBuilderWorkout[] {
+  const seenIds = new Set<string>();
+
+  return workouts.filter((workout) => {
+    if (!workout.id || seenIds.has(workout.id)) {
+      return false;
+    }
+
+    seenIds.add(workout.id);
+    return true;
+  });
 }
 
 function getUserProfileId(action: string): string {
@@ -80,6 +194,7 @@ function mapExercise(value: unknown): AvailableExercise | undefined {
   const exercise = asObject(value);
   const id = getString(exercise, ['id']);
   const name = getString(exercise, ['name']);
+  const muscleGroupDisplayName = getString(exercise, ['muscleGroupDisplayName', 'muscle_group_display_name']);
 
   if (!id || !name) {
     return undefined;
@@ -90,8 +205,72 @@ function mapExercise(value: unknown): AvailableExercise | undefined {
     name,
     description: getString(exercise, ['description']),
     muscleGroup: getString(exercise, ['muscleGroup', 'muscle_group']) ?? 'Other',
+    muscleGroupId: getString(exercise, ['muscleGroupId', 'muscle_group_id']),
+    muscleGroupDisplayName,
     isCustom: getBoolean(exercise, ['isCustom', 'is_custom']) ?? false,
     userProfileId: getString(exercise, ['userProfileId', 'user_profile_id']),
+    media: { type: 'placeholder' },
+  };
+}
+
+function mapMuscleGroups(response: unknown): readonly MuscleGroupOption[] {
+  const value = getObject(getField(asObject(response), 'data')) ?? response;
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(mapMuscleGroup)
+    .filter((muscleGroup): muscleGroup is MuscleGroupOption => muscleGroup !== undefined)
+    .sort((first, second) => first.displayOrder - second.displayOrder);
+}
+
+function mapMuscleGroup(value: unknown): MuscleGroupOption | undefined {
+  const muscleGroup = asObject(value);
+  const id = getString(muscleGroup, ['id']);
+  const name = getString(muscleGroup, ['name']);
+  const displayName = getString(muscleGroup, ['displayName', 'display_name']);
+
+  if (!id || !name || !displayName) {
+    return undefined;
+  }
+
+  return {
+    id,
+    name,
+    displayName,
+    icon: getString(muscleGroup, ['icon']),
+    displayOrder: getNumber(muscleGroup, ['displayOrder', 'display_order']) ?? 999,
+  };
+}
+
+function mapWorkoutExerciseLinks(response: unknown): readonly WorkoutExerciseLink[] {
+  const value = getObject(getField(asObject(response), 'data')) ?? response;
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(mapWorkoutExerciseLink)
+    .filter((link): link is WorkoutExerciseLink => link !== undefined)
+    .sort((first, second) => first.order - second.order);
+}
+
+function mapWorkoutExerciseLink(value: unknown): WorkoutExerciseLink | undefined {
+  const link = asObject(value);
+  const id = getString(link, ['id']);
+  const exerciseId = getString(link, ['exerciseId', 'exercise_id']);
+
+  if (!id || !exerciseId) {
+    return undefined;
+  }
+
+  return {
+    id,
+    exerciseId,
+    order: getNumber(link, ['order']) ?? 0,
   };
 }
 
@@ -107,6 +286,11 @@ function getField(object: ApiRecord | undefined, ...keys: string[]): unknown {
 function getString(object: ApiRecord | undefined, keys: readonly string[]): string | undefined {
   const value = getField(object, ...keys);
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function getNumber(object: ApiRecord | undefined, keys: readonly string[]): number | undefined {
+  const value = getField(object, ...keys);
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
 function getBoolean(object: ApiRecord | undefined, keys: readonly string[]): boolean | undefined {

@@ -40,7 +40,6 @@ Este documento nao implementa codigo. Ele deve orientar a criacao futura do them
 
 ## Provisorio
 
-- Familia tipografica final pode mudar apos testes em Android e iOS.
 - Intensidade final das sombras ainda precisa de validacao visual em telas reais.
 - Radius pode sofrer pequenos ajustes apos prototipos.
 - Duracoes de animacao ainda precisam ser medidas em prototipo.
@@ -74,6 +73,24 @@ A presenca premium vem de contraste, alinhamento, tipografia, superficies e uso 
 Elementos decorativos devem ser raros.
 
 Metricas, treino, progresso e acoes principais devem ser mais importantes que ornamentos visuais.
+
+## Hierarquia de Superficies
+
+Este e o padrao oficial de layout do Forge para Home, Treinos, Historico, Conquistas, Perfil, Configuracoes e futuras telas.
+
+- `color.background.primary` e o agrupador estrutural principal da interface.
+- Nao criar containers apenas para agrupar secoes.
+- Titulos de secao ficam diretamente sobre o fundo da tela, fora de cards.
+- Cards existem apenas para destacar conteudo importante.
+- Manter apenas um nivel de card: evitar completamente `Tela > Card > Card`.
+- Preferir `Tela > Conteudo > Card` quando uma secao precisar destacar seu conteudo.
+- Antes de adicionar uma nova superficie, confirmar se ela destaca conteudo real ou apenas agrupa outro card.
+- Entre secoes, usar ritmo vertical de 28-36 px.
+- Entre titulo de secao e card, usar 12-16 px.
+- Titulos de secao usam `Cinzel`, peso semibold, tracking sutil e `color.gamification.level`.
+- Cards de conteudo usam `color.surface.card`, `color.border.default`, radius do Design System, padding do componente e sombra muito sutil.
+
+O resultado esperado e uma interface com sofisticacao, limpeza, respiro visual e sensacao premium.
 
 ## Gamificacao Elegante
 
@@ -152,6 +169,14 @@ O uso de azul, bronze, dourado e laranja deve ser pontual e significativo.
 
 | Token | Familia | Peso | Tamanho | Altura de linha | Status | Uso |
 | --- | --- | --- | --- | --- | --- | --- |
+| `typography.display` | Cinzel | 700 | 28 | 34 | Definitivo v1 | Identidade forte, nome FORGE e momentos especiais. |
+| `typography.screenTitle` | Inter | 700 | 28 | 34 | Definitivo v1 | Titulos principais de tela e saudacoes funcionais. |
+| `typography.sectionTitle` | Cinzel | 600 | 16 | 22 | Definitivo v1 | Titulos especiais como TREINO DE HOJE, ACOES RAPIDAS e PROGRESSO DA SEMANA. |
+| `typography.cardTitle` | Inter | 600 | 16 | 22 | Definitivo v1 | Titulos internos de cards. |
+| `typography.label` | Inter | 500 | 12 | 16 | Definitivo v1 | Labels, legendas, badges e metadados. |
+| `typography.metric.highlight` | Inter | 800 | 32 | 38 | Definitivo v1 | Numero principal de cards e metricas. |
+| `typography.metric.compact` | Inter | 700 | 22 | 28 | Definitivo v1 | Numeros medios em cards compactos. |
+| `typography.navigation` | Inter | 500 | 12 | 16 | Definitivo v1 | Bottom Navigation e navegacao funcional. |
 | `typography.title.main` | Inter | 700 | 28 | 34 | Definitivo v1 | Titulo principal, saudacao e contexto forte. |
 | `typography.title.section` | Inter | 700 | 20 | 26 | Definitivo v1 | Titulos de secao. |
 | `typography.title.card` | Inter | 600 | 16 | 22 | Definitivo v1 | Titulos internos de cards. |
@@ -175,6 +200,8 @@ O uso de azul, bronze, dourado e laranja deve ser pontual e significativo.
 - `Cinzel` nao deve ser usado em textos longos ou muito pequenos.
 - Numeros, metricas, botoes, formularios, cards e navegacao usam `Inter`.
 - Textos funcionais usam `Inter`.
+- Nao utilizar novas familias tipograficas sem revisao do Design System.
+- Implementacoes futuras devem reutilizar os tokens de `src/theme/typography.ts`.
 - A escala precisa ser validada em Android e iOS antes de congelar como versao final.
 
 ---
@@ -609,7 +636,7 @@ Estas regras sao definitivas.
 - Validar radius dos cards e botoes em prototipo visual.
 - Validar uso do laranja quente para FAB e botoes primarios.
 - Definir se o app tera modo claro no futuro.
-- Definir como os tokens serao nomeados tecnicamente no theme.
+- Manter a nomenclatura oficial de tipografia sincronizada com `src/theme/typography.ts`.
 
 ---
 

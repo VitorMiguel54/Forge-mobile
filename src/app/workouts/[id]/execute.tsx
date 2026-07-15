@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   title: {
-    ...typography.title.main,
+    ...typography.screenTitle,
     color: colors.text.primary,
   },
   description: {
@@ -606,15 +606,17 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   exerciseTitle: {
-    ...typography.title.main,
+    ...typography.screenTitle,
     color: colors.text.primary,
   },
   sectionTitle: {
-    ...typography.title.section,
-    color: colors.text.primary,
+    ...typography.sectionTitle,
+    color: colors.gamification.level,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   cardTitle: {
-    ...typography.title.card,
+    ...typography.cardTitle,
     color: colors.text.primary,
   },
   levelTitle: {
@@ -622,11 +624,13 @@ const styles = StyleSheet.create({
     color: colors.gamification.level,
   },
   achievementSectionTitle: {
-    ...typography.identity.section,
-    color: colors.text.primary,
+    ...typography.sectionTitle,
+    color: colors.gamification.level,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   achievementTitle: {
-    ...typography.identity.section,
+    ...typography.sectionTitle,
     color: colors.text.primary,
   },
   secondaryText: {
@@ -722,7 +726,7 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   inputLabel: {
-    ...typography.caption,
+    ...typography.label,
     color: colors.text.secondary,
   },
   input: {
@@ -779,7 +783,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.default,
   },
   completionStatValue: {
-    ...typography.number.compact,
+    ...typography.metric.compact,
     color: colors.text.primary,
   },
   completionStatLabel: {
@@ -813,7 +817,7 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   stateTitle: {
-    ...typography.title.section,
+    ...typography.cardTitle,
     color: colors.text.primary,
     textAlign: 'center',
   },

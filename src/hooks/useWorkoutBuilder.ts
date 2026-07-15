@@ -2,37 +2,56 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { ApiError } from '@/api/apiClient';
 import {
-  createWorkoutWithExercises,
-  getAvailableExercises,
+  getWorkoutBuilderData,
+  getWorkoutExerciseLinks,
+  saveWorkoutPlan,
   type AvailableExercise,
+  type MuscleGroupOption,
+  type WorkoutBuilderWorkout,
+  type WorkoutExerciseLink,
 } from '@/services/workoutBuilderService';
 
 export type UseWorkoutBuilderResult = {
   readonly exercises: readonly AvailableExercise[];
+  readonly muscleGroups: readonly MuscleGroupOption[];
+  readonly workouts: readonly WorkoutBuilderWorkout[];
+  readonly selectedWorkoutLinks: readonly WorkoutExerciseLink[];
   readonly isLoading: boolean;
-  readonly isCreating: boolean;
+  readonly isSaving: boolean;
+  readonly isLoadingWorkout: boolean;
   readonly error?: string;
   readonly actionError?: string;
+  readonly successMessage?: string;
   readonly refetch: () => Promise<void>;
-  readonly createWorkout: (input: {
-    readonly name: string;
+  readonly loadWorkoutExercises: (workoutId: string) => Promise<readonly WorkoutExerciseLink[]>;
+  readonly saveWorkout: (input: {
     readonly exerciseIds: readonly string[];
+    readonly name: string;
+    readonly workoutId?: string;
   }) => Promise<string | undefined>;
 };
 
 export function useWorkoutBuilder(): UseWorkoutBuilderResult {
   const [exercises, setExercises] = useState<readonly AvailableExercise[]>([]);
+  const [muscleGroups, setMuscleGroups] = useState<readonly MuscleGroupOption[]>([]);
+  const [workouts, setWorkouts] = useState<readonly WorkoutBuilderWorkout[]>([]);
+  const [selectedWorkoutLinks, setSelectedWorkoutLinks] = useState<readonly WorkoutExerciseLink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
+  const [isLoadingWorkout, setIsLoadingWorkout] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string>();
   const [actionError, setActionError] = useState<string>();
+  const [successMessage, setSuccessMessage] = useState<string>();
 
   const refetch = useCallback(async () => {
     setIsLoading(true);
     setError(undefined);
 
     try {
-      setExercises(await getAvailableExercises());
+      const data = await getWorkoutBuilderData();
+      setExercises(data.exercises);
+      setMuscleGroups(data.muscleGroups);
+      setWorkouts(data.workouts);
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
@@ -40,18 +59,51 @@ export function useWorkoutBuilder(): UseWorkoutBuilderResult {
     }
   }, []);
 
-  const createWorkout = useCallback(
-    async ({ exerciseIds, name }: { readonly name: string; readonly exerciseIds: readonly string[] }) => {
-      setIsCreating(true);
+  const loadWorkoutExercises = useCallback(async (workoutId: string) => {
+    setIsLoadingWorkout(true);
+    setActionError(undefined);
+    setSuccessMessage(undefined);
+
+    try {
+      const links = await getWorkoutExerciseLinks(workoutId);
+      setSelectedWorkoutLinks(links);
+      return links;
+    } catch (requestError) {
+      setActionError(getErrorMessage(requestError));
+      setSelectedWorkoutLinks([]);
+      return [];
+    } finally {
+      setIsLoadingWorkout(false);
+    }
+  }, []);
+
+  const saveWorkout = useCallback(
+    async ({
+      exerciseIds,
+      name,
+      workoutId,
+    }: {
+      readonly name: string;
+      readonly exerciseIds: readonly string[];
+      readonly workoutId?: string;
+    }) => {
+      setIsSaving(true);
       setActionError(undefined);
+      setSuccessMessage(undefined);
 
       try {
-        return await createWorkoutWithExercises({ exerciseIds, name });
+        const savedWorkoutId = await saveWorkoutPlan({ exerciseIds, name, workoutId });
+        const data = await getWorkoutBuilderData();
+        setExercises(data.exercises);
+        setMuscleGroups(data.muscleGroups);
+        setWorkouts(data.workouts);
+        setSuccessMessage(workoutId ? 'Treino atualizado com sucesso.' : 'Treino criado com sucesso.');
+        return savedWorkoutId;
       } catch (requestError) {
         setActionError(getErrorMessage(requestError));
         return undefined;
       } finally {
-        setIsCreating(false);
+        setIsSaving(false);
       }
     },
     [],
@@ -60,15 +112,17 @@ export function useWorkoutBuilder(): UseWorkoutBuilderResult {
   useEffect(() => {
     let isActive = true;
 
-    async function loadInitialExercises() {
+    async function loadInitialData() {
       try {
-        const nextExercises = await getAvailableExercises();
+        const data = await getWorkoutBuilderData();
 
         if (!isActive) {
           return;
         }
 
-        setExercises(nextExercises);
+        setExercises(data.exercises);
+        setMuscleGroups(data.muscleGroups);
+        setWorkouts(data.workouts);
         setError(undefined);
       } catch (requestError) {
         if (isActive) {
@@ -81,7 +135,7 @@ export function useWorkoutBuilder(): UseWorkoutBuilderResult {
       }
     }
 
-    void loadInitialExercises();
+    void loadInitialData();
 
     return () => {
       isActive = false;
@@ -90,12 +144,18 @@ export function useWorkoutBuilder(): UseWorkoutBuilderResult {
 
   return {
     exercises,
+    muscleGroups,
+    workouts,
+    selectedWorkoutLinks,
     isLoading,
-    isCreating,
+    isLoadingWorkout,
+    isSaving,
     error,
     actionError,
+    successMessage,
     refetch,
-    createWorkout,
+    loadWorkoutExercises,
+    saveWorkout,
   };
 }
 

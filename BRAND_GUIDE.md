@@ -270,3 +270,50 @@ Cada pequena conquista.
 Tudo contribui para uma única missão:
 
 **Forjar a melhor versão de si mesmo.**
+
+---
+
+# 17. Tipografia da Marca
+
+O Forge Mobile utiliza duas familias tipograficas oficiais:
+
+- **Cinzel** para identidade, titulos especiais e gamificacao.
+- **Inter** para toda a interface funcional.
+
+## Cinzel
+
+Cinzel representa a presenca simbolica da marca: forja, Guardiao, progresso, nivel, rank e conquistas.
+
+Usar apenas em:
+
+- Logo/nome FORGE.
+- Titulos especiais de secao.
+- Nivel, rank e conquistas.
+- Titulos ligados ao Guardiao.
+- Momentos especiais de progressao.
+
+Cinzel deve aparecer com moderacao, em aproximadamente 10-15% da interface. Nao usar em textos longos, formularios, botoes, labels pequenos ou navegacao.
+
+## Inter
+
+Inter e a fonte de uso diario do produto.
+
+Usar em:
+
+- Titulos principais funcionais.
+- Descricoes.
+- Valores e metricas.
+- Botoes.
+- Formularios.
+- Cards.
+- Labels.
+- Estados de loading, erro e vazio.
+- Navegacao inferior.
+
+Inter deve representar aproximadamente 85-90% da interface.
+
+## Regra de Implementacao
+
+Toda implementacao futura deve reutilizar os tokens de `src/theme/typography.ts`.
+
+Nao utilizar novas familias tipograficas sem revisao do Design System.

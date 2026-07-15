@@ -19,7 +19,7 @@ export type QuickActionsProps = {
 
 export function QuickActions({ actions, onActionPress }: QuickActionsProps) {
   return (
-    <Card padding={5} style={styles.card}>
+    <View style={styles.section}>
       <Text numberOfLines={1} style={styles.sectionLabel}>
         Ações rápidas
       </Text>
@@ -37,7 +37,7 @@ export function QuickActions({ actions, onActionPress }: QuickActionsProps) {
               pressed && styles.pressed,
             ]}
           >
-            <View style={styles.actionCard}>
+            <Card padding={3} style={styles.actionCard}>
               <ForgeSymbol
                 color={colors.brand.primary}
                 fallback={action.iconFallback}
@@ -48,31 +48,29 @@ export function QuickActions({ actions, onActionPress }: QuickActionsProps) {
               <Text numberOfLines={2} style={styles.actionTitle}>
                 {action.title}
               </Text>
-            </View>
+            </Card>
           </Pressable>
         ))}
       </View>
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  section: {
     width: '100%',
-    borderRadius: radius.xl,
-    backgroundColor: colors.background.secondary,
-    boxShadow: shadows.card,
+    gap: spacing[4],
   },
   sectionLabel: {
-    ...typography.identity.section,
-    color: colors.text.primary,
+    ...typography.sectionTitle,
+    color: colors.gamification.level,
     textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   grid: {
     width: '100%',
     flexDirection: 'row',
     gap: spacing[2],
-    marginTop: spacing[5],
   },
   pressable: {
     flex: 1,
@@ -91,11 +89,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing[4],
     paddingHorizontal: spacing[1],
-    paddingVertical: spacing[3],
     borderRadius: radius.lg,
     borderWidth: borders.width.default,
     borderColor: colors.border.default,
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.surface.card,
+    boxShadow: shadows.card,
   },
   actionTitle: {
     ...typography.caption,

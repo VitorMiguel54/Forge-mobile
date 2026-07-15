@@ -66,14 +66,16 @@ export default function HomeScreen() {
                 </Card>
               ) : null}
 
-              <HomeHeader />
+              <View style={styles.heroStack}>
+                <HomeHeader />
 
-              <HomeHero
-                dayLabel={dashboard.dayLabel}
-                guardianName={dashboard.guardianName}
-                guardianStatus={dashboard.guardianStatus}
-                xp={getLevelXpSummary(dashboard.xp)}
-              />
+                <HomeHero
+                  dayLabel={dashboard.dayLabel}
+                  guardianName={dashboard.guardianName}
+                  guardianStatus={dashboard.guardianStatus}
+                  xp={getLevelXpSummary(dashboard.xp)}
+                />
+              </View>
 
               <TodayWorkoutCard
                 detail={dashboard.nextWorkout.detail}
@@ -291,6 +293,9 @@ const styles = StyleSheet.create({
       web: webContentMaxWidth,
       default: undefined,
     }),
+    gap: spacing[8],
+  },
+  heroStack: {
     gap: spacing[4],
   },
   headerCopy: {
@@ -303,7 +308,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   sectionTitle: {
-    ...typography.title.section,
+    ...typography.cardTitle,
     color: colors.text.primary,
   },
   stateCard: {
@@ -311,7 +316,7 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   stateTitle: {
-    ...typography.title.section,
+    ...typography.cardTitle,
     color: colors.text.primary,
     textAlign: 'center',
   },

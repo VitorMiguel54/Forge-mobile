@@ -19,7 +19,7 @@ export type WeeklyProgressProps = {
 
 export function WeeklyProgress({ current, days, motivation, target }: WeeklyProgressProps) {
   return (
-    <Card padding={5} style={styles.card}>
+    <View style={styles.section}>
       <View style={styles.header}>
         <Text numberOfLines={1} style={styles.sectionLabel}>
           Progresso da semana
@@ -29,61 +29,67 @@ export function WeeklyProgress({ current, days, motivation, target }: WeeklyProg
         </Text>
       </View>
 
-      <View style={styles.daysRow}>
-        {days.map((day) => (
-          <View key={day.label} style={styles.dayItem}>
-            <Text numberOfLines={1} style={styles.dayLabel}>
-              {day.label}
-            </Text>
-            <View
-              style={[
-                styles.dayDot,
-                day.completed && styles.dayDotCompleted,
-                day.current && styles.dayDotCurrent,
-              ]}
-            >
-              {day.completed ? (
-                <ForgeSymbol
-                  color={colors.background.primary}
-                  fallback="✓"
-                  name={{ ios: 'checkmark', android: 'check', web: 'check' }}
-                  size={16}
-                />
-              ) : null}
+      <Card padding={5} style={styles.card}>
+        <View style={styles.daysRow}>
+          {days.map((day) => (
+            <View key={day.label} style={styles.dayItem}>
+              <Text numberOfLines={1} style={styles.dayLabel}>
+                {day.label}
+              </Text>
+              <View
+                style={[
+                  styles.dayDot,
+                  day.completed && styles.dayDotCompleted,
+                  day.current && styles.dayDotCurrent,
+                ]}
+              >
+                {day.completed ? (
+                  <ForgeSymbol
+                    color={colors.background.primary}
+                    fallback="✓"
+                    name={{ ios: 'checkmark', android: 'check', web: 'check' }}
+                    size={16}
+                  />
+                ) : null}
+              </View>
             </View>
-          </View>
-        ))}
-      </View>
+          ))}
+        </View>
 
-      <View style={styles.motivationCard}>
-        <View style={styles.guardianMark}>
-          <Text style={styles.guardianMarkText}>F</Text>
+        <View style={styles.motivationCard}>
+          <View style={styles.guardianMark}>
+            <Text style={styles.guardianMarkText}>F</Text>
+          </View>
+          <View style={styles.motivationCopy}>
+            <Text numberOfLines={1} style={styles.motivationSupport}>
+              Disciplina hoje.
+            </Text>
+            <Text numberOfLines={2} style={styles.motivationText}>
+              {motivation}
+            </Text>
+          </View>
+          <ForgeSymbol
+            color={colors.text.disabled}
+            fallback=">"
+            name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+            size={24}
+          />
         </View>
-        <View style={styles.motivationCopy}>
-          <Text numberOfLines={1} style={styles.motivationSupport}>
-            Disciplina hoje.
-          </Text>
-          <Text numberOfLines={2} style={styles.motivationText}>
-            {motivation}
-          </Text>
-        </View>
-        <ForgeSymbol
-          color={colors.text.disabled}
-          fallback=">"
-          name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
-          size={24}
-        />
-      </View>
-    </Card>
+      </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  section: {
+    width: '100%',
+    gap: spacing[4],
+  },
   card: {
     width: '100%',
     borderRadius: radius.xl,
-    backgroundColor: colors.background.secondary,
-    boxShadow: shadows.cardFeatured,
+    backgroundColor: colors.surface.card,
+    boxShadow: shadows.card,
   },
   header: {
     minWidth: 0,
@@ -93,10 +99,11 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   sectionLabel: {
-    ...typography.identity.section,
-    color: colors.text.primary,
+    ...typography.sectionTitle,
+    color: colors.gamification.level,
     textTransform: 'uppercase',
     flexShrink: 1,
+    letterSpacing: 1.2,
   },
   goalText: {
     ...typography.body.default,
@@ -106,7 +113,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing[1],
-    marginTop: spacing[8],
   },
   dayItem: {
     flex: 1,
@@ -143,11 +149,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[4],
     marginTop: spacing[8],
-    padding: spacing[4],
-    borderRadius: radius.lg,
-    borderWidth: borders.width.default,
-    borderColor: colors.border.default,
-    backgroundColor: colors.background.primary,
+    paddingTop: spacing[5],
+    borderTopWidth: borders.width.default,
+    borderTopColor: colors.border.default,
   },
   guardianMark: {
     width: componentSizes.avatar.lg,
@@ -173,7 +177,7 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
   },
   motivationText: {
-    ...typography.identity.section,
+    ...typography.sectionTitle,
     color: colors.forge.hotOrange,
   },
 });

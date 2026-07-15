@@ -17,7 +17,7 @@ export function TodayWorkoutCard({ detail, estimate, title, volumeText }: TodayW
   const displayDetail = isEmptyWorkout ? 'Crie ou inicie um treino para continuar.' : detail;
 
   return (
-    <Card padding={5} style={styles.card}>
+    <View style={styles.section}>
       <View style={styles.header}>
         <Text numberOfLines={1} style={styles.sectionLabel}>
           Treino de hoje
@@ -35,72 +35,78 @@ export function TodayWorkoutCard({ detail, estimate, title, volumeText }: TodayW
         </View>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.iconFrame}>
-          <ForgeSymbol
-            color={colors.brand.primary}
-            fallback="T"
-            name={{ ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' }}
-            size={36}
-            weight="semibold"
-          />
-        </View>
+      <Card padding={4} style={styles.card}>
+        <View style={styles.content}>
+          <View style={styles.iconFrame}>
+            <ForgeSymbol
+              color={colors.brand.primary}
+              fallback="T"
+              name={{ ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' }}
+              size={36}
+              weight="semibold"
+            />
+          </View>
 
-        <View style={styles.copy}>
-          <Text numberOfLines={2} style={styles.title}>
-            {displayTitle}
-          </Text>
-          <Text style={styles.detail}>
-            {displayDetail}
-          </Text>
+          <View style={styles.copy}>
+            <Text numberOfLines={2} style={styles.title}>
+              {displayTitle}
+            </Text>
+            <Text style={styles.detail}>
+              {displayDetail}
+            </Text>
 
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <ForgeSymbol
-                color={colors.forge.hotOrange}
-                fallback="L"
-                name={{ ios: 'list.bullet', android: 'list', web: 'list' }}
-                size={17}
-              />
-              <Text numberOfLines={1} style={styles.metaText}>
-                {isEmptyWorkout ? 'Sem treino ativo' : detail}
-              </Text>
-            </View>
-            <View style={styles.metaItem}>
-              <ForgeSymbol
-                color={colors.forge.hotOrange}
-                fallback="H"
-                name={{ ios: 'clock', android: 'schedule', web: 'schedule' }}
-                size={17}
-              />
-              <Text numberOfLines={1} style={styles.metaText}>
-                {estimate}
-              </Text>
-            </View>
-            <View style={styles.metaItem}>
-              <ForgeSymbol
-                color={colors.forge.hotOrange}
-                fallback="V"
-                name={{ ios: 'flame', android: 'local_fire_department', web: 'local_fire_department' }}
-                size={17}
-              />
-              <Text numberOfLines={1} style={styles.metaText}>
-                {volumeText}
-              </Text>
+            <View style={styles.metaRow}>
+              <View style={styles.metaItem}>
+                <ForgeSymbol
+                  color={colors.forge.hotOrange}
+                  fallback="L"
+                  name={{ ios: 'list.bullet', android: 'list', web: 'list' }}
+                  size={17}
+                />
+                <Text numberOfLines={1} style={styles.metaText}>
+                  {isEmptyWorkout ? 'Sem treino ativo' : detail}
+                </Text>
+              </View>
+              <View style={styles.metaItem}>
+                <ForgeSymbol
+                  color={colors.forge.hotOrange}
+                  fallback="H"
+                  name={{ ios: 'clock', android: 'schedule', web: 'schedule' }}
+                  size={17}
+                />
+                <Text numberOfLines={1} style={styles.metaText}>
+                  {estimate}
+                </Text>
+              </View>
+              <View style={styles.metaItem}>
+                <ForgeSymbol
+                  color={colors.forge.hotOrange}
+                  fallback="V"
+                  name={{ ios: 'flame', android: 'local_fire_department', web: 'local_fire_department' }}
+                  size={17}
+                />
+                <Text numberOfLines={1} style={styles.metaText}>
+                  {volumeText}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
-    </Card>
+      </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  section: {
+    width: '100%',
+    gap: spacing[4],
+  },
   card: {
     width: '100%',
     borderRadius: radius.xl,
-    backgroundColor: colors.background.secondary,
-    boxShadow: shadows.cardFeatured,
+    backgroundColor: colors.surface.card,
+    boxShadow: shadows.card,
   },
   header: {
     minWidth: 0,
@@ -110,10 +116,11 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   sectionLabel: {
-    ...typography.identity.section,
-    color: colors.text.primary,
+    ...typography.sectionTitle,
+    color: colors.gamification.level,
     textTransform: 'uppercase',
     flexShrink: 1,
+    letterSpacing: 1.2,
   },
   headerAction: {
     flexDirection: 'row',
@@ -128,12 +135,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing[4],
-    marginTop: spacing[5],
-    padding: spacing[4],
-    borderRadius: radius.lg,
-    borderWidth: borders.width.default,
-    borderColor: colors.border.default,
-    backgroundColor: colors.background.primary,
+    minWidth: 0,
   },
   iconFrame: {
     width: componentSizes.avatar.xl,
@@ -151,7 +153,7 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   title: {
-    ...typography.title.section,
+    ...typography.cardTitle,
     color: colors.text.primary,
     flexShrink: 1,
   },

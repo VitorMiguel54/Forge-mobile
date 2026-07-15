@@ -127,9 +127,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    ...typography.caption,
     color: colors.text.secondary,
     textAlign: 'center',
+    ...typography.navigation,
   },
   activeLabel: {
     color: colors.brand.primary,

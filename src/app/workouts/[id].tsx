@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   title: {
-    ...typography.title.main,
+    ...typography.screenTitle,
     color: colors.text.primary,
   },
   description: {
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.default,
   },
   metaValue: {
-    ...typography.number.compact,
+    ...typography.metric.compact,
     color: colors.text.primary,
   },
   metaLabel: {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   stateTitle: {
-    ...typography.title.section,
+    ...typography.cardTitle,
     color: colors.text.primary,
     textAlign: 'center',
   },

@@ -42,10 +42,10 @@ const styles = StyleSheet.create({
     ...typography.body.default,
   },
   title: {
-    ...typography.title.main,
+    ...typography.screenTitle,
   },
   subtitle: {
-    ...typography.title.section,
+    ...typography.cardTitle,
   },
   link: {
     ...typography.body.secondary,

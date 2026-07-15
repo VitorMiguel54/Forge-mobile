@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     gap: spacing[1],
   },
   greeting: {
-    ...typography.title.main,
+    ...typography.screenTitle,
     color: colors.text.primary,
   },
   guardianTitle: {
@@ -176,11 +176,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   currentXp: {
-    ...typography.number.highlight,
+    ...typography.metric.highlight,
     color: colors.gamification.xp,
   },
   targetXp: {
-    ...typography.title.section,
+    ...typography.metric.compact,
     color: colors.text.secondary,
     flexShrink: 1,
   },

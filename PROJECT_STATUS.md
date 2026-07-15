@@ -1,6 +1,6 @@
 # Forge Mobile - Project Status
 
-Atualizado em: 14/07/2026
+Atualizado em: 15/07/2026
 
 ---
 
@@ -72,6 +72,20 @@ Fontes:
 - Pesos carregados:
   - Inter: 400, 500, 600, 700 e 800.
   - Cinzel: 600, 700 e 800.
+- Tokens oficiais de tipografia:
+  - `typography.display`;
+  - `typography.screenTitle`;
+  - `typography.sectionTitle`;
+  - `typography.cardTitle`;
+  - `typography.body.default`;
+  - `typography.body.secondary`;
+  - `typography.label`;
+  - `typography.metric.highlight`;
+  - `typography.metric.compact`;
+  - `typography.button`;
+  - `typography.navigation`;
+  - `typography.gamification.level`;
+  - `typography.gamification.xp`.
 - No Web, `src/global.css` tambem importa Inter e Cinzel como apoio.
 - Enquanto as fontes carregam, o layout raiz preserva fallback seguro antes de renderizar as telas.
 - Excecao tecnica: `ThemedText` mantem fonte monoespacada apenas para o tipo `code`.
@@ -179,6 +193,13 @@ Home (`/`):
   - acoes rapidas usam equivalentes premium da biblioteca atual: treino, peso, agua e sono;
   - `BottomNavigation` foi realinhada para uma estrutura unica por item: icone centralizado acima do texto centralizado;
   - Hero, hooks, services, contratos de API, backend e dados reais foram preservados.
+- Novo padrao visual oficial da Home em 15/07/2026:
+  - containers externos de secao foram removidos de `Treino de hoje`, `Acoes rapidas` e `Progresso da semana`;
+  - titulos de secao passaram a ficar diretamente sobre o fundo da tela, fora de cards;
+  - cada bloco mantem apenas um nivel de card, evitando `card dentro de card`;
+  - `Progresso da semana` manteve a frase motivacional dentro do mesmo card, separada por divisor sutil em vez de card interno;
+  - o ritmo vertical entre secoes foi ampliado para dar mais respiro e hierarquia;
+  - hooks, services, navegacao, dados reais e contratos da API foram preservados.
 
 Configuracao de API:
 
@@ -198,9 +219,35 @@ Treinos (`/workouts`):
 - Cada card exibe nome, grupos musculares, duracao e quantidade de exercicios.
 - Botoes `Iniciar treino` no destaque e nos cards de treino.
 - Botao `Novo treino` cria um treino real via `POST /api/workouts` usando `EXPO_PUBLIC_USER_PROFILE_ID`.
-- Fluxo `/workouts/new` lista exercicios globais e customizados disponiveis para o usuario via `GET /api/exercises`.
-- Novo treino exige nome e ao menos um exercicio selecionado antes de criar.
-- Criacao de treino vincula exercicios selecionados usando `POST /api/workouts/{workoutId}/exercises`.
+- Fluxo `/workouts/new` foi refatorado como gerenciador completo de treinos:
+  - combobox pesquisavel para selecionar treino existente ou iniciar criacao de novo treino;
+  - cada treino existente exibe nome, grupos musculares e quantidade de exercicios;
+  - selecao de treino existente carrega automaticamente exercicios vinculados por `GET /api/workouts/{workoutId}/exercises`;
+  - edicao permite adicionar, remover e reordenar exercicios;
+  - criacao de novo treino exige nome, grupos musculares e exercicios selecionados;
+  - catalogo lista exercicios globais e customizados disponiveis para o usuario via `GET /api/exercises`;
+  - busca por exercicio e filtros rapidos por grupo muscular foram adicionados;
+  - filtro `Favoritos` existe na UI para preparar o fluxo, mas permanece vazio enquanto a API nao expuser favorito real;
+  - contadores exibem exercicios encontrados e quantidade selecionada;
+  - reordenacao foi implementada por controles de subir/descer e suporte a drag-and-drop no Web;
+  - resumo antes de salvar mostra nome, grupos, quantidade e lista ordenada dos exercicios;
+  - salvar criacao usa `POST /api/workouts` e `POST /api/workouts/{workoutId}/exercises`;
+  - salvar edicao usa `PUT /api/workouts/{workoutId}`, remove vinculos antigos com `DELETE /api/workouts/{workoutId}/exercises/{workoutExerciseId}` e recria a sequencia com `POST /api/workouts/{workoutId}/exercises`;
+  - placeholders temporarios de imagem foram adicionados para cada exercicio, com estrutura `ExerciseMedia` preparada para futura substituicao por imagem, GIF, video curto ou animacao demonstrativa.
+  - simplificacao de fluxo aplicada em 15/07/2026:
+    - o seletor `Selecionar ou criar treino` aparece apenas na tela inicial;
+    - apos escolher `Criar novo treino`, a tela entra diretamente em `Criar treino`, iniciando por nome, grupos musculares e exercicios;
+    - apos escolher um treino existente, a tela entra diretamente em `Editar treino`, iniciando pelo formulario de edicao;
+    - a troca de contexto passou a ser feita por uma acao discreta `Trocar treino`, sem manter o combobox permanentemente na tela;
+    - funcionalidades de criacao, edicao, busca, filtros, reordenacao e salvamento foram preservadas.
+  - grupos musculares oficiais integrados em 15/07/2026:
+    - o fluxo oficial de criacao passa a ser nome do treino -> selecao de grupos musculares -> busca/selecao de exercicios -> organizacao da ordem -> salvar;
+    - a tela consome `GET /api/mobile/muscle-groups` via `workoutBuilderService` e `useWorkoutBuilder`;
+    - chips de grupos musculares deixaram de ser lista fixa no cliente e agora usam IDs/display names reais vindos da API;
+    - catalogo de exercicios passou a usar `GET /api/mobile/exercises`, incluindo `muscleGroupId` e `muscleGroupDisplayName`;
+    - filtros rapidos de exercicios sao derivados dos grupos recebidos da API;
+    - criacao e edicao preservam busca, selecao multipla, reordenacao e resumo antes de salvar;
+    - ao editar treino existente, os grupos selecionados sao reconstruidos pelos exercicios vinculados quando possivel, com fallback para labels antigos do agregador mobile.
 - Botoes `Iniciar treino` abrem `/workouts/{id}` usando o ID real retornado pela API.
 - Tela `/workouts/[id]` carrega o treino selecionado via `GET /api/workouts/{id}`.
 - Tela `/workouts/[id]/execute` executa o treino com exercícios e séries reais da API.
@@ -229,6 +276,7 @@ Configuracao de API para Treinos:
 - Nao ha campos mockados na tela Treinos; `durationMinutes`/`estimatedDurationMinutes` vem do endpoint mobile e agora e baseado em tempo real na API.
 - O detalhe de treino usa a rota existente `/api/workouts/{id}`; campos nao presentes nesse contrato nao sao mockados.
 - A execucao usa as rotas existentes `/api/workouts/{id}`, `/api/workouts/{id}/exercises`, `/api/exercises`, `/api/workout-exercises/{workoutExerciseId}/sets`, `/api/workout-sets/{id}` e `/api/workouts/{id}/finish`.
+- O gerenciador de criacao/edicao usa `/api/mobile/muscle-groups` e `/api/mobile/exercises` para orientar a selecao por grupos musculares oficiais.
 - Descanso nao existe no contrato atual de series; por isso nao e exibido nem mockado.
 
 Historico (`/history`):
@@ -280,6 +328,7 @@ Configuracao de API para Perfil:
 Design Preview (`/design-preview`):
 
 - Tela temporaria para validar `Button`, `Card`, `MetricCard`, `XPProgress` e tokens principais.
+- Preview atualizada para demonstrar Cinzel em titulos especiais/identidade/gamificacao e Inter em titulos principais, corpo, labels, numeros, botoes e navegacao.
 
 ---
 
@@ -414,6 +463,49 @@ Padronizacao tipografica Cinzel + Inter em 14/07/2026:
   - `npx.cmd tsc --noEmit`: sucesso.
   - `npm.cmd run lint`: sucesso.
   - `npm.cmd run web -- --port 8082`: Expo iniciou e ficou aguardando em `http://localhost:8082`.
+  - `npm.cmd run web -- --port 8082`: Expo iniciou e ficou aguardando em `http://localhost:8082`.
+
+Padronizacao oficial Cinzel + Inter em 15/07/2026:
+
+- `src/theme/typography.ts` passou a expor a taxonomia oficial `display`, `screenTitle`, `sectionTitle`, `cardTitle`, `body`, `label`, `metric`, `button` e `navigation`.
+- Aliases anteriores foram preservados para compatibilidade com telas existentes, todos apontando para Inter/Cinzel via tokens.
+- `BottomNavigation`, `MetricCard`, `ThemedText` e componentes da Home passaram a consumir nomes semanticos oficiais quando aplicavel.
+- Home, Treinos, Execucao de treino, Historico, Conquistas, Perfil, modais e telas auxiliares foram revisados para remover aliases tipograficos antigos nas telas/componentes e usar a taxonomia oficial.
+- `Design Preview` foi atualizada para demonstrar o uso correto de Cinzel e Inter.
+- `DESIGN_SYSTEM.md`, `FRONTEND_GUIDELINES.md` e `BRAND_GUIDE.md` documentam a regra oficial:
+  - Cinzel para identidade, titulos especiais e gamificacao;
+  - Inter para interface, corpo, numeros, botoes, formularios, cards e navegacao;
+  - novas familias tipograficas exigem revisao do Design System.
+- Varredura de `fontFamily` em `src` confirmou somente tokens em `src/theme/typography.ts` e a excecao tecnica monoespacada de `ThemedText` para texto `code`.
+- Varredura de aliases antigos em telas/componentes confirmou ausencia de `typography.title.*`, `typography.identity.section` e `typography.number.*` fora de `src/theme/typography.ts`.
+- Validacao:
+  - `npx.cmd tsc --noEmit`: sucesso.
+  - `npm.cmd run lint`: sucesso.
+  - `npm.cmd run web -- --port 8082`: Expo iniciou e ficou aguardando em `http://localhost:8082`.
+
+Refatoracao do padrao visual oficial da Home em 15/07/2026:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- `npm.cmd run web`: Expo iniciou e ficou aguardando em `http://localhost:8081`.
+- Revisao responsiva prevista para 360 px, 390 px, 412 px, 430 px e Web, com a Home mantendo largura maxima mobile e secoes sem containers externos.
+
+Gerenciador de treinos em `/workouts/new` em 15/07/2026:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- `npm.cmd run web -- --port 8082`: Expo iniciou em `http://localhost:8082`.
+- `http://localhost:8082/workouts/new`: respondeu `200 OK`.
+- Revisao visual prevista para 360 px, 390 px, 412 px, 430 px e Web, mantendo largura maxima mobile, cards unicos e titulos de secao fora de superficies.
+
+Grupos musculares oficiais em 15/07/2026:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- `npm.cmd run web -- --port 8082`: Web respondeu `200 OK` em `http://localhost:8082/workouts/new`.
+- Validacao backend correspondente:
+  - `dotnet build Forge.slnx -p:BaseOutputPath=C:\Forge\artifacts\codex-bin\`: sucesso, usado para evitar bloqueio de DLL pela API local em execucao.
+  - `dotnet test Forge.slnx -p:BaseOutputPath=C:\Forge\artifacts\codex-test-bin\`: sucesso, 13 testes aprovados.
 
 ---
 

@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     gap: spacing[3],
   },
   title: {
-    ...typography.title.card,
+    ...typography.cardTitle,
     color: colors.text.primary,
     flex: 1,
   },
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     marginTop: spacing[3],
   },
   value: {
-    ...typography.number.highlight,
+    ...typography.metric.highlight,
     color: colors.text.primary,
   },
   unit: {

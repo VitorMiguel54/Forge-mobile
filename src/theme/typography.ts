@@ -31,6 +31,10 @@ export type Typography = {
     readonly bold: FontWeightToken;
     readonly extrabold: FontWeightToken;
   };
+  readonly display: TypographyStyle;
+  readonly screenTitle: TypographyStyle;
+  readonly sectionTitle: TypographyStyle;
+  readonly cardTitle: TypographyStyle;
   readonly title: {
     readonly main: TypographyStyle;
     readonly section: TypographyStyle;
@@ -45,8 +49,14 @@ export type Typography = {
     readonly default: TypographyStyle;
     readonly secondary: TypographyStyle;
   };
+  readonly label: TypographyStyle;
   readonly caption: TypographyStyle;
   readonly button: TypographyStyle;
+  readonly navigation: TypographyStyle;
+  readonly metric: {
+    readonly highlight: TypographyStyle;
+    readonly compact: TypographyStyle;
+  };
   readonly number: {
     readonly highlight: TypographyStyle;
     readonly compact: TypographyStyle;
@@ -81,6 +91,30 @@ export const typography: Typography = {
     semibold: 600,
     bold: 700,
     extrabold: 800,
+  },
+  display: {
+    fontFamily: fontFamily.identity.bold,
+    fontWeight: 700,
+    fontSize: 28,
+    lineHeight: 34,
+  },
+  screenTitle: {
+    fontFamily: fontFamily.interface.bold,
+    fontWeight: 700,
+    fontSize: 28,
+    lineHeight: 34,
+  },
+  sectionTitle: {
+    fontFamily: fontFamily.identity.semibold,
+    fontWeight: 600,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  cardTitle: {
+    fontFamily: fontFamily.interface.semibold,
+    fontWeight: 600,
+    fontSize: 16,
+    lineHeight: 22,
   },
   title: {
     main: {
@@ -136,6 +170,12 @@ export const typography: Typography = {
       lineHeight: 19,
     },
   },
+  label: {
+    fontFamily: fontFamily.interface.medium,
+    fontWeight: 500,
+    fontSize: 12,
+    lineHeight: 16,
+  },
   caption: {
     fontFamily: fontFamily.interface.medium,
     fontWeight: 500,
@@ -147,6 +187,26 @@ export const typography: Typography = {
     fontWeight: 700,
     fontSize: 15,
     lineHeight: 20,
+  },
+  navigation: {
+    fontFamily: fontFamily.interface.medium,
+    fontWeight: 500,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  metric: {
+    highlight: {
+      fontFamily: fontFamily.interface.extrabold,
+      fontWeight: 800,
+      fontSize: 32,
+      lineHeight: 38,
+    },
+    compact: {
+      fontFamily: fontFamily.interface.bold,
+      fontWeight: 700,
+      fontSize: 22,
+      lineHeight: 28,
+    },
   },
   number: {
     highlight: {
