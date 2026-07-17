@@ -1,23 +1,86 @@
+import { useState } from 'react';
 import { useRouter, type Href } from 'expo-router';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  LayoutAnimation,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  UIManager,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BottomNavigation, Button, Card } from '@/components';
+import { ForgeSymbol } from '@/components/icons/ForgeSymbol';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import type { MobileWorkout } from '@/services/workoutsService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
 const webContentMaxWidth = spacing[10] * spacing[5];
 
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export default function WorkoutsScreen() {
   const router = useRouter();
-  const { workouts, error, isLoading, refetch } = useWorkouts();
+  const {
+    actionError,
+    deleteWorkout,
+    error,
+    isDeletingId,
+    isLoading,
+    isLoadingExercisesId,
+    isStartingId,
+    loadWorkoutExercises,
+    refetch,
+    startWorkout,
+    successMessage,
+    workoutExercisesByWorkoutId,
+    workouts,
+  } = useWorkouts();
+  const [expandedWorkoutId, setExpandedWorkoutId] = useState<string>();
+  const [deleteCandidate, setDeleteCandidate] = useState<MobileWorkout>();
   const activeWorkout = workouts?.activeWorkout;
   const hasWorkouts = Boolean(activeWorkout || workouts?.savedWorkouts.length);
   const hasSavedWorkouts = Boolean(workouts?.savedWorkouts.length);
 
-  function handleOpenWorkout(id: string) {
-    router.push(getWorkoutHref(id));
+  async function handleStartWorkout(id: string) {
+    const startedWorkout = await startWorkout(id);
+
+    if (startedWorkout?.id) {
+      router.push(getWorkoutHref(startedWorkout.id));
+    }
+  }
+
+  function handleEditWorkout(id: string) {
+    router.push(`/workouts/new?workoutId=${encodeURIComponent(id)}` as Href);
+  }
+
+  function handleToggleWorkout(workout: MobileWorkout) {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const nextExpandedId = expandedWorkoutId === workout.id ? undefined : workout.id;
+    setExpandedWorkoutId(nextExpandedId);
+
+    if (nextExpandedId && !workoutExercisesByWorkoutId[workout.id]) {
+      void loadWorkoutExercises(workout.id);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteCandidate) {
+      return;
+    }
+
+    const deleted = await deleteWorkout(deleteCandidate.id);
+    if (deleted) {
+      setExpandedWorkoutId((currentId) => (currentId === deleteCandidate.id ? undefined : currentId));
+      setDeleteCandidate(undefined);
+    }
   }
 
   return (
@@ -71,9 +134,11 @@ export default function WorkoutsScreen() {
                           <Text style={styles.statusPillText}>Em andamento</Text>
                         </View>
                       </View>
-                      <Text style={styles.featuredDuration}>
-                        {formatDuration(activeWorkout.estimatedDurationMinutes)}
-                      </Text>
+                      {activeWorkout.estimatedDurationMinutes > 0 ? (
+                        <Text style={styles.featuredDuration}>
+                          {formatDuration(activeWorkout.estimatedDurationMinutes)}
+                        </Text>
+                      ) : null}
                     </View>
                     <View style={styles.featuredCopy}>
                       <Text style={styles.featuredTitle}>{activeWorkout.name}</Text>
@@ -83,18 +148,32 @@ export default function WorkoutsScreen() {
                     </View>
                     <View style={styles.featuredMetaRow}>
                       <WorkoutStat label="Exercícios" value={activeWorkout.exerciseCount} />
-                      <WorkoutStat
-                        label="Duração"
-                        value={formatDuration(activeWorkout.estimatedDurationMinutes)}
-                      />
+                      {activeWorkout.estimatedDurationMinutes > 0 ? (
+                        <WorkoutStat
+                          label="Duração"
+                          value={formatDuration(activeWorkout.estimatedDurationMinutes)}
+                        />
+                      ) : null}
                     </View>
                     <Button
-                      title="Iniciar treino"
-                      disabled={!activeWorkout.id}
+                      title={isStartingId === activeWorkout.id ? 'Abrindo...' : 'Continuar treino'}
+                      disabled={!activeWorkout.id || isStartingId === activeWorkout.id}
                       style={styles.startWorkoutButton}
-                      onPress={() => handleOpenWorkout(activeWorkout.id)}
+                      onPress={() => void handleStartWorkout(activeWorkout.id)}
                     />
                   </View>
+                </Card>
+              ) : null}
+
+              {actionError ? (
+                <Card padding={4} style={[styles.feedbackCard, styles.errorCard]}>
+                  <Text style={styles.stateText}>{actionError}</Text>
+                </Card>
+              ) : null}
+
+              {successMessage ? (
+                <Card padding={4} style={[styles.feedbackCard, styles.successCard]}>
+                  <Text style={styles.stateText}>{successMessage}</Text>
                 </Card>
               ) : null}
 
@@ -103,7 +182,19 @@ export default function WorkoutsScreen() {
                   <Text style={styles.sectionTitle}>Treinos salvos</Text>
                   <View style={styles.workoutList}>
                     {workouts.savedWorkouts.map((workout) => (
-                      <WorkoutCard key={workout.id} workout={workout} onStart={handleOpenWorkout} />
+                      <WorkoutCard
+                        key={workout.id}
+                        exerciseSummaries={workoutExercisesByWorkoutId[workout.id] ?? []}
+                        isDeleting={isDeletingId === workout.id}
+                        isExpanded={expandedWorkoutId === workout.id}
+                        isLoadingExercises={isLoadingExercisesId === workout.id}
+                        isStarting={isStartingId === workout.id}
+                        workout={workout}
+                        onDelete={() => setDeleteCandidate(workout)}
+                        onEdit={() => handleEditWorkout(workout.id)}
+                        onStart={() => void handleStartWorkout(workout.id)}
+                        onToggle={() => handleToggleWorkout(workout)}
+                      />
                     ))}
                   </View>
                 </View>
@@ -119,47 +210,171 @@ export default function WorkoutsScreen() {
           ) : null}
         </View>
       </ScrollView>
+      <DeleteWorkoutModal
+        isDeleting={Boolean(deleteCandidate && isDeletingId === deleteCandidate.id)}
+        workout={deleteCandidate}
+        onCancel={() => setDeleteCandidate(undefined)}
+        onConfirm={() => void handleConfirmDelete()}
+      />
       <BottomNavigation activeHref="/workouts" />
     </SafeAreaView>
   );
 }
 
 function WorkoutCard({
-  workout,
+  exerciseSummaries,
+  isDeleting,
+  isExpanded,
+  isLoadingExercises,
+  isStarting,
+  onDelete,
+  onEdit,
   onStart,
+  onToggle,
+  workout,
 }: {
+  readonly exerciseSummaries: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly muscleGroup: string;
+  }[];
+  readonly isDeleting: boolean;
+  readonly isExpanded: boolean;
+  readonly isLoadingExercises: boolean;
+  readonly isStarting: boolean;
+  readonly onDelete: () => void;
+  readonly onEdit: () => void;
+  readonly onStart: () => void;
+  readonly onToggle: () => void;
   readonly workout: MobileWorkout;
-  readonly onStart: (id: string) => void;
 }) {
   const status = statusStyles[workout.status];
+  const canRunAction = !isStarting && !isDeleting;
 
   return (
-    <Card variant={workout.status === 'inProgress' ? 'highlighted' : 'default'} padding={4}>
+    <Card variant={workout.status === 'inProgress' ? 'highlighted' : 'default'} padding={3}>
       <View style={styles.workoutCard}>
-        <View style={styles.workoutCardHeader}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isExpanded }}
+          onPress={onToggle}
+          style={({ pressed }) => [styles.compactCardTrigger, pressed && styles.pressed]}
+        >
           <View style={styles.workoutTitleGroup}>
-            <Text style={styles.cardTitle}>{workout.name}</Text>
-            <Text style={styles.secondaryText}>{formatMuscleGroups(workout.muscleGroups)}</Text>
+            <Text numberOfLines={1} style={styles.compactTitle}>{workout.name}</Text>
+            <Text numberOfLines={1} style={styles.compactSummary}>{buildCompactSummary(workout)}</Text>
           </View>
           <View style={[styles.statusPill, status.container]}>
             <Text style={[styles.statusText, status.text]}>{status.label}</Text>
           </View>
-        </View>
+          <ForgeSymbol
+            color={colors.text.secondary}
+            fallback={isExpanded ? '^' : 'v'}
+            name={{
+              ios: isExpanded ? 'chevron.up' : 'chevron.down',
+              android: isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down',
+              web: isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down',
+            }}
+            size={22}
+          />
+        </Pressable>
 
-        <View style={styles.workoutMetaGrid}>
-          <WorkoutStat label="Exercícios" value={workout.exerciseCount} />
-          <WorkoutStat label="Duração" value={formatDuration(workout.estimatedDurationMinutes)} />
-        </View>
+        {isExpanded ? (
+          <View style={styles.expandedContent}>
+            {isLoadingExercises ? (
+              <View style={styles.inlineLoading}>
+                <ActivityIndicator color={colors.brand.primary} />
+                <Text style={styles.secondaryText}>Carregando exercícios</Text>
+              </View>
+            ) : (
+              <View style={styles.exerciseSummaryList}>
+                {exerciseSummaries.length > 0 ? (
+                  exerciseSummaries.slice(0, 6).map((exercise, index) => (
+                    <View key={exercise.id} style={styles.exerciseSummaryItem}>
+                      <Text style={styles.exerciseSummaryOrder}>{index + 1}</Text>
+                      <View style={styles.exerciseSummaryCopy}>
+                        <Text numberOfLines={1} style={styles.exerciseSummaryName}>{exercise.name}</Text>
+                        <Text numberOfLines={1} style={styles.exerciseSummaryGroup}>{exercise.muscleGroup}</Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.secondaryText}>Nenhum exercício vinculado a este treino.</Text>
+                )}
+                {exerciseSummaries.length > 6 ? (
+                  <Text style={styles.secondaryText}>+{exerciseSummaries.length - 6} exercícios</Text>
+                ) : null}
+              </View>
+            )}
 
-        <Button
-          title="Iniciar treino"
-          disabled={!workout.id}
-          variant="secondary"
-          style={styles.workoutStartButton}
-          onPress={() => onStart(workout.id)}
-        />
+            <View style={styles.expandedActions}>
+              <Button
+                title={isStarting ? 'Iniciando...' : 'Iniciar treino'}
+                disabled={!workout.id || !canRunAction}
+                style={styles.actionButton}
+                onPress={onStart}
+              />
+              <Button
+                title="Editar"
+                disabled={!canRunAction}
+                variant="secondary"
+                style={styles.actionButton}
+                onPress={onEdit}
+              />
+              <Button
+                title={isDeleting ? 'Excluindo...' : 'Excluir'}
+                disabled={!canRunAction}
+                variant="secondary"
+                style={styles.actionButton}
+                onPress={onDelete}
+              />
+            </View>
+          </View>
+        ) : null}
       </View>
     </Card>
+  );
+}
+
+function DeleteWorkoutModal({
+  isDeleting,
+  onCancel,
+  onConfirm,
+  workout,
+}: {
+  readonly isDeleting: boolean;
+  readonly onCancel: () => void;
+  readonly onConfirm: () => void;
+  readonly workout?: MobileWorkout;
+}) {
+  return (
+    <Modal transparent animationType="fade" visible={Boolean(workout)} onRequestClose={onCancel}>
+      <View style={styles.modalOverlay}>
+        <Card padding={5} style={styles.modalCard}>
+          <Text style={styles.stateTitle}>Excluir treino salvo?</Text>
+          <Text style={styles.stateText}>
+            {workout
+              ? `O treino "${workout.name}" sairá da lista de salvos e não poderá ser iniciado novamente. Execuções concluídas, séries, cargas, XP e histórico permanecem preservados.`
+              : ''}
+          </Text>
+          <View style={styles.modalActions}>
+            <Button
+              title="Cancelar"
+              disabled={isDeleting}
+              variant="secondary"
+              style={styles.modalButton}
+              onPress={onCancel}
+            />
+            <Button
+              title={isDeleting ? 'Excluindo...' : 'Excluir'}
+              disabled={isDeleting}
+              style={styles.modalButton}
+              onPress={onConfirm}
+            />
+          </View>
+        </Card>
+      </View>
+    </Modal>
   );
 }
 
@@ -178,10 +393,42 @@ function formatDuration(minutes: number): string {
 
 function formatMuscleGroups(muscleGroups: readonly string[]): string {
   if (muscleGroups.length === 0) {
-    return 'Grupos musculares não informados';
+    return 'Grupos a definir';
   }
 
   return muscleGroups.map(formatMuscleGroup).join(', ');
+}
+
+function buildCompactSummary(workout: MobileWorkout): string {
+  const segments = [formatCompactMuscleGroups(workout.muscleGroups), formatExerciseCount(workout.exerciseCount)];
+
+  if (workout.estimatedDurationMinutes > 0) {
+    segments.push(formatDuration(workout.estimatedDurationMinutes));
+  }
+
+  return segments.join(' · ');
+}
+
+function formatCompactMuscleGroups(muscleGroups: readonly string[]): string {
+  const formattedGroups = muscleGroups.map(formatMuscleGroup);
+
+  if (formattedGroups.length === 0) {
+    return 'Grupos a definir';
+  }
+
+  if (formattedGroups.length === 1) {
+    return formattedGroups[0];
+  }
+
+  if (formattedGroups.length === 2) {
+    return `${formattedGroups[0]} e ${formattedGroups[1].toLowerCase()}`;
+  }
+
+  return `${formattedGroups[0]}, ${formattedGroups[1].toLowerCase()} +${formattedGroups.length - 2}`;
+}
+
+function formatExerciseCount(count: number): string {
+  return count === 1 ? '1 exercício' : `${count} exercícios`;
 }
 
 function formatMuscleGroup(muscleGroup: string): string {
@@ -195,14 +442,16 @@ function getWorkoutHref(id: string): Href {
 const muscleGroupLabels: Record<string, string> = {
   Arms: 'Braços',
   Back: 'Costas',
+  Biceps: 'Bíceps',
   Cardio: 'Cardio',
   Chest: 'Peito',
-  Core: 'Core',
+  Core: 'Abdômen',
   FullBody: 'Corpo inteiro',
   Glutes: 'Glúteos',
   Legs: 'Pernas',
   Other: 'Outros',
   Shoulders: 'Ombros',
+  Triceps: 'Tríceps',
 } as const;
 
 const statusStyles = {
@@ -234,6 +483,16 @@ const statusStyles = {
     },
     text: {
       color: colors.semantic.success,
+    },
+  },
+  cancelled: {
+    label: 'Cancelado',
+    container: {
+      borderColor: colors.text.disabled,
+      backgroundColor: colors.surface.default,
+    },
+    text: {
+      color: colors.text.disabled,
     },
   },
 } as const;
@@ -358,9 +617,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[3],
   },
-  inlineErrorCard: {
-    borderColor: colors.semantic.error,
-  },
   stateTitle: {
     ...typography.cardTitle,
     color: colors.text.primary,
@@ -371,25 +627,40 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     textAlign: 'center',
   },
+  feedbackCard: {
+    alignItems: 'center',
+  },
+  errorCard: {
+    borderColor: colors.semantic.error,
+  },
+  successCard: {
+    borderColor: colors.semantic.success,
+  },
   workoutList: {
-    gap: spacing[4],
+    gap: spacing[3],
   },
   workoutCard: {
-    gap: spacing[4],
+    gap: spacing[3],
   },
-  workoutCardHeader: {
+  compactCardTrigger: {
+    minHeight: componentSizes.touchTarget.global,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing[4],
+    gap: spacing[3],
   },
   workoutTitleGroup: {
     flex: 1,
-    gap: spacing[2],
+    minWidth: 0,
+    gap: spacing[1],
   },
-  cardTitle: {
+  compactTitle: {
     ...typography.cardTitle,
     color: colors.text.primary,
+  },
+  compactSummary: {
+    ...typography.caption,
+    color: colors.text.secondary,
   },
   secondaryText: {
     ...typography.body.secondary,
@@ -406,15 +677,59 @@ const styles = StyleSheet.create({
   statusText: {
     ...typography.caption,
   },
-  workoutMetaGrid: {
+  expandedContent: {
+    gap: spacing[4],
+    paddingTop: spacing[3],
+    borderTopWidth: borders.width.default,
+    borderTopColor: colors.border.default,
+  },
+  inlineLoading: {
+    minHeight: componentSizes.touchTarget.global,
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing[3],
   },
-  workoutStartButton: {
-    alignSelf: Platform.select({
-      web: 'flex-start',
-      default: 'stretch',
+  exerciseSummaryList: {
+    gap: spacing[2],
+  },
+  exerciseSummaryItem: {
+    minHeight: componentSizes.touchTarget.global,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  exerciseSummaryOrder: {
+    width: componentSizes.avatar.sm,
+    height: componentSizes.avatar.sm,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    borderRadius: radius.circular,
+    backgroundColor: colors.surface.default,
+    ...typography.caption,
+    color: colors.gamification.level,
+  },
+  exerciseSummaryCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing[1],
+  },
+  exerciseSummaryName: {
+    ...typography.body.default,
+    color: colors.text.primary,
+  },
+  exerciseSummaryGroup: {
+    ...typography.caption,
+    color: colors.text.secondary,
+  },
+  expandedActions: {
+    flexDirection: Platform.select({
+      web: 'row',
+      default: 'column',
     }),
+    gap: spacing[2],
+  },
+  actionButton: {
+    flex: 1,
   },
   stat: {
     flex: 1,
@@ -432,5 +747,30 @@ const styles = StyleSheet.create({
   statLabel: {
     ...typography.caption,
     color: colors.text.secondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing[4],
+    backgroundColor: 'rgba(0, 0, 0, 0.58)',
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 440,
+    gap: spacing[4],
+  },
+  modalActions: {
+    flexDirection: Platform.select({
+      web: 'row',
+      default: 'column',
+    }),
+    gap: spacing[3],
+  },
+  modalButton: {
+    flex: 1,
+  },
+  pressed: {
+    opacity: 0.84,
   },
 });

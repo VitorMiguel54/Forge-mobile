@@ -1,6 +1,6 @@
 import { ApiError, apiClient } from '@/api/apiClient';
 
-export type WorkoutStatus = 'available' | 'inProgress' | 'completed';
+export type WorkoutStatus = 'available' | 'inProgress' | 'completed' | 'cancelled';
 
 export type MobileWorkout = {
   readonly id: string;
@@ -24,6 +24,9 @@ export type WorkoutDetails = {
   readonly location?: string;
   readonly notes?: string;
   readonly totalVolume: number;
+  readonly status?: string;
+  readonly templateWorkoutId?: string;
+  readonly isArchived: boolean;
 };
 
 type ApiRecord = Record<string, unknown>;
@@ -49,6 +52,15 @@ export async function createWorkout(): Promise<WorkoutDetails> {
 export async function getWorkoutById(id: string): Promise<WorkoutDetails> {
   const response = await apiClient.get<unknown>(`/workouts/${id}`);
   return mapWorkoutDetails(response);
+}
+
+export async function startWorkout(id: string): Promise<WorkoutDetails> {
+  const response = await apiClient.post<unknown>(`/workouts/${id}/start`);
+  return mapWorkoutDetails(response);
+}
+
+export async function deleteWorkout(id: string): Promise<void> {
+  await apiClient.delete<unknown>(`/workouts/${id}`);
 }
 
 function resolveWorkoutsEndpoint(): string {
@@ -97,6 +109,9 @@ function mapWorkoutDetails(response: unknown): WorkoutDetails {
     location: getString(workout, ['location']),
     notes: getString(workout, ['notes']),
     totalVolume: getNumber(workout, ['totalVolume', 'total_volume']) ?? 0,
+    status: getString(workout, ['status']),
+    templateWorkoutId: getString(workout, ['templateWorkoutId', 'template_workout_id']),
+    isArchived: getBoolean(workout, ['isArchived', 'is_archived']) ?? false,
   };
 }
 
@@ -135,7 +150,7 @@ function mapMuscleGroups(value: unknown): readonly string[] {
 }
 
 function mapWorkoutStatus(status?: string): WorkoutStatus {
-  if (status === 'inProgress' || status === 'completed') {
+  if (status === 'inProgress' || status === 'completed' || status === 'cancelled') {
     return status;
   }
 
@@ -164,6 +179,11 @@ function getString(object: ApiRecord | undefined, keys: readonly string[]): stri
 function getNumber(object: ApiRecord | undefined, keys: readonly string[]): number | undefined {
   const value = getField(object, ...keys);
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function getBoolean(object: ApiRecord | undefined, keys: readonly string[]): boolean | undefined {
+  const value = getField(object, ...keys);
+  return typeof value === 'boolean' ? value : undefined;
 }
 
 function getObject(value: unknown): ApiRecord | undefined {

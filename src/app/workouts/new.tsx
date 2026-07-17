@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import {
   ActivityIndicator,
   Platform,
@@ -23,6 +24,8 @@ type ExerciseFilter = string;
 const webContentMaxWidth = spacing[10] * spacing[5];
 
 export default function NewWorkoutScreen() {
+  const router = useRouter();
+  const { workoutId } = useLocalSearchParams<{ workoutId?: string }>();
   const {
     actionError,
     error,
@@ -48,6 +51,7 @@ export default function NewWorkoutScreen() {
   const [isWorkoutPickerOpen, setIsWorkoutPickerOpen] = useState(false);
   const [draggedExerciseId, setDraggedExerciseId] = useState<string>();
   const [formError, setFormError] = useState<string>();
+  const [loadedRouteWorkoutId, setLoadedRouteWorkoutId] = useState<string>();
 
   const filteredWorkouts = useMemo(
     () => filterWorkouts(workouts, workoutSearch),
@@ -76,6 +80,43 @@ export default function NewWorkoutScreen() {
     [exercises, selectedExerciseIds],
   );
   const selectedGroupLabels = getSelectedGroupLabels(selectedMuscleGroups, selectedExercises, muscleGroups);
+
+  useEffect(() => {
+    if (!workoutId || isLoading || loadedRouteWorkoutId === workoutId) {
+      return;
+    }
+
+    const workout = workouts.find((currentWorkout) => currentWorkout.id === workoutId);
+    if (!workout) {
+      void Promise.resolve().then(() => {
+        setFormError('Treino não encontrado ou indisponível para edição.');
+        setLoadedRouteWorkoutId(workoutId);
+      });
+      return;
+    }
+
+    async function loadRouteWorkout(currentWorkout: WorkoutBuilderWorkout) {
+      setMode('existing');
+      setSelectedWorkoutId(currentWorkout.id);
+      setWorkoutName(currentWorkout.name);
+      setSelectedMuscleGroups(getMuscleGroupIdsFromLabels(currentWorkout.muscleGroups, muscleGroups));
+      setWorkoutSearch(currentWorkout.name);
+      setIsWorkoutPickerOpen(false);
+      setFormError(undefined);
+
+      const links = await loadWorkoutExercises(currentWorkout.id);
+      const linkedExerciseIds = links.map((link) => link.exerciseId);
+      setSelectedExerciseIds(linkedExerciseIds);
+      setSelectedMuscleGroups(
+        getMuscleGroupIdsFromExercises(linkedExerciseIds, exercises, currentWorkout.muscleGroups, muscleGroups),
+      );
+    }
+
+    void Promise.resolve().then(() => {
+      setLoadedRouteWorkoutId(workoutId);
+      void loadRouteWorkout(workout);
+    });
+  }, [exercises, isLoading, loadedRouteWorkoutId, loadWorkoutExercises, muscleGroups, workoutId, workouts]);
 
   async function handleSelectWorkout(workout: WorkoutBuilderWorkout) {
     setMode('existing');
@@ -199,6 +240,10 @@ export default function NewWorkoutScreen() {
     if (savedWorkoutId) {
       setMode('existing');
       setSelectedWorkoutId(savedWorkoutId);
+
+      if (workoutId) {
+        router.replace('/workouts' as Href);
+      }
     }
   }
 

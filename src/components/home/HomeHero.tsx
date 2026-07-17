@@ -1,5 +1,5 @@
-import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Image, type ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
 
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
@@ -13,20 +13,40 @@ export type HomeHeroXp = {
 
 export type HomeHeroProps = {
   readonly dayLabel: string;
+  readonly guardianImageUrl?: string;
   readonly guardianName: string;
   readonly guardianStatus: string;
   readonly xp: HomeHeroXp;
 };
 
-export function HomeHero({ dayLabel, guardianName, guardianStatus, xp }: HomeHeroProps) {
+const defaultGuardianImage = require('@/assets/images/guardian-placeholder.png') as ImageSourcePropType;
+
+export function HomeHero({ dayLabel, guardianImageUrl, guardianName, guardianStatus, xp }: HomeHeroProps) {
+  const [isImageLoading, setIsImageLoading] = useState(Boolean(guardianImageUrl));
+  const [hasImageError, setHasImageError] = useState(false);
+  const imageSource = useMemo<ImageSourcePropType>(
+    () => guardianImageUrl && !hasImageError ? { uri: guardianImageUrl } : defaultGuardianImage,
+    [guardianImageUrl, hasImageError],
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.guardianGlow} />
       <View style={styles.guardianRing} />
+      {isImageLoading ? <View style={styles.guardianImagePlaceholder} /> : null}
       <Image
-        accessibilityLabel="Placeholder do Guardião"
-        contentFit="cover"
-        source={require('@/assets/images/guardian-placeholder.png')}
+        accessibilityLabel="Imagem do Guardião"
+        onError={() => {
+          setHasImageError(true);
+          setIsImageLoading(false);
+        }}
+        onLoadEnd={() => setIsImageLoading(false)}
+        onLoadStart={() => {
+          setHasImageError(false);
+          setIsImageLoading(Boolean(guardianImageUrl));
+        }}
+        resizeMode="cover"
+        source={imageSource}
         style={styles.guardianImage}
       />
 
@@ -112,6 +132,16 @@ const styles = StyleSheet.create({
     width: 262,
     height: 330,
     opacity: 0.9,
+  },
+  guardianImagePlaceholder: {
+    position: 'absolute',
+    top: 92,
+    right: -24,
+    width: 216,
+    height: 280,
+    borderRadius: radius.xl,
+    backgroundColor: colors.surface.default,
+    opacity: 0.42,
   },
   copy: {
     width: '70%',

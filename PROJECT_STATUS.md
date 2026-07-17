@@ -2,6 +2,70 @@
 
 Atualizado em: 15/07/2026
 
+## Treinos Salvos: Cards Expansiveis, Edicao e Exclusao Segura - 17/07/2026
+
+- A tela `/workouts` passou a listar "Treinos salvos" em cards compactos e expansíveis.
+- O estado fechado exibe nome, resumo curto de grupos musculares, quantidade real de exercícios, duração somente quando a API retorna valor útil, status e chevron.
+- Apenas um card salvo fica expandido por vez; o toque no card alterna expandir/recolher com animação discreta via `LayoutAnimation`.
+- O estado expandido carrega os exercícios vinculados por `/api/workouts/{workoutId}/exercises` e cruza com `/api/mobile/exercises` para exibir nomes e grupos reais.
+- O card expandido oferece ações de iniciar, editar e excluir; botões ficam desabilitados durante requisições.
+- "Iniciar treino" agora chama `POST /api/workouts/{id}/start` antes de navegar. Quando o backend cria uma execução a partir de um template, o app navega para o ID da execução retornada.
+- A edição reutiliza `/workouts/new` com `workoutId` na rota, pré-carrega nome e exercícios na ordem atual, permite adicionar/remover/reordenar e retorna para a lista após salvar.
+- O seletor do gerenciador de treinos considera somente templates salvos disponíveis; treino em andamento não aparece como opção editável.
+- A exclusão abre confirmação com o nome do treino e explica que execuções concluídas, séries, cargas, XP e histórico são preservados.
+- Após excluir, o template sai da lista local sem recarregar a página inteira; o backend arquiva o template em vez de apagar fisicamente.
+
+Contratos usados:
+
+- `GET /api/mobile/users/{userProfileId}/workouts`;
+- `GET /api/workouts/{id}`;
+- `PUT /api/workouts/{id}`;
+- `DELETE /api/workouts/{id}`;
+- `POST /api/workouts/{id}/start`;
+- `GET /api/workouts/{workoutId}/exercises`;
+- `POST /api/workouts/{workoutId}/exercises`;
+- `DELETE /api/workouts/{workoutId}/exercises/{id}`;
+- `GET /api/mobile/exercises`;
+- `GET /api/mobile/muscle-groups`.
+
+Regra de historico:
+
+- Excluir um treino salvo/template não apaga histórico.
+- Execuções concluídas continuam aparecendo no Histórico porque são linhas próprias de `Workout` com `Status = Completed`.
+- Templates arquivados não aparecem mais em "Treinos salvos" e não podem ser iniciados novamente.
+
+Arquivos alterados nesta etapa:
+
+- `src/app/workouts.tsx`;
+- `src/app/workouts/new.tsx`;
+- `src/hooks/useWorkouts.ts`;
+- `src/services/workoutsService.ts`;
+- `src/services/workoutBuilderService.ts`.
+
+Validação:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- O projeto Mobile ainda não possui script de teste automatizado no `package.json`; a cobertura desta etapa ficou concentrada em validação TypeScript/lint e testes da API.
+
+## Guardiao Dinamico na Home - 16/07/2026
+
+- A Home deixou de usar imagem fixa do Guardiao como fonte principal.
+- `dashboardService.ts` agora mapeia `guardianImageUrl` retornado por `GET /api/mobile/users/{userProfileId}/home`.
+- URLs absolutas sao usadas diretamente; URLs relativas sao resolvidas contra `EXPO_PUBLIC_API_BASE_URL`, removendo `/api` quando necessario.
+- `HomeHero` usa `Image` do React Native com `source={{ uri }}` quando a API retorna imagem.
+- Enquanto a imagem remota carrega, a Hero exibe placeholder discreto.
+- `assets/images/guardian-placeholder.png` permanece apenas como fallback quando nao existe imagem cadastrada ou quando a URL remota falha.
+- Alteracoes feitas no Backoffice em `GuardianImageUrl` passam a refletir na Home sem alteracao de codigo, apos recarregar os dados da Home.
+
+Validacao:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- Forge.Api validada sem alteracoes nesta tarefa:
+  - `dotnet build Forge.slnx -p:BaseOutputPath=C:\Forge\artifacts\codex-bin\ -p:UseSharedCompilation=false`: sucesso.
+  - `dotnet test Forge.slnx -p:BaseOutputPath=C:\Forge\artifacts\codex-test-bin\ -p:UseSharedCompilation=false`: 96 testes aprovados.
+
 ---
 
 # Auditoria de Preparacao para Polimento
@@ -121,7 +185,8 @@ Observacao:
 
 Home (`/`):
 
-- Guardiao temporario com imagem mockada em Hero Section sem card.
+- Guardiao carregado dinamicamente a partir de `guardianImageUrl` retornado pelo endpoint mobile da Home.
+- A Hero usa `Image` do React Native com URL remota quando disponivel, placeholder discreto durante carregamento e `guardian-placeholder.png` apenas como fallback quando nao ha imagem cadastrada ou quando a URL falha.
 - Topo da Home reorganizado como Hero sobre o fundo preto da tela, mantendo logo/cabecalho, data, status do Guardiao, saudacao, frase motivacional, Guardiao, nivel, XP, barra de progresso e XP restante.
 - Hero exibe nivel atual, XP do nivel atual / XP necessario, barra de progresso e texto de XP restante.
 - Botao `Iniciar treino` removido da Hero para evitar disputa de espaco no mobile.
@@ -150,8 +215,8 @@ Home (`/`):
 - Auditoria de dados da Home:
   - Dados reais: usuario, gamificacao recebida da API, conquistas desbloqueadas, peso atual/diferenca, agua do dia/meta, sono recente/meta, progresso semanal, volume semanal, treino em andamento e registros das acoes rapidas.
   - Dados derivados localmente de dados reais: rotulo do dia, status textual do Guardiao, fallback de duracao para payloads antigos e atividade recente.
-  - Mock restante: nome/imagem do Guardiao, marcado com TODO em `dashboardService.ts`.
-  - Pendencias da API: identidade/status real do Guardiao, imagem do Guardiao e feed dedicado de atividade recente.
+  - Mock restante: identidade/status especifico do Guardiao ainda usa fallback textual derivado da Home.
+  - Pendencias da API: identidade/status real do Guardiao e feed dedicado de atividade recente.
 - Sprint Home iniciada em 14/07/2026 com refinamento estrutural sem alterar integracoes:
   - espacamento geral da tela e respiro do header revisados;
   - area do Guardiao ganhou proporcao mais dominante e pequenos ajustes de posicionamento;
@@ -340,7 +405,7 @@ Asset temporario criado:
 
 Uso atual:
 
-- Guardiao da Home.
+- Fallback da Home quando o nivel atual nao possui `GuardianImageUrl` ou quando a imagem remota falha.
 - Avatar temporario do Perfil.
 
 ---
@@ -544,5 +609,5 @@ Principais prioridades visuais antes do refinamento:
 - Implementar icones oficiais da bottom navigation e das acoes rapidas.
 - Extrair componentes repetidos antes de refinamentos visuais maiores.
 - Reprojetar a Execucao de treino como ferramenta operacional.
-- Completar o contrato real do endpoint mobile da Home para remover o TODO de Guardiao.
+- Completar identidade/status real do Guardiao no endpoint mobile da Home.
 - Expandir gamificacao quando a API expuser streaks, progresso parcial por conquista e dados especificos do Guardiao.

@@ -23,6 +23,7 @@ export type DashboardData = {
   readonly dayLabel: string;
   readonly guardianName: string;
   readonly guardianStatus: string;
+  readonly guardianImageUrl?: string;
   readonly weeklyGoal: string;
   readonly nextWorkout: DashboardListItem & {
     readonly estimate: string;
@@ -58,7 +59,6 @@ const defaultQuickActions: readonly DashboardListItem[] = [
   { title: 'Sono', detail: 'Registrar noite' },
 ];
 
-// TODO: A API ainda não fornece identidade/status do Guardião.
 const guardianFallback = {
   name: 'Guardião da Forja',
 };
@@ -120,6 +120,10 @@ function mapDashboardResponse(response: unknown, gamificationData?: Gamification
       'Usuário',
     dayLabel: getString(payload, ['dayLabel', 'day_label']) ?? formatTodayLabel(),
     guardianName: getString(payload, ['guardianName', 'guardian_name']) ?? guardianFallback.name,
+    guardianImageUrl: resolveApiMediaUrl(
+      getString(payload, ['guardianImageUrl', 'guardian_image_url'])
+        ?? getString(gamification, ['guardianImageUrl', 'guardian_image_url']),
+    ),
     guardianStatus:
       getString(payload, ['guardianStatus', 'guardian_status']) ??
       getGuardianStatus(activeWorkout, weeklyCompletedWorkouts, weeklyWorkoutGoal),
@@ -484,4 +488,24 @@ function formatWeightDifference(value: number): string {
   const direction = roundedValue > 0 ? 'acima' : 'abaixo';
 
   return `${formattedValue} kg ${direction} do início`;
+}
+
+function resolveApiMediaUrl(url: string | undefined): string | undefined {
+  if (!url) {
+    return undefined;
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/+$/, '');
+  if (!apiBaseUrl) {
+    return url;
+  }
+
+  const apiOrigin = apiBaseUrl.replace(/\/api\/?$/i, '');
+  const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+
+  return `${apiOrigin}${normalizedPath}`;
 }

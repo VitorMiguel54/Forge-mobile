@@ -71,6 +71,7 @@ export default function HomeScreen() {
 
                 <HomeHero
                   dayLabel={dashboard.dayLabel}
+                  guardianImageUrl={dashboard.guardianImageUrl}
                   guardianName={dashboard.guardianName}
                   guardianStatus={dashboard.guardianStatus}
                   xp={getLevelXpSummary(dashboard.xp)}

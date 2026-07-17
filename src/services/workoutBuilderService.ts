@@ -34,6 +34,14 @@ export type WorkoutExerciseLink = {
   readonly order: number;
 };
 
+export type WorkoutExerciseSummary = {
+  readonly id: string;
+  readonly exerciseId: string;
+  readonly name: string;
+  readonly muscleGroup: string;
+  readonly order: number;
+};
+
 export type SaveWorkoutPlanInput = {
   readonly exerciseIds: readonly string[];
   readonly name: string;
@@ -52,10 +60,7 @@ export async function getWorkoutBuilderData(): Promise<{
     getMuscleGroups(),
     getMobileWorkouts(),
   ]);
-  const workouts = [
-    ...(workoutsData.activeWorkout ? [workoutsData.activeWorkout] : []),
-    ...workoutsData.savedWorkouts,
-  ];
+  const workouts = workoutsData.savedWorkouts;
 
   return { exercises, muscleGroups, workouts: dedupeWorkouts(workouts) };
 }
@@ -78,6 +83,26 @@ export async function getMuscleGroups(): Promise<readonly MuscleGroupOption[]> {
 export async function getWorkoutExerciseLinks(workoutId: string): Promise<readonly WorkoutExerciseLink[]> {
   const response = await apiClient.get<unknown>(`/workouts/${workoutId}/exercises`);
   return mapWorkoutExerciseLinks(response);
+}
+
+export async function getWorkoutExerciseSummaries(workoutId: string): Promise<readonly WorkoutExerciseSummary[]> {
+  const [links, exercises] = await Promise.all([
+    getWorkoutExerciseLinks(workoutId),
+    getAvailableExercises(),
+  ]);
+  const exercisesById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
+
+  return links.map((link) => {
+    const exercise = exercisesById.get(link.exerciseId);
+
+    return {
+      id: link.id,
+      exerciseId: link.exerciseId,
+      name: exercise?.name ?? 'Exercício indisponível',
+      muscleGroup: exercise ? formatExerciseMuscleGroup(exercise) : 'Grupo indisponível',
+      order: link.order,
+    };
+  });
 }
 
 export async function saveWorkoutPlan({
@@ -272,6 +297,10 @@ function mapWorkoutExerciseLink(value: unknown): WorkoutExerciseLink | undefined
     exerciseId,
     order: getNumber(link, ['order']) ?? 0,
   };
+}
+
+function formatExerciseMuscleGroup(exercise: AvailableExercise): string {
+  return exercise.muscleGroupDisplayName ?? exercise.muscleGroup;
 }
 
 function normalizeId(value?: string): string {
