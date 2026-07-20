@@ -127,12 +127,17 @@ export async function createWorkoutWithExercises({
   readonly name: string;
 }): Promise<string> {
   const userProfileId = getUserProfileId('criar um treino');
-  const workoutResponse = await apiClient.post<unknown>('/workouts', {
+  const workoutResponse = await apiClient.post<unknown>('/workouts/with-exercises', {
     userProfileId,
     name: name.trim(),
     workoutDate: new Date().toISOString(),
     location: null,
     notes: null,
+    exercises: exerciseIds.map((exerciseId, index) => ({
+      exerciseId,
+      order: index + 1,
+      notes: null,
+    })),
   });
   const workout = getObject(getField(asObject(workoutResponse), 'data')) ?? asObject(workoutResponse) ?? {};
   const nextWorkoutId = getString(workout, ['id']);
@@ -140,8 +145,6 @@ export async function createWorkoutWithExercises({
   if (!nextWorkoutId) {
     throw new ApiError('A API não retornou o treino criado.');
   }
-
-  await addWorkoutExercises(nextWorkoutId, exerciseIds);
 
   return nextWorkoutId;
 }
@@ -164,22 +167,21 @@ async function replaceWorkoutExercises(
 ): Promise<void> {
   const currentLinks = await getWorkoutExerciseLinks(workoutId);
 
-  await Promise.all(
-    currentLinks.map((link) => apiClient.delete<unknown>(`/workouts/${workoutId}/exercises/${link.id}`)),
-  );
+  for (const link of currentLinks) {
+    await apiClient.delete<unknown>(`/workouts/${workoutId}/exercises/${link.id}`);
+  }
+
   await addWorkoutExercises(workoutId, exerciseIds);
 }
 
 async function addWorkoutExercises(workoutId: string, exerciseIds: readonly string[]): Promise<void> {
-  await Promise.all(
-    exerciseIds.map((exerciseId, index) =>
-      apiClient.post<unknown>(`/workouts/${workoutId}/exercises`, {
-        exerciseId,
-        order: index + 1,
-        notes: null,
-      }),
-    ),
-  );
+  for (const [index, exerciseId] of exerciseIds.entries()) {
+    await apiClient.post<unknown>(`/workouts/${workoutId}/exercises`, {
+      exerciseId,
+      order: index + 1,
+      notes: null,
+    });
+  }
 }
 
 function dedupeWorkouts(workouts: readonly WorkoutBuilderWorkout[]): readonly WorkoutBuilderWorkout[] {

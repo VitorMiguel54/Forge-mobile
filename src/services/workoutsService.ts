@@ -5,6 +5,7 @@ export type WorkoutStatus = 'available' | 'inProgress' | 'completed' | 'cancelle
 export type MobileWorkout = {
   readonly id: string;
   readonly name: string;
+  readonly displayOrder: number;
   readonly muscleGroups: readonly string[];
   readonly exerciseCount: number;
   readonly estimatedDurationMinutes: number;
@@ -61,6 +62,15 @@ export async function startWorkout(id: string): Promise<WorkoutDetails> {
 
 export async function deleteWorkout(id: string): Promise<void> {
   await apiClient.delete<unknown>(`/workouts/${id}`);
+}
+
+export async function reorderWorkouts(items: readonly { readonly workoutId: string; readonly displayOrder: number }[]): Promise<void> {
+  const userProfileId = getUserProfileId('reordenar os treinos');
+
+  await apiClient.put<unknown>('/workouts/reorder', {
+    userProfileId,
+    items,
+  });
 }
 
 function resolveWorkoutsEndpoint(): string {
@@ -133,6 +143,7 @@ function mapWorkout(value: unknown): MobileWorkout | undefined {
   return {
     id: getString(workout, ['id']) ?? '',
     name: getString(workout, ['name']) ?? '',
+    displayOrder: getNumber(workout, ['displayOrder', 'display_order']) ?? 0,
     muscleGroups: mapMuscleGroups(getField(workout, 'muscleGroups', 'muscle_groups')),
     exerciseCount: getNumber(workout, ['exerciseCount', 'exercise_count']) ?? 0,
     estimatedDurationMinutes:

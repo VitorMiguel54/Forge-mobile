@@ -2,17 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import {
   ActivityIndicator,
+  LayoutAnimation,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  UIManager,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomNavigation, Button, Card } from '@/components';
+import { BottomNavigation, Button, Card, OrderControls } from '@/components';
 import { ForgeSymbol } from '@/components/icons/ForgeSymbol';
 import { useWorkoutBuilder } from '@/hooks/useWorkoutBuilder';
 import type { AvailableExercise, MuscleGroupOption, WorkoutBuilderWorkout } from '@/services/workoutBuilderService';
@@ -22,6 +24,10 @@ type BuilderMode = 'idle' | 'existing' | 'new';
 type ExerciseFilter = string;
 
 const webContentMaxWidth = spacing[10] * spacing[5];
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function NewWorkoutScreen() {
   const router = useRouter();
@@ -49,7 +55,7 @@ export default function NewWorkoutScreen() {
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [exerciseFilter, setExerciseFilter] = useState<ExerciseFilter>('all');
   const [isWorkoutPickerOpen, setIsWorkoutPickerOpen] = useState(false);
-  const [draggedExerciseId, setDraggedExerciseId] = useState<string>();
+  const [isExerciseCatalogExpanded, setIsExerciseCatalogExpanded] = useState(true);
   const [formError, setFormError] = useState<string>();
   const [loadedRouteWorkoutId, setLoadedRouteWorkoutId] = useState<string>();
 
@@ -79,6 +85,10 @@ export default function NewWorkoutScreen() {
         .filter((exercise): exercise is AvailableExercise => exercise !== undefined),
     [exercises, selectedExerciseIds],
   );
+  const listedExercises = useMemo(
+    () => orderExercisesForSelection(availableExercises, selectedExercises, selectedExerciseIds),
+    [availableExercises, selectedExerciseIds, selectedExercises],
+  );
   const selectedGroupLabels = getSelectedGroupLabels(selectedMuscleGroups, selectedExercises, muscleGroups);
 
   useEffect(() => {
@@ -102,6 +112,7 @@ export default function NewWorkoutScreen() {
       setSelectedMuscleGroups(getMuscleGroupIdsFromLabels(currentWorkout.muscleGroups, muscleGroups));
       setWorkoutSearch(currentWorkout.name);
       setIsWorkoutPickerOpen(false);
+      setIsExerciseCatalogExpanded(false);
       setFormError(undefined);
 
       const links = await loadWorkoutExercises(currentWorkout.id);
@@ -125,6 +136,7 @@ export default function NewWorkoutScreen() {
     setSelectedMuscleGroups(getMuscleGroupIdsFromLabels(workout.muscleGroups, muscleGroups));
     setWorkoutSearch(workout.name);
     setIsWorkoutPickerOpen(false);
+    setIsExerciseCatalogExpanded(false);
     setFormError(undefined);
 
     const links = await loadWorkoutExercises(workout.id);
@@ -145,6 +157,7 @@ export default function NewWorkoutScreen() {
     setExerciseSearch('');
     setExerciseFilter('all');
     setIsWorkoutPickerOpen(false);
+    setIsExerciseCatalogExpanded(true);
     setFormError(undefined);
   }
 
@@ -157,7 +170,13 @@ export default function NewWorkoutScreen() {
     setWorkoutSearch('');
     setIsWorkoutPickerOpen(false);
     setExerciseFilter('all');
+    setIsExerciseCatalogExpanded(true);
     setFormError(undefined);
+  }
+
+  function toggleExerciseCatalog() {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExerciseCatalogExpanded((isExpanded) => !isExpanded);
   }
 
   function toggleMuscleGroup(groupId: string) {
@@ -187,29 +206,9 @@ export default function NewWorkoutScreen() {
 
       const nextIds = [...currentIds];
       [nextIds[currentIndex], nextIds[nextIndex]] = [nextIds[nextIndex], nextIds[currentIndex]];
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       return nextIds;
     });
-  }
-
-  function moveDraggedExercise(targetExerciseId: string) {
-    if (!draggedExerciseId || draggedExerciseId === targetExerciseId) {
-      return;
-    }
-
-    setSelectedExerciseIds((currentIds) => {
-      const draggedIndex = currentIds.indexOf(draggedExerciseId);
-      const targetIndex = currentIds.indexOf(targetExerciseId);
-
-      if (draggedIndex < 0 || targetIndex < 0) {
-        return currentIds;
-      }
-
-      const nextIds = [...currentIds];
-      const [draggedId] = nextIds.splice(draggedIndex, 1);
-      nextIds.splice(targetIndex, 0, draggedId);
-      return nextIds;
-    });
-    setDraggedExerciseId(undefined);
   }
 
   async function handleSave() {
@@ -226,7 +225,7 @@ export default function NewWorkoutScreen() {
     }
 
     if (selectedExerciseIds.length === 0) {
-      setFormError('Escolha pelo menos um exercÃ­cio.');
+      setFormError('Escolha pelo menos um exercício.');
       return;
     }
 
@@ -240,10 +239,7 @@ export default function NewWorkoutScreen() {
     if (savedWorkoutId) {
       setMode('existing');
       setSelectedWorkoutId(savedWorkoutId);
-
-      if (workoutId) {
-        router.replace('/workouts' as Href);
-      }
+      router.replace('/workouts?saved=1' as Href);
     }
   }
 
@@ -274,7 +270,7 @@ export default function NewWorkoutScreen() {
             <Text style={styles.description}>
               {mode === 'idle'
                 ? 'Escolha se deseja criar um novo treino ou editar uma estrutura existente.'
-                : 'Organize o conteÃºdo do treino sem repetir escolhas jÃ¡ feitas.'}
+                : 'Organize o conteúdo do treino sem repetir escolhas já feitas.'}
             </Text>
           </View>
 
@@ -282,13 +278,13 @@ export default function NewWorkoutScreen() {
             <Card padding={5} style={styles.stateCard}>
               <ActivityIndicator color={colors.brand.primary} />
               <Text style={styles.stateTitle}>Carregando treinos</Text>
-              <Text style={styles.stateText}>Buscando biblioteca e exercÃ­cios disponÃ­veis.</Text>
+              <Text style={styles.stateText}>Buscando biblioteca e exercícios disponíveis.</Text>
             </Card>
           ) : null}
 
           {!isLoading && error ? (
             <Card padding={5} style={styles.stateCard}>
-              <Text style={styles.stateTitle}>NÃ£o foi possÃ­vel carregar</Text>
+              <Text style={styles.stateTitle}>Não foi possível carregar</Text>
               <Text style={styles.stateText}>{error}</Text>
               <Button title="Tentar novamente" variant="secondary" onPress={() => void refetch()} />
             </Card>
@@ -378,10 +374,10 @@ export default function NewWorkoutScreen() {
                         <Text style={styles.summaryName}>{workoutName.trim() || 'Treino sem nome'}</Text>
                         <Text style={styles.secondaryText}>
                           {selectedGroupLabels.length > 0
-                            ? selectedGroupLabels.join(' â€¢ ')
-                            : 'Grupos musculares serÃ£o definidos pelos exercÃ­cios.'}
+                            ? selectedGroupLabels.join(' • ')
+                            : 'Grupos musculares serão definidos pelos exercícios.'}
                         </Text>
-                        <Text style={styles.secondaryText}>{selectedExerciseIds.length} exercÃ­cios</Text>
+                        <Text style={styles.secondaryText}>{selectedExerciseIds.length} exercícios</Text>
                       </View>
                     </Card>
                   </View>
@@ -422,11 +418,16 @@ export default function NewWorkoutScreen() {
                     </Section>
                   ) : null}
 
-                  <Section title="ExercÃ­cios">
+                  <ExpandableSection
+                    counter={formatSelectedExerciseCount(selectedExerciseIds.length)}
+                    isExpanded={isExerciseCatalogExpanded}
+                    title="EXERCÍCIOS"
+                    onToggle={toggleExerciseCatalog}
+                  >
                     <View style={styles.toolbar}>
                       <TextInput
                         onChangeText={setExerciseSearch}
-                        placeholder="Buscar exercÃ­cio..."
+                        placeholder="Buscar exercício..."
                         placeholderTextColor={colors.text.disabled}
                         style={styles.input}
                         value={exerciseSearch}
@@ -458,11 +459,11 @@ export default function NewWorkoutScreen() {
                       </ScrollView>
 
                       <View style={styles.counterRow}>
-                        <Text style={styles.counterText}>{availableExercises.length} exercÃ­cios encontrados</Text>
+                        <Text style={styles.counterText}>{availableExercises.length} exercícios encontrados</Text>
                         {selectedExerciseIds.length > 0 ? (
                           <Text style={styles.counterText}>{selectedExerciseIds.length} selecionados</Text>
                         ) : (
-                          <Text style={styles.counterMuted}>Nenhum exercÃ­cio selecionado</Text>
+                          <Text style={styles.counterMuted}>Nenhum exercício selecionado</Text>
                         )}
                       </View>
                     </View>
@@ -470,12 +471,12 @@ export default function NewWorkoutScreen() {
                     {isLoadingWorkout ? (
                       <Card padding={5} style={styles.stateCard}>
                         <ActivityIndicator color={colors.brand.primary} />
-                        <Text style={styles.stateText}>Carregando exercÃ­cios do treino.</Text>
+                        <Text style={styles.stateText}>Carregando exercícios do treino.</Text>
                       </Card>
                     ) : null}
 
                     <View style={styles.exerciseList}>
-                      {availableExercises.map((exercise) => (
+                      {listedExercises.map((exercise) => (
                         <ExerciseCatalogItem
                           key={exercise.id}
                           exercise={exercise}
@@ -487,13 +488,13 @@ export default function NewWorkoutScreen() {
 
                     {availableExercises.length === 0 ? (
                       <Card padding={5} style={styles.stateCard}>
-                        <Text style={styles.stateTitle}>Nenhum exercÃ­cio encontrado</Text>
+                        <Text style={styles.stateTitle}>Nenhum exercício encontrado</Text>
                         <Text style={styles.stateText}>
-                          Ajuste a busca ou os filtros para encontrar exercÃ­cios disponÃ­veis.
+                          Ajuste a busca ou os filtros para encontrar exercícios disponíveis.
                         </Text>
                       </Card>
                     ) : null}
-                  </Section>
+                  </ExpandableSection>
 
                   <Section title="Ordem do treino">
                     {selectedExercises.length > 0 ? (
@@ -505,9 +506,6 @@ export default function NewWorkoutScreen() {
                             canMoveUp={index > 0}
                             exercise={exercise}
                             index={index}
-                            onDragEnd={() => setDraggedExerciseId(undefined)}
-                            onDragEnter={() => moveDraggedExercise(exercise.id)}
-                            onDragStart={() => setDraggedExerciseId(exercise.id)}
                             onMoveDown={() => moveExercise(exercise.id, 1)}
                             onMoveUp={() => moveExercise(exercise.id, -1)}
                             onRemove={() => toggleExercise(exercise.id)}
@@ -516,9 +514,9 @@ export default function NewWorkoutScreen() {
                       </View>
                     ) : (
                       <Card padding={5} style={styles.stateCard}>
-                        <Text style={styles.stateTitle}>Selecione exercÃ­cios</Text>
+                        <Text style={styles.stateTitle}>Selecione exercícios</Text>
                         <Text style={styles.stateText}>
-                          A sequÃªncia salva aqui serÃ¡ usada na execuÃ§Ã£o do treino.
+                          A sequência salva aqui será usada na execução do treino.
                         </Text>
                       </Card>
                     )}
@@ -528,9 +526,9 @@ export default function NewWorkoutScreen() {
                     <Card padding={4} style={styles.summaryCard}>
                       <Text style={styles.summaryName}>{workoutName.trim() || 'Treino sem nome'}</Text>
                       <Text style={styles.secondaryText}>
-                        {selectedGroupLabels.length > 0 ? selectedGroupLabels.join(' â€¢ ') : 'Sem grupos definidos'}
+                        {selectedGroupLabels.length > 0 ? selectedGroupLabels.join(' • ') : 'Sem grupos definidos'}
                       </Text>
-                      <Text style={styles.secondaryText}>{selectedExercises.length} exercÃ­cios</Text>
+                      <Text style={styles.secondaryText}>{selectedExercises.length} exercícios</Text>
 
                       <View style={styles.summaryExerciseList}>
                         {selectedExercises.map((exercise, index) => (
@@ -580,6 +578,48 @@ function Section({ children, title }: { readonly children: React.ReactNode; read
   );
 }
 
+function ExpandableSection({
+  children,
+  counter,
+  isExpanded,
+  onToggle,
+  title,
+}: {
+  readonly children: React.ReactNode;
+  readonly counter: string;
+  readonly isExpanded: boolean;
+  readonly onToggle: () => void;
+  readonly title: string;
+}) {
+  return (
+    <Card padding={1} style={styles.expandableSectionCard}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isExpanded }}
+        onPress={onToggle}
+        style={({ pressed }) => [styles.expandableSectionHeader, pressed && styles.pressed]}
+      >
+        <View style={styles.expandableSectionCopy}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          <Text style={styles.counterText}>{counter}</Text>
+        </View>
+        <ForgeSymbol
+          color={colors.brand.primary}
+          fallback={isExpanded ? '^' : 'v'}
+          name={{
+            ios: isExpanded ? 'chevron.up' : 'chevron.down',
+            android: isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down',
+            web: isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down',
+          }}
+          size={24}
+        />
+      </Pressable>
+
+      {isExpanded ? <View style={styles.expandableSectionBody}>{children}</View> : null}
+    </Card>
+  );
+}
+
 function WorkoutOption({
   isSelected,
   onPress,
@@ -603,7 +643,7 @@ function WorkoutOption({
         <Text style={styles.cardTitle}>{workout.name}</Text>
         <Text style={styles.secondaryText}>{formatMuscleGroups(workout.muscleGroups)}</Text>
       </View>
-      <Text style={styles.optionMeta}>{workout.exerciseCount} exercÃ­cios</Text>
+      <Text style={styles.optionMeta}>{workout.exerciseCount} exercícios</Text>
     </Pressable>
   );
 }
@@ -641,7 +681,7 @@ function ExerciseCatalogItem({
         {isSelected ? (
           <ForgeSymbol
             color={colors.text.primary}
-            fallback="âœ“"
+            fallback="✓"
             name={{ ios: 'checkmark', android: 'check', web: 'check' }}
             size={16}
           />
@@ -664,9 +704,6 @@ function SelectedExerciseItem({
   canMoveUp,
   exercise,
   index,
-  onDragEnd,
-  onDragEnter,
-  onDragStart,
   onMoveDown,
   onMoveUp,
   onRemove,
@@ -675,17 +712,12 @@ function SelectedExerciseItem({
   readonly canMoveUp: boolean;
   readonly exercise: AvailableExercise;
   readonly index: number;
-  readonly onDragEnd: () => void;
-  readonly onDragEnter: () => void;
-  readonly onDragStart: () => void;
   readonly onMoveDown: () => void;
   readonly onMoveUp: () => void;
   readonly onRemove: () => void;
 }) {
-  const dragProps = getDragProps(onDragStart, onDragEnter, onDragEnd);
-
   return (
-    <View {...dragProps} style={styles.selectedExerciseCard}>
+    <View style={styles.selectedExerciseCard}>
       <View style={styles.orderBadge}>
         <Text style={styles.orderText}>{index + 1}</Text>
       </View>
@@ -699,32 +731,12 @@ function SelectedExerciseItem({
         </Text>
       </View>
       <View style={styles.reorderActions}>
-        <Pressable
-          accessibilityRole="button"
-          disabled={!canMoveUp}
-          onPress={onMoveUp}
-          style={[styles.iconButton, !canMoveUp && styles.disabledButton]}
-        >
-          <ForgeSymbol
-            color={canMoveUp ? colors.text.primary : colors.text.disabled}
-            fallback="â†‘"
-            name={{ ios: 'chevron.up', android: 'keyboard_arrow_up', web: 'keyboard_arrow_up' }}
-            size={20}
-          />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={!canMoveDown}
-          onPress={onMoveDown}
-          style={[styles.iconButton, !canMoveDown && styles.disabledButton]}
-        >
-          <ForgeSymbol
-            color={canMoveDown ? colors.text.primary : colors.text.disabled}
-            fallback="â†“"
-            name={{ ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' }}
-            size={20}
-          />
-        </Pressable>
+        <OrderControls
+          canMoveDown={canMoveDown}
+          canMoveUp={canMoveUp}
+          onMoveDown={onMoveDown}
+          onMoveUp={onMoveUp}
+        />
         <Pressable accessibilityRole="button" onPress={onRemove} style={styles.iconButton}>
           <ForgeSymbol
             color={colors.semantic.error}
@@ -737,34 +749,20 @@ function SelectedExerciseItem({
     </View>
   );
 }
-
-function getDragProps(
-  onDragStart: () => void,
-  onDragEnter: () => void,
-  onDragEnd: () => void,
-): Record<string, unknown> {
-  if (Platform.OS !== 'web') {
-    return {};
-  }
-
-  return {
-    draggable: true,
-    onDragEnd,
-    onDragEnter,
-    onDragOver: preventDefault,
-    onDragStart,
-    onDrop: preventDefault,
-  };
+function formatSelectedExerciseCount(count: number): string {
+  return count === 1 ? '1 selecionado' : `${count} selecionados`;
 }
 
-function preventDefault(event: unknown) {
-  if (event && typeof event === 'object' && 'preventDefault' in event) {
-    const prevent = event.preventDefault;
+function orderExercisesForSelection(
+  availableExercises: readonly AvailableExercise[],
+  selectedExercises: readonly AvailableExercise[],
+  selectedExerciseIds: readonly string[],
+): readonly AvailableExercise[] {
+  const selectedIds = new Set(selectedExerciseIds);
+  const selectedFirst = selectedExercises.filter((exercise) => selectedIds.has(exercise.id));
+  const unselected = availableExercises.filter((exercise) => !selectedIds.has(exercise.id));
 
-    if (typeof prevent === 'function') {
-      prevent.call(event);
-    }
-  }
+  return [...selectedFirst, ...unselected];
 }
 
 function filterWorkouts(
@@ -861,8 +859,8 @@ function getSelectedGroupLabels(
 
 function formatMuscleGroups(muscleGroups: readonly string[]): string {
   return muscleGroups.length > 0
-    ? muscleGroups.map(formatMuscleGroup).join(' â€¢ ')
-    : 'Grupos nÃ£o informados';
+    ? muscleGroups.map(formatMuscleGroup).join(' • ')
+    : 'Grupos não informados';
 }
 
 function formatMuscleGroup(muscleGroup: string): string {
@@ -923,18 +921,18 @@ function normalizeText(value: string): string {
 }
 
 const muscleGroupLabels: Record<string, string> = {
-  Arms: 'BraÃ§os',
+  Arms: 'Braços',
   Back: 'Costas',
-  Biceps: 'BÃ­ceps',
+  Biceps: 'Bíceps',
   Cardio: 'Cardio',
   Chest: 'Peito',
-  Core: 'AbdÃ´men',
+  Core: 'Abdômen',
   FullBody: 'Corpo inteiro',
-  Glutes: 'GlÃºteo',
+  Glutes: 'Glúteo',
   Legs: 'Pernas',
   Other: 'Outros',
   Shoulders: 'Ombro',
-  Triceps: 'TrÃ­ceps',
+  Triceps: 'Tríceps',
 } as const;
 
 const styles = StyleSheet.create({
@@ -999,6 +997,29 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: spacing[4],
+  },
+  expandableSectionCard: {
+    overflow: 'hidden',
+  },
+  expandableSectionHeader: {
+    minHeight: componentSizes.touchTarget.global,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[3],
+    padding: spacing[4],
+  },
+  expandableSectionCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing[1],
+  },
+  expandableSectionBody: {
+    gap: spacing[4],
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[4],
+    borderTopWidth: borders.width.default,
+    borderTopColor: colors.border.default,
   },
   sectionTitle: {
     ...typography.sectionTitle,
@@ -1277,9 +1298,6 @@ const styles = StyleSheet.create({
     borderWidth: borders.width.default,
     borderColor: colors.border.default,
     backgroundColor: colors.surface.default,
-  },
-  disabledButton: {
-    opacity: 0.42,
   },
   summaryCard: {
     gap: spacing[3],

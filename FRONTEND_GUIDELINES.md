@@ -67,6 +67,19 @@ Tokens principais:
 
 Nao declarar `fontFamily`, `fontSize`, `fontWeight` ou `lineHeight` diretamente em componentes, exceto em excecoes tecnicas documentadas.
 
+## Ordenacao Manual
+
+Ordenacoes manuais no Forge devem usar controles de seta para cima e para baixo.
+
+Regras do padrao:
+
+- Mover uma posicao por clique.
+- Desabilitar a seta para cima no primeiro item.
+- Desabilitar a seta para baixo no ultimo item.
+- Persistir a ordem no backend quando a lista representar dados salvos.
+- Usar areas de toque adequadas para mobile.
+- Drag and drop nao deve ser utilizado, salvo decisao futura explicita.
+
 ## Excecoes
 
 Texto tecnico de codigo pode usar fonte monoespacada por necessidade de leitura tecnica.

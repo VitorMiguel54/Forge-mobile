@@ -4,6 +4,8 @@ export { Card } from './cards/Card';
 export type { CardPadding, CardProps, CardVariant } from './cards/Card';
 export { MetricCard } from './cards/MetricCard';
 export type { MetricAccent, MetricCardProps, MetricProgress } from './cards/MetricCard';
+export { OrderControls } from './controls/OrderControls';
+export type { OrderControlsProps } from './controls/OrderControls';
 export { HomeHeader } from './home/HomeHeader';
 export { HomeHero } from './home/HomeHero';
 export type { HomeHeroProps, HomeHeroXp } from './home/HomeHero';

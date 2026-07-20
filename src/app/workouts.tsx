@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRouter, type Href } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import {
   ActivityIndicator,
   LayoutAnimation,
@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomNavigation, Button, Card } from '@/components';
+import { BottomNavigation, Button, Card, OrderControls } from '@/components';
 import { ForgeSymbol } from '@/components/icons/ForgeSymbol';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import type { MobileWorkout } from '@/services/workoutsService';
@@ -28,6 +28,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function WorkoutsScreen() {
   const router = useRouter();
+  const { saved } = useLocalSearchParams<{ saved?: string }>();
   const {
     actionError,
     deleteWorkout,
@@ -35,9 +36,11 @@ export default function WorkoutsScreen() {
     isDeletingId,
     isLoading,
     isLoadingExercisesId,
+    isReordering,
     isStartingId,
     loadWorkoutExercises,
     refetch,
+    reorderWorkouts,
     startWorkout,
     successMessage,
     workoutExercisesByWorkoutId,
@@ -46,8 +49,10 @@ export default function WorkoutsScreen() {
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string>();
   const [deleteCandidate, setDeleteCandidate] = useState<MobileWorkout>();
   const activeWorkout = workouts?.activeWorkout;
-  const hasWorkouts = Boolean(activeWorkout || workouts?.savedWorkouts.length);
-  const hasSavedWorkouts = Boolean(workouts?.savedWorkouts.length);
+  const savedWorkouts = workouts?.savedWorkouts ?? [];
+  const hasWorkouts = Boolean(activeWorkout || savedWorkouts.length);
+  const hasSavedWorkouts = savedWorkouts.length > 0;
+  const feedbackMessage = saved === '1' ? 'Treino salvo com sucesso.' : successMessage;
 
   async function handleStartWorkout(id: string) {
     const startedWorkout = await startWorkout(id);
@@ -81,6 +86,20 @@ export default function WorkoutsScreen() {
       setExpandedWorkoutId((currentId) => (currentId === deleteCandidate.id ? undefined : currentId));
       setDeleteCandidate(undefined);
     }
+  }
+
+  async function handleMoveWorkout(workoutId: string, direction: -1 | 1) {
+    if (isReordering) {
+      return;
+    }
+
+    const nextWorkouts = moveWorkoutByDirection(savedWorkouts, workoutId, direction);
+    if (nextWorkouts === savedWorkouts) {
+      return;
+    }
+
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    await reorderWorkouts(nextWorkouts);
   }
 
   return (
@@ -171,9 +190,9 @@ export default function WorkoutsScreen() {
                 </Card>
               ) : null}
 
-              {successMessage ? (
+              {feedbackMessage ? (
                 <Card padding={4} style={[styles.feedbackCard, styles.successCard]}>
-                  <Text style={styles.stateText}>{successMessage}</Text>
+                  <Text style={styles.stateText}>{feedbackMessage}</Text>
                 </Card>
               ) : null}
 
@@ -181,17 +200,22 @@ export default function WorkoutsScreen() {
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Treinos salvos</Text>
                   <View style={styles.workoutList}>
-                    {workouts.savedWorkouts.map((workout) => (
+                    {savedWorkouts.map((workout, index) => (
                       <WorkoutCard
                         key={workout.id}
+                        canMoveDown={index < savedWorkouts.length - 1}
+                        canMoveUp={index > 0}
                         exerciseSummaries={workoutExercisesByWorkoutId[workout.id] ?? []}
                         isDeleting={isDeletingId === workout.id}
                         isExpanded={expandedWorkoutId === workout.id}
                         isLoadingExercises={isLoadingExercisesId === workout.id}
+                        isReordering={isReordering}
                         isStarting={isStartingId === workout.id}
                         workout={workout}
                         onDelete={() => setDeleteCandidate(workout)}
                         onEdit={() => handleEditWorkout(workout.id)}
+                        onMoveDown={() => void handleMoveWorkout(workout.id, 1)}
+                        onMoveUp={() => void handleMoveWorkout(workout.id, -1)}
                         onStart={() => void handleStartWorkout(workout.id)}
                         onToggle={() => handleToggleWorkout(workout)}
                       />
@@ -222,17 +246,24 @@ export default function WorkoutsScreen() {
 }
 
 function WorkoutCard({
+  canMoveDown,
+  canMoveUp,
   exerciseSummaries,
   isDeleting,
   isExpanded,
   isLoadingExercises,
+  isReordering,
   isStarting,
   onDelete,
   onEdit,
+  onMoveDown,
+  onMoveUp,
   onStart,
   onToggle,
   workout,
 }: {
+  readonly canMoveDown: boolean;
+  readonly canMoveUp: boolean;
   readonly exerciseSummaries: readonly {
     readonly id: string;
     readonly name: string;
@@ -241,43 +272,68 @@ function WorkoutCard({
   readonly isDeleting: boolean;
   readonly isExpanded: boolean;
   readonly isLoadingExercises: boolean;
+  readonly isReordering: boolean;
   readonly isStarting: boolean;
   readonly onDelete: () => void;
   readonly onEdit: () => void;
+  readonly onMoveDown: () => void;
+  readonly onMoveUp: () => void;
   readonly onStart: () => void;
   readonly onToggle: () => void;
   readonly workout: MobileWorkout;
 }) {
   const status = statusStyles[workout.status];
-  const canRunAction = !isStarting && !isDeleting;
+  const canRunAction = !isStarting && !isDeleting && !isReordering;
 
   return (
     <Card variant={workout.status === 'inProgress' ? 'highlighted' : 'default'} padding={3}>
       <View style={styles.workoutCard}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: isExpanded }}
-          onPress={onToggle}
-          style={({ pressed }) => [styles.compactCardTrigger, pressed && styles.pressed]}
-        >
-          <View style={styles.workoutTitleGroup}>
-            <Text numberOfLines={1} style={styles.compactTitle}>{workout.name}</Text>
-            <Text numberOfLines={1} style={styles.compactSummary}>{buildCompactSummary(workout)}</Text>
-          </View>
-          <View style={[styles.statusPill, status.container]}>
-            <Text style={[styles.statusText, status.text]}>{status.label}</Text>
-          </View>
-          <ForgeSymbol
-            color={colors.text.secondary}
-            fallback={isExpanded ? '^' : 'v'}
-            name={{
-              ios: isExpanded ? 'chevron.up' : 'chevron.down',
-              android: isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down',
-              web: isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down',
-            }}
-            size={22}
+        <View style={styles.compactCardRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isExpanded }}
+            disabled={isReordering}
+            onPress={onToggle}
+            style={({ pressed }) => [styles.compactCardTrigger, pressed && styles.pressed]}
+          >
+            <View style={styles.workoutTitleGroup}>
+              <Text numberOfLines={1} style={styles.compactTitle}>
+                {workout.name}
+              </Text>
+              <Text numberOfLines={1} style={styles.compactSummary}>
+                {buildCompactSummary(workout)}
+              </Text>
+            </View>
+            <View style={[styles.statusPill, status.container]}>
+              <Text style={[styles.statusText, status.text]}>{status.label}</Text>
+            </View>
+          </Pressable>
+          <OrderControls
+            canMoveDown={canMoveDown}
+            canMoveUp={canMoveUp}
+            disabled={isReordering}
+            onMoveDown={onMoveDown}
+            onMoveUp={onMoveUp}
           />
-        </Pressable>
+          <Pressable
+            accessibilityLabel={isExpanded ? 'Recolher treino' : 'Expandir treino'}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isExpanded }}
+            onPress={onToggle}
+            style={({ pressed }) => [styles.expandButton, pressed && styles.pressed]}
+          >
+            <ForgeSymbol
+              color={colors.text.secondary}
+              fallback={isExpanded ? '^' : 'v'}
+              name={{
+                ios: isExpanded ? 'chevron.up' : 'chevron.down',
+                android: isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down',
+                web: isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down',
+              }}
+              size={22}
+            />
+          </Pressable>
+        </View>
 
         {isExpanded ? (
           <View style={styles.expandedContent}>
@@ -291,7 +347,9 @@ function WorkoutCard({
                 {exerciseSummaries.length > 0 ? (
                   exerciseSummaries.slice(0, 6).map((exercise, index) => (
                     <View key={exercise.id} style={styles.exerciseSummaryItem}>
-                      <Text style={styles.exerciseSummaryOrder}>{index + 1}</Text>
+                      <View style={styles.exerciseSummaryOrderBadge}>
+                        <Text style={styles.exerciseSummaryOrderText}>{index + 1}</Text>
+                      </View>
                       <View style={styles.exerciseSummaryCopy}>
                         <Text numberOfLines={1} style={styles.exerciseSummaryName}>{exercise.name}</Text>
                         <Text numberOfLines={1} style={styles.exerciseSummaryGroup}>{exercise.muscleGroup}</Text>
@@ -407,6 +465,35 @@ function buildCompactSummary(workout: MobileWorkout): string {
   }
 
   return segments.join(' · ');
+}
+
+function moveWorkoutByDirection(
+  workouts: readonly MobileWorkout[],
+  workoutId: string,
+  direction: -1 | 1,
+): readonly MobileWorkout[] {
+  const currentIndex = workouts.findIndex((workout) => workout.id === workoutId);
+
+  if (currentIndex < 0) {
+    return workouts;
+  }
+
+  const nextIndex = currentIndex + direction;
+  if (nextIndex < 0 || nextIndex >= workouts.length) {
+    return workouts;
+  }
+
+  const nextWorkouts = [...workouts];
+  const [workout] = nextWorkouts.splice(currentIndex, 1);
+  nextWorkouts.splice(nextIndex, 0, workout);
+  return renumberWorkouts(nextWorkouts);
+}
+
+function renumberWorkouts(workouts: readonly MobileWorkout[]): readonly MobileWorkout[] {
+  return workouts.map((workout, index) => ({
+    ...workout,
+    displayOrder: index + 1,
+  }));
 }
 
 function formatCompactMuscleGroups(muscleGroups: readonly string[]): string {
@@ -642,12 +729,24 @@ const styles = StyleSheet.create({
   workoutCard: {
     gap: spacing[3],
   },
+  compactCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
   compactCardTrigger: {
+    flex: 1,
     minHeight: componentSizes.touchTarget.global,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing[3],
+  },
+  expandButton: {
+    width: componentSizes.avatar.sm,
+    height: componentSizes.touchTarget.global,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   workoutTitleGroup: {
     flex: 1,
@@ -698,14 +797,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[3],
   },
-  exerciseSummaryOrder: {
-    width: componentSizes.avatar.sm,
-    height: componentSizes.avatar.sm,
-    textAlign: 'center',
-    textAlignVertical: 'center',
+  exerciseSummaryOrderBadge: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: radius.circular,
     backgroundColor: colors.surface.default,
+  },
+  exerciseSummaryOrderText: {
     ...typography.caption,
+    lineHeight: 14,
     color: colors.gamification.level,
   },
   exerciseSummaryCopy: {

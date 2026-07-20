@@ -1,6 +1,52 @@
 # Forge Mobile - Project Status
 
-Atualizado em: 15/07/2026
+Atualizado em: 20/07/2026
+
+## Ordenacao Manual por Setas em Treinos e Exercicios - 20/07/2026
+
+Decisao de produto registrada: ordenacoes manuais no Forge devem usar controles de seta para cima e para baixo. Drag and drop nao deve ser usado salvo decisao futura explicita.
+
+Implementacao:
+
+- Componente reutilizavel criado: `src/components/controls/OrderControls.tsx`.
+- Export centralizado em `src/components/index.ts`.
+- O componente recebe `onMoveUp`, `onMoveDown`, `canMoveUp`, `canMoveDown`, `disabled`, `loading` opcional e `style`.
+- Areas de toque seguem o minimo global de 48x48.
+- Estados desabilitados reduzem opacidade e impedem clique/toque.
+
+Uso atual:
+
+- `/workouts/new`: a secao "Ordem do treino" usa `OrderControls` para reordenar exercicios selecionados.
+- `/workouts`: os cards de "Treinos salvos" usam `OrderControls` para mover templates uma posicao por clique.
+- A primeira seta para cima fica desabilitada no primeiro item.
+- A ultima seta para baixo fica desabilitada no ultimo item.
+- Nao ha drag handle, long press, `PanResponder` ou eventos de drag nesse fluxo.
+
+Persistencia:
+
+- A ordem dos exercicios e preservada no array local e enviada ao salvar o treino.
+- A ordem dos treinos salvos e atualizada otimisticamente no Mobile e persistida em lote por `PUT /api/workouts/reorder`.
+- Em erro de reordenacao de treinos, o hook restaura a ordem anterior e mostra mensagem unica.
+- Durante a persistencia, controles de ordenacao de treinos ficam desabilitados para evitar requisicoes simultaneas.
+
+UX de treinos salvos:
+
+- Cards compactos e expansivos foram preservados.
+- Controles de ordenacao ficam no card recolhido junto de nome/resumo, status e chevron.
+- Expandir/recolher continua independente da ordenacao.
+- Ao salvar treino novo, a tela retorna para `/workouts?saved=1` e mostra "Treino salvo com sucesso.".
+- Treinos novos aparecem no final porque a API atribui o proximo `DisplayOrder`.
+
+Documentacao:
+
+- `FRONTEND_GUIDELINES.md` registra o padrao oficial de ordenacao manual por setas.
+
+Validacao recente:
+
+- `npx.cmd tsc --noEmit`: sucesso.
+- `npm.cmd run lint`: sucesso.
+- Expo Web respondeu HTTP 200 em `/workouts`.
+- Validacao API local confirmou criacao de terceiro treino no fim da lista e persistencia da movimentacao do terceiro para a primeira posicao via `PUT /api/workouts/reorder`.
 
 ## Treinos Salvos: Cards Expansiveis, Edicao e Exclusao Segura - 17/07/2026
 

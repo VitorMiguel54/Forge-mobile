@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Image, type ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
 
-import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
+import { colors, componentSizes, radius, spacing, typography } from '@/theme';
 
 export type HomeHeroXp = {
   readonly current: number;
@@ -19,7 +19,7 @@ export type HomeHeroProps = {
   readonly xp: HomeHeroXp;
 };
 
-const defaultGuardianImage = require('@/assets/images/guardian-placeholder.png') as ImageSourcePropType;
+const defaultGuardianImage = require('@/assets/images/Guardian.webp') as ImageSourcePropType;
 
 export function HomeHero({ dayLabel, guardianImageUrl, guardianName, guardianStatus, xp }: HomeHeroProps) {
   const [isImageLoading, setIsImageLoading] = useState(Boolean(guardianImageUrl));
@@ -31,8 +31,6 @@ export function HomeHero({ dayLabel, guardianImageUrl, guardianName, guardianSta
 
   return (
     <View style={styles.container}>
-      <View style={styles.guardianGlow} />
-      <View style={styles.guardianRing} />
       {isImageLoading ? <View style={styles.guardianImagePlaceholder} /> : null}
       <Image
         accessibilityLabel="Imagem do Guardião"
@@ -45,7 +43,7 @@ export function HomeHero({ dayLabel, guardianImageUrl, guardianName, guardianSta
           setHasImageError(false);
           setIsImageLoading(Boolean(guardianImageUrl));
         }}
-        resizeMode="cover"
+        resizeMode="contain"
         source={imageSource}
         style={styles.guardianImage}
       />
@@ -104,34 +102,13 @@ const styles = StyleSheet.create({
     paddingTop: spacing[5],
     paddingBottom: spacing[3],
   },
-  guardianGlow: {
-    position: 'absolute',
-    top: 92,
-    right: -36,
-    width: 236,
-    height: 236,
-    borderRadius: radius.circular,
-    backgroundColor: colors.forge.hotOrange,
-    opacity: 0.12,
-  },
-  guardianRing: {
-    position: 'absolute',
-    top: 74,
-    right: -48,
-    width: 252,
-    height: 252,
-    borderRadius: radius.circular,
-    borderWidth: borders.width.default,
-    borderColor: colors.material.bronze,
-    opacity: 0.42,
-  },
   guardianImage: {
     position: 'absolute',
-    top: 72,
-    right: -44,
-    width: 262,
-    height: 330,
-    opacity: 0.9,
+    top: 48,
+    right: -118,
+    width: 390,
+    height: 390,
+    opacity: 0.94,
   },
   guardianImagePlaceholder: {
     position: 'absolute',

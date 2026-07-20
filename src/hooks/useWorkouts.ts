@@ -5,7 +5,9 @@ import {
   deleteWorkout as deleteWorkoutRequest,
   createWorkout as createWorkoutRequest,
   getMobileWorkouts,
+  reorderWorkouts as reorderWorkoutsRequest,
   startWorkout as startWorkoutRequest,
+  type MobileWorkout,
   type MobileWorkoutsData,
   type WorkoutDetails,
 } from '@/services/workoutsService';
@@ -20,6 +22,7 @@ export type UseWorkoutsResult = {
   readonly isCreating: boolean;
   readonly isStartingId?: string;
   readonly isDeletingId?: string;
+  readonly isReordering: boolean;
   readonly isLoadingExercisesId?: string;
   readonly error?: string;
   readonly actionError?: string;
@@ -29,6 +32,7 @@ export type UseWorkoutsResult = {
   readonly createWorkout: () => Promise<WorkoutDetails | undefined>;
   readonly startWorkout: (id: string) => Promise<WorkoutDetails | undefined>;
   readonly deleteWorkout: (id: string) => Promise<boolean>;
+  readonly reorderWorkouts: (nextWorkouts: readonly MobileWorkout[]) => Promise<boolean>;
   readonly loadWorkoutExercises: (id: string) => Promise<readonly WorkoutExerciseSummary[]>;
 };
 
@@ -38,6 +42,7 @@ export function useWorkouts(): UseWorkoutsResult {
   const [isCreating, setIsCreating] = useState(false);
   const [isStartingId, setIsStartingId] = useState<string>();
   const [isDeletingId, setIsDeletingId] = useState<string>();
+  const [isReordering, setIsReordering] = useState(false);
   const [isLoadingExercisesId, setIsLoadingExercisesId] = useState<string>();
   const [error, setError] = useState<string>();
   const [actionError, setActionError] = useState<string>();
@@ -123,6 +128,47 @@ export function useWorkouts(): UseWorkoutsResult {
     }
   }, []);
 
+  const reorderWorkouts = useCallback(async (nextSavedWorkouts: readonly MobileWorkout[]) => {
+    let previousSavedWorkouts: readonly MobileWorkout[] = [];
+    setIsReordering(true);
+    setActionError(undefined);
+    setSuccessMessage(undefined);
+
+    setWorkouts((currentWorkouts) => {
+      previousSavedWorkouts = currentWorkouts?.savedWorkouts ?? [];
+
+      return currentWorkouts
+        ? {
+            ...currentWorkouts,
+            savedWorkouts: nextSavedWorkouts,
+          }
+        : currentWorkouts;
+    });
+
+    try {
+      await reorderWorkoutsRequest(
+        nextSavedWorkouts.map((workout, index) => ({
+          workoutId: workout.id,
+          displayOrder: index + 1,
+        })),
+      );
+      return true;
+    } catch (requestError) {
+      setWorkouts((currentWorkouts) =>
+        currentWorkouts
+          ? {
+              ...currentWorkouts,
+              savedWorkouts: previousSavedWorkouts,
+            }
+          : currentWorkouts,
+      );
+      setActionError(getErrorMessage(requestError));
+      return false;
+    } finally {
+      setIsReordering(false);
+    }
+  }, []);
+
   const loadWorkoutExercises = useCallback(async (id: string) => {
     setIsLoadingExercisesId(id);
     setActionError(undefined);
@@ -179,6 +225,7 @@ export function useWorkouts(): UseWorkoutsResult {
     isCreating,
     isStartingId,
     isDeletingId,
+    isReordering,
     isLoadingExercisesId,
     error,
     actionError,
@@ -188,6 +235,7 @@ export function useWorkouts(): UseWorkoutsResult {
     createWorkout,
     startWorkout,
     deleteWorkout,
+    reorderWorkouts,
     loadWorkoutExercises,
   };
 }
