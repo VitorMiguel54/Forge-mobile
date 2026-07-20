@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomNavigation, Button, Card, OrderControls } from '@/components';
+import { ActionConfirmModal, BottomNavigation, Button, Card, OrderControls } from '@/components';
 import { ForgeSymbol } from '@/components/icons/ForgeSymbol';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import type { MobileWorkout } from '@/services/workoutsService';
@@ -31,8 +31,10 @@ export default function WorkoutsScreen() {
   const { saved } = useLocalSearchParams<{ saved?: string }>();
   const {
     actionError,
+    cancelWorkout,
     deleteWorkout,
     error,
+    isCancellingId,
     isDeletingId,
     isLoading,
     isLoadingExercisesId,
@@ -48,6 +50,7 @@ export default function WorkoutsScreen() {
   } = useWorkouts();
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string>();
   const [deleteCandidate, setDeleteCandidate] = useState<MobileWorkout>();
+  const [cancelCandidate, setCancelCandidate] = useState<MobileWorkout>();
   const activeWorkout = workouts?.activeWorkout;
   const savedWorkouts = workouts?.savedWorkouts ?? [];
   const hasWorkouts = Boolean(activeWorkout || savedWorkouts.length);
@@ -85,6 +88,18 @@ export default function WorkoutsScreen() {
     if (deleted) {
       setExpandedWorkoutId((currentId) => (currentId === deleteCandidate.id ? undefined : currentId));
       setDeleteCandidate(undefined);
+    }
+  }
+
+  async function handleConfirmCancel() {
+    if (!cancelCandidate || isCancellingId === cancelCandidate.id) {
+      return;
+    }
+
+    const cancelled = await cancelWorkout(cancelCandidate.id);
+
+    if (cancelled) {
+      setCancelCandidate(undefined);
     }
   }
 
@@ -174,12 +189,29 @@ export default function WorkoutsScreen() {
                         />
                       ) : null}
                     </View>
-                    <Button
-                      title={isStartingId === activeWorkout.id ? 'Abrindo...' : 'Continuar treino'}
-                      disabled={!activeWorkout.id || isStartingId === activeWorkout.id}
-                      style={styles.startWorkoutButton}
-                      onPress={() => void handleStartWorkout(activeWorkout.id)}
-                    />
+                    <View style={styles.featuredActions}>
+                      <Button
+                        title={isStartingId === activeWorkout.id ? 'Abrindo...' : 'Continuar treino'}
+                        disabled={
+                          !activeWorkout.id
+                          || isStartingId === activeWorkout.id
+                          || isCancellingId === activeWorkout.id
+                        }
+                        style={styles.featuredActionButton}
+                        onPress={() => void handleStartWorkout(activeWorkout.id)}
+                      />
+                      <Button
+                        title={isCancellingId === activeWorkout.id ? 'Cancelando...' : 'Cancelar treino'}
+                        disabled={
+                          !activeWorkout.id
+                          || isStartingId === activeWorkout.id
+                          || isCancellingId === activeWorkout.id
+                        }
+                        variant="secondary"
+                        style={[styles.featuredActionButton, styles.cancelWorkoutButton]}
+                        onPress={() => setCancelCandidate(activeWorkout)}
+                      />
+                    </View>
                   </View>
                 </Card>
               ) : null}
@@ -239,6 +271,17 @@ export default function WorkoutsScreen() {
         workout={deleteCandidate}
         onCancel={() => setDeleteCandidate(undefined)}
         onConfirm={() => void handleConfirmDelete()}
+      />
+      <ActionConfirmModal
+        destructive
+        cancelLabel="Voltar"
+        confirmLabel={cancelCandidate && isCancellingId === cancelCandidate.id ? 'Cancelando...' : 'Cancelar treino'}
+        isBusy={Boolean(cancelCandidate && isCancellingId === cancelCandidate.id)}
+        message="O progresso registrado neste treino será perdido."
+        onCancel={() => setCancelCandidate(undefined)}
+        onConfirm={() => void handleConfirmCancel()}
+        title="Cancelar treino?"
+        visible={Boolean(cancelCandidate)}
       />
       <BottomNavigation activeHref="/workouts" />
     </SafeAreaView>
@@ -685,11 +728,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing[3],
   },
-  startWorkoutButton: {
-    alignSelf: Platform.select({
-      web: 'flex-start',
-      default: 'stretch',
+  featuredActions: {
+    flexDirection: Platform.select({
+      web: 'row',
+      default: 'column',
     }),
+    gap: spacing[3],
+  },
+  featuredActionButton: {
+    flex: 1,
+  },
+  cancelWorkoutButton: {
+    borderColor: colors.semantic.error,
   },
   section: {
     gap: spacing[3],
@@ -741,9 +791,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing[3],
+    paddingVertical: 0,
   },
   expandButton: {
-    width: componentSizes.avatar.sm,
+    width: componentSizes.touchTarget.global,
     height: componentSizes.touchTarget.global,
     alignItems: 'center',
     justifyContent: 'center',
@@ -751,6 +802,7 @@ const styles = StyleSheet.create({
   workoutTitleGroup: {
     flex: 1,
     minWidth: 0,
+    alignSelf: 'center',
     gap: spacing[1],
   },
   compactTitle: {

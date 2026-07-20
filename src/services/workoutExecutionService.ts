@@ -3,7 +3,7 @@ import { getDashboard } from '@/services/dashboardService';
 import { getGamification, type AchievementItem } from '@/services/gamificationService';
 import { getMobileHistory } from '@/services/historyService';
 import { getProfile } from '@/services/profileService';
-import { getMobileWorkouts, type WorkoutStatus } from '@/services/workoutsService';
+import { cancelWorkout as cancelWorkoutRequest, getMobileWorkouts, type WorkoutStatus } from '@/services/workoutsService';
 
 export type WorkoutExecutionSetInput = {
   readonly setNumber: number;
@@ -126,6 +126,11 @@ export async function finishWorkout(workoutId: string): Promise<WorkoutCompletio
   await Promise.all([getDashboard(), getMobileHistory(), getMobileWorkouts(), getProfile()]);
 
   return buildCompletionSummary(previousGamification, nextGamification);
+}
+
+export async function cancelWorkout(workoutId: string): Promise<void> {
+  await cancelWorkoutRequest(workoutId);
+  await Promise.all([getDashboard(), getMobileHistory(), getMobileWorkouts(), getProfile()]);
 }
 
 function buildCompletionSummary(

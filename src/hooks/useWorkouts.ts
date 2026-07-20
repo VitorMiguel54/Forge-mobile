@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { ApiError } from '@/api/apiClient';
 import {
+  cancelWorkout as cancelWorkoutRequest,
   deleteWorkout as deleteWorkoutRequest,
   createWorkout as createWorkoutRequest,
   getMobileWorkouts,
@@ -22,6 +23,7 @@ export type UseWorkoutsResult = {
   readonly isCreating: boolean;
   readonly isStartingId?: string;
   readonly isDeletingId?: string;
+  readonly isCancellingId?: string;
   readonly isReordering: boolean;
   readonly isLoadingExercisesId?: string;
   readonly error?: string;
@@ -31,6 +33,7 @@ export type UseWorkoutsResult = {
   readonly refetch: () => Promise<void>;
   readonly createWorkout: () => Promise<WorkoutDetails | undefined>;
   readonly startWorkout: (id: string) => Promise<WorkoutDetails | undefined>;
+  readonly cancelWorkout: (id: string) => Promise<boolean>;
   readonly deleteWorkout: (id: string) => Promise<boolean>;
   readonly reorderWorkouts: (nextWorkouts: readonly MobileWorkout[]) => Promise<boolean>;
   readonly loadWorkoutExercises: (id: string) => Promise<readonly WorkoutExerciseSummary[]>;
@@ -42,6 +45,7 @@ export function useWorkouts(): UseWorkoutsResult {
   const [isCreating, setIsCreating] = useState(false);
   const [isStartingId, setIsStartingId] = useState<string>();
   const [isDeletingId, setIsDeletingId] = useState<string>();
+  const [isCancellingId, setIsCancellingId] = useState<string>();
   const [isReordering, setIsReordering] = useState(false);
   const [isLoadingExercisesId, setIsLoadingExercisesId] = useState<string>();
   const [error, setError] = useState<string>();
@@ -125,6 +129,24 @@ export function useWorkouts(): UseWorkoutsResult {
       return false;
     } finally {
       setIsDeletingId(undefined);
+    }
+  }, []);
+
+  const cancelWorkout = useCallback(async (id: string) => {
+    setIsCancellingId(id);
+    setActionError(undefined);
+    setSuccessMessage(undefined);
+
+    try {
+      await cancelWorkoutRequest(id);
+      setWorkouts(await getMobileWorkouts());
+      setSuccessMessage('Treino cancelado.');
+      return true;
+    } catch (requestError) {
+      setActionError(getErrorMessage(requestError));
+      return false;
+    } finally {
+      setIsCancellingId(undefined);
     }
   }, []);
 
@@ -225,6 +247,7 @@ export function useWorkouts(): UseWorkoutsResult {
     isCreating,
     isStartingId,
     isDeletingId,
+    isCancellingId,
     isReordering,
     isLoadingExercisesId,
     error,
@@ -234,6 +257,7 @@ export function useWorkouts(): UseWorkoutsResult {
     refetch,
     createWorkout,
     startWorkout,
+    cancelWorkout,
     deleteWorkout,
     reorderWorkouts,
     loadWorkoutExercises,

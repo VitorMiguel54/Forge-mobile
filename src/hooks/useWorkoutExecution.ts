@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { ApiError } from '@/api/apiClient';
 import {
+  cancelWorkout,
   createWorkoutSet,
   deleteWorkoutSet,
   finishWorkout,
@@ -30,6 +31,7 @@ export type UseWorkoutExecutionResult = {
   readonly deleteSet: (setId: string) => Promise<void>;
   readonly registerNewSet: (workoutExerciseId: string, input: WorkoutExecutionSetInput) => Promise<void>;
   readonly finish: () => Promise<WorkoutCompletionSummary | undefined>;
+  readonly cancel: () => Promise<boolean>;
 };
 
 export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResult {
@@ -166,8 +168,35 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
       setSuccessMessage('Treino finalizado. Home, Treinos, Histórico, Perfil e Conquistas foram atualizados pela API.');
       return completionSummary;
     } catch (requestError) {
-      setActionError(getErrorMessage(requestError));
+      setActionError(getFinishErrorMessage(requestError));
       return undefined;
+    } finally {
+      setIsFinishing(false);
+    }
+  }, [isFinalized, workoutId]);
+
+  const cancel = useCallback(async () => {
+    if (!workoutId) {
+      setActionError('Treino não informado.');
+      return false;
+    }
+
+    if (isFinalized) {
+      setActionError('Este treino já está finalizado.');
+      return false;
+    }
+
+    setIsFinishing(true);
+    setActionError(undefined);
+    setSuccessMessage(undefined);
+
+    try {
+      await cancelWorkout(workoutId);
+      setSuccessMessage('Treino cancelado.');
+      return true;
+    } catch (requestError) {
+      setActionError(getErrorMessage(requestError));
+      return false;
     } finally {
       setIsFinishing(false);
     }
@@ -229,6 +258,7 @@ export function useWorkoutExecution(workoutId?: string): UseWorkoutExecutionResu
     deleteSet,
     registerNewSet,
     finish,
+    cancel,
   };
 }
 
@@ -297,4 +327,12 @@ function getErrorMessage(error: unknown): string {
   }
 
   return 'Não foi possível executar a ação.';
+}
+
+function getFinishErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.status === 400) {
+    return 'Todos os exercícios precisam ter pelo menos uma série registrada antes de finalizar o treino.';
+  }
+
+  return getErrorMessage(error);
 }

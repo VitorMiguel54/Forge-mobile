@@ -60,6 +60,11 @@ export async function startWorkout(id: string): Promise<WorkoutDetails> {
   return mapWorkoutDetails(response);
 }
 
+export async function cancelWorkout(id: string): Promise<WorkoutDetails> {
+  const response = await apiClient.post<unknown>(`/workouts/${id}/cancel`);
+  return mapWorkoutDetails(response);
+}
+
 export async function deleteWorkout(id: string): Promise<void> {
   await apiClient.delete<unknown>(`/workouts/${id}`);
 }

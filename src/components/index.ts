@@ -17,6 +17,7 @@ export { WeeklyProgress } from './home/WeeklyProgress';
 export type { WeeklyProgressDay, WeeklyProgressProps } from './home/WeeklyProgress';
 export { ForgeSymbol } from './icons/ForgeSymbol';
 export type { ForgeSymbolName, ForgeSymbolProps } from './icons/ForgeSymbol';
+export { ActionConfirmModal } from './modals/ActionConfirmModal';
 export { BottomNavigation } from './navigation/BottomNavigation';
 export type { BottomNavigationItem, BottomNavigationProps } from './navigation/BottomNavigation';
 export { XPProgress } from './progress/XPProgress';

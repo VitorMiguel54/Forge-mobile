@@ -2,7 +2,6 @@ import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Platform,
   ScrollView,
@@ -13,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomNavigation, Button, Card } from '@/components';
+import { ActionConfirmModal, BottomNavigation, Button, Card } from '@/components';
 import { useWorkoutExecution } from '@/hooks/useWorkoutExecution';
 import type {
   WorkoutCompletionSummary,
@@ -23,6 +22,14 @@ import type {
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
 const webContentMaxWidth = spacing[10] * spacing[5];
+const incompleteWorkoutMessage =
+  'Todos os exercícios precisam ter pelo menos uma série registrada antes de finalizar o treino.';
+
+type FinishValidationError = {
+  readonly title: string;
+  readonly message: string;
+  readonly exerciseNames: readonly string[];
+};
 
 export default function WorkoutExecutionScreen() {
   const router = useRouter();
@@ -33,6 +40,7 @@ export default function WorkoutExecutionScreen() {
     actionError,
     currentExerciseIndex,
     error,
+    cancel,
     deleteSet,
     finish,
     goToNextExercise,
@@ -52,6 +60,9 @@ export default function WorkoutExecutionScreen() {
   const [draftNotes, setDraftNotes] = useState('');
   const [draftError, setDraftError] = useState<string>();
   const [completionSummary, setCompletionSummary] = useState<WorkoutCompletionSummary>();
+  const [finishValidationError, setFinishValidationError] = useState<FinishValidationError>();
+  const [isFinishConfirmOpen, setIsFinishConfirmOpen] = useState(false);
+  const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
 
   async function handleAddSet(exercise: WorkoutExecutionExercise) {
     const repetitions = Number(draftRepetitions.replace(',', '.'));
@@ -75,16 +86,74 @@ export default function WorkoutExecutionScreen() {
   }
 
   async function handleFinish() {
-    const confirmed = await confirmAction('Finalizar treino?', 'Depois de finalizado, o treino não poderá ser alterado.');
+    if (!execution || execution.workout.isFinalized || isFinishing) {
+      return;
+    }
 
-    if (!confirmed) {
+    const incompleteExercises = execution.exercises.filter((exercise) => exercise.sets.length === 0);
+
+    if (incompleteExercises.length > 0) {
+      setFinishValidationError({
+        title: 'Treino incompleto',
+        message: incompleteWorkoutMessage,
+        exerciseNames: incompleteExercises.map((exercise) => exercise.name),
+      });
+      return;
+    }
+
+    setFinishValidationError(undefined);
+    setIsFinishConfirmOpen(true);
+  }
+
+  async function handleConfirmFinish() {
+    if (isFinishing) {
       return;
     }
 
     const summary = await finish();
 
     if (summary) {
+      setIsFinishConfirmOpen(false);
       setCompletionSummary(summary);
+      return;
+    }
+
+    setIsFinishConfirmOpen(false);
+  }
+
+  function handleCancelFinish() {
+    if (!isFinishing) {
+      setIsFinishConfirmOpen(false);
+    }
+  }
+
+  function handleCancelWorkout() {
+    if (!execution || execution.workout.isFinalized || isFinishing) {
+      return;
+    }
+
+    setIsCancelConfirmOpen(true);
+  }
+
+  async function handleConfirmCancelWorkout() {
+    if (isFinishing) {
+      return;
+    }
+
+    const cancelled = await cancel();
+
+    if (cancelled) {
+      setIsCancelConfirmOpen(false);
+      router.replace('/workouts' as Href);
+      return;
+    }
+
+    setIsCancelConfirmOpen(false);
+  }
+
+  function handleCloseCancelWorkout() {
+    if (!isFinishing) {
+      setIsCancelConfirmOpen(false);
     }
   }
 
@@ -224,13 +293,29 @@ export default function WorkoutExecutionScreen() {
                     </View>
                   </Card>
 
-                  <Button
-                    title="Finalizar treino"
-                    disabled={execution.workout.isFinalized}
-                    loading={isFinishing}
-                    style={styles.finishButton}
-                    onPress={() => void handleFinish()}
+                  <ExerciseNavigator
+                    currentIndex={currentExerciseIndex}
+                    exerciseCount={execution.exercises.length}
+                    onNext={goToNextExercise}
+                    onPrevious={goToPreviousExercise}
                   />
+
+                  <View style={styles.workoutActionRow}>
+                    <Button
+                      title="Cancelar treino"
+                      disabled={execution.workout.isFinalized || isFinishing}
+                      variant="secondary"
+                      style={[styles.workoutActionButton, styles.cancelWorkoutButton]}
+                      onPress={handleCancelWorkout}
+                    />
+                    <Button
+                      title="Finalizar treino"
+                      disabled={execution.workout.isFinalized || isFinishing}
+                      loading={isFinishing && isFinishConfirmOpen}
+                      style={styles.workoutActionButton}
+                      onPress={() => void handleFinish()}
+                    />
+                  </View>
                 </>
               ) : (
                 <Card padding={5} style={styles.stateCard}>
@@ -247,6 +332,33 @@ export default function WorkoutExecutionScreen() {
       <WorkoutCompletionModal
         onClose={handleCloseCompletionModal}
         summary={completionSummary}
+      />
+      <ActionConfirmModal
+        confirmLabel={isFinishing ? 'Finalizando...' : 'Finalizar treino'}
+        isBusy={isFinishing}
+        message="Depois de finalizado, o treino não poderá ser alterado."
+        onCancel={handleCancelFinish}
+        onConfirm={() => void handleConfirmFinish()}
+        title="Finalizar treino?"
+        visible={isFinishConfirmOpen}
+      />
+      <ActionConfirmModal
+        destructive
+        confirmLabel={isFinishing ? 'Cancelando...' : 'Cancelar treino'}
+        cancelLabel="Voltar"
+        isBusy={isFinishing}
+        message="O progresso registrado neste treino será perdido."
+        onCancel={handleCloseCancelWorkout}
+        onConfirm={() => void handleConfirmCancelWorkout()}
+        title="Cancelar treino?"
+        visible={isCancelConfirmOpen}
+      />
+      <ActionConfirmModal
+        items={finishValidationError?.exerciseNames}
+        message={finishValidationError?.message ?? ''}
+        onCancel={() => setFinishValidationError(undefined)}
+        title={finishValidationError?.title ?? 'Treino incompleto'}
+        visible={Boolean(finishValidationError)}
       />
       <BottomNavigation activeHref="/workouts" />
     </SafeAreaView>
@@ -384,13 +496,15 @@ function WorkoutSetRow({
   const [weight, setWeight] = useState(String(set.weight));
   const [notes, setNotes] = useState(set.notes ?? '');
   const [rowError, setRowError] = useState<string>();
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
-  async function handleDelete() {
-    const confirmed = await confirmAction('Excluir série?', 'A série será removida do treino.');
+  function handleDelete() {
+    setIsDeleteConfirmOpen(true);
+  }
 
-    if (confirmed) {
-      onDelete(set.id);
-    }
+  function handleConfirmDelete() {
+    setIsDeleteConfirmOpen(false);
+    onDelete(set.id);
   }
 
   function handleUpdate() {
@@ -457,10 +571,18 @@ function WorkoutSetRow({
           title="Excluir"
           variant="outline"
           disabled={isFinalized}
-          onPress={() => void handleDelete()}
+          onPress={handleDelete}
           style={styles.setActionButton}
         />
       </View>
+      <ActionConfirmModal
+        confirmLabel="Excluir"
+        message="A série será removida do treino."
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Excluir série?"
+        visible={isDeleteConfirmOpen}
+      />
     </Card>
   );
 }
@@ -492,19 +614,6 @@ function LabeledInput({
 
 function getNextSetNumber(sets: readonly WorkoutExecutionSet[]): number {
   return sets.reduce((maxSetNumber, set) => Math.max(maxSetNumber, set.setNumber), 0) + 1;
-}
-
-function confirmAction(title: string, message: string): Promise<boolean> {
-  if (Platform.OS === 'web') {
-    return Promise.resolve(globalThis.confirm(`${title}\n\n${message}`));
-  }
-
-  return new Promise((resolve) => {
-    Alert.alert(title, message, [
-      { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
-      { text: 'Confirmar', style: 'destructive', onPress: () => resolve(true) },
-    ]);
-  });
 }
 
 function formatWeight(weight: number): string {
@@ -739,11 +848,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     ...typography.body.default,
   },
-  finishButton: {
-    alignSelf: Platform.select({
-      web: 'flex-start',
-      default: 'stretch',
+  workoutActionRow: {
+    flexDirection: Platform.select({
+      web: 'row',
+      default: 'column',
     }),
+    gap: spacing[3],
+  },
+  workoutActionButton: {
+    flex: 1,
+  },
+  cancelWorkoutButton: {
+    borderColor: colors.semantic.error,
   },
   modalOverlay: {
     flex: 1,
