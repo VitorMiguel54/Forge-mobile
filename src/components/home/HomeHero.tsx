@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react';
-import { Image, type ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, componentSizes, radius, spacing, typography } from '@/theme';
 
@@ -13,41 +12,14 @@ export type HomeHeroXp = {
 
 export type HomeHeroProps = {
   readonly dayLabel: string;
-  readonly guardianImageUrl?: string;
   readonly guardianName: string;
   readonly guardianStatus: string;
   readonly xp: HomeHeroXp;
 };
 
-const defaultGuardianImage = require('@/assets/images/Guardian.webp') as ImageSourcePropType;
-
-export function HomeHero({ dayLabel, guardianImageUrl, guardianName, guardianStatus, xp }: HomeHeroProps) {
-  const [isImageLoading, setIsImageLoading] = useState(Boolean(guardianImageUrl));
-  const [hasImageError, setHasImageError] = useState(false);
-  const imageSource = useMemo<ImageSourcePropType>(
-    () => guardianImageUrl && !hasImageError ? { uri: guardianImageUrl } : defaultGuardianImage,
-    [guardianImageUrl, hasImageError],
-  );
-
+export function HomeHero({ dayLabel, guardianName, guardianStatus, xp }: HomeHeroProps) {
   return (
     <View style={styles.container}>
-      {isImageLoading ? <View style={styles.guardianImagePlaceholder} /> : null}
-      <Image
-        accessibilityLabel="Imagem do Guardião"
-        onError={() => {
-          setHasImageError(true);
-          setIsImageLoading(false);
-        }}
-        onLoadEnd={() => setIsImageLoading(false)}
-        onLoadStart={() => {
-          setHasImageError(false);
-          setIsImageLoading(Boolean(guardianImageUrl));
-        }}
-        resizeMode="contain"
-        source={imageSource}
-        style={styles.guardianImage}
-      />
-
       <View style={styles.copy}>
         <Text numberOfLines={1} style={styles.date}>
           {dayLabel}
@@ -97,34 +69,13 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
     width: '100%',
-    minHeight: 412,
-    overflow: 'hidden',
-    paddingTop: spacing[5],
-    paddingBottom: spacing[3],
-  },
-  guardianImage: {
-    position: 'absolute',
-    top: 48,
-    right: -118,
-    width: 390,
-    height: 390,
-    opacity: 0.94,
-  },
-  guardianImagePlaceholder: {
-    position: 'absolute',
-    top: 92,
-    right: -24,
-    width: 216,
-    height: 280,
-    borderRadius: radius.xl,
-    backgroundColor: colors.surface.default,
-    opacity: 0.42,
+    paddingTop: spacing[2],
+    paddingBottom: 0,
   },
   copy: {
-    width: '70%',
+    width: '100%',
     minWidth: 0,
-    gap: spacing[3],
-    zIndex: 1,
+    gap: spacing[2],
   },
   date: {
     ...typography.caption,
@@ -150,7 +101,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   titleBlock: {
-    gap: spacing[1],
+    gap: 0,
   },
   greeting: {
     ...typography.screenTitle,
@@ -168,8 +119,8 @@ const styles = StyleSheet.create({
   progressBlock: {
     width: '100%',
     maxWidth: 236,
-    gap: spacing[2],
-    marginTop: spacing[8],
+    gap: spacing[1],
+    marginTop: spacing[4],
   },
   levelText: {
     ...typography.gamification.level,
