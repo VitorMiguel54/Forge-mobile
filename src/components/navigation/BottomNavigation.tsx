@@ -18,31 +18,13 @@ export type BottomNavigationProps = {
 
 const defaultItems: readonly BottomNavigationItem[] = [
   { label: 'Home', href: '/', icon: { ios: 'house', android: 'home', web: 'home' }, iconFallback: 'H' },
-  {
-    label: 'Treinos',
-    href: '/workouts',
-    icon: { ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' },
-    iconFallback: 'T',
-  },
-  {
-    label: 'Histórico',
-    href: '/history',
-    icon: { ios: 'chart.bar', android: 'monitoring', web: 'monitoring' },
-    iconFallback: 'G',
-  },
-  {
-    label: 'Conquistas',
-    href: '/achievements',
-    icon: { ios: 'trophy', android: 'emoji_events', web: 'emoji_events' },
-    iconFallback: 'C',
-  },
-  {
-    label: 'Perfil',
-    href: '/profile',
-    icon: { ios: 'person', android: 'person', web: 'person' },
-    iconFallback: 'P',
-  },
+  { label: 'Treinos', href: '/workouts', icon: { ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' }, iconFallback: 'T' },
+  { label: 'Histórico', href: '/history', icon: { ios: 'chart.bar', android: 'monitoring', web: 'monitoring' }, iconFallback: 'G' },
+  { label: 'Conquistas', href: '/achievements', icon: { ios: 'trophy', android: 'emoji_events', web: 'emoji_events' }, iconFallback: 'C' },
+  { label: 'Perfil', href: '/profile', icon: { ios: 'person', android: 'person', web: 'person' }, iconFallback: 'P' },
 ];
+
+const bottomNavigationIconSize = 25;
 
 export function BottomNavigation({ activeHref, items = defaultItems }: BottomNavigationProps) {
   return (
@@ -56,20 +38,22 @@ export function BottomNavigation({ activeHref, items = defaultItems }: BottomNav
               <Pressable
                 accessibilityRole="link"
                 accessibilityState={{ selected: isActive }}
-                style={({ pressed }) => [styles.item, pressed && styles.pressedItem]}
+                style={styles.item}
               >
-                <View style={styles.iconSlot}>
-                  <ForgeSymbol
-                    color={isActive ? colors.brand.primary : colors.text.secondary}
-                    fallback={item.iconFallback}
-                    name={item.icon}
-                    size={25}
-                    weight="semibold"
-                  />
+                <View style={styles.itemContent}>
+                  <View style={styles.iconSlot}>
+                    <ForgeSymbol
+                      color={isActive ? colors.brand.primary : colors.text.secondary}
+                      fallback={item.iconFallback}
+                      name={item.icon}
+                      size={bottomNavigationIconSize}
+                      weight="semibold"
+                    />
+                  </View>
+                  <Text numberOfLines={1} style={[styles.label, isActive && styles.activeLabel]}>
+                    {item.label}
+                  </Text>
                 </View>
-                <Text numberOfLines={1} style={[styles.label, isActive && styles.activeLabel]}>
-                  {item.label}
-                </Text>
               </Pressable>
             </Link>
           );
@@ -89,7 +73,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     alignItems: 'center',
-    paddingHorizontal: spacing[3],
+    paddingHorizontal: 0,
     paddingBottom: spacing[2],
     borderTopWidth: borders.width.default,
     borderTopColor: colors.border.default,
@@ -99,30 +83,38 @@ const styles = StyleSheet.create({
   },
   container: {
     width: '100%',
-    maxWidth: spacing[10] * spacing[10] + spacing[8],
     minHeight: componentSizes.bottomNavigation.height,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing[2],
+    paddingHorizontal: 0,
     backgroundColor: colors.background.primary,
   },
   item: {
     flex: 1,
     flexBasis: 0,
+    flexGrow: 1,
+    flexShrink: 1,
     minWidth: 0,
     minHeight: componentSizes.touchTarget.ios,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'column',
     gap: spacing[1],
+    marginHorizontal: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     borderRadius: radius.lg,
   },
-  pressedItem: {
-    opacity: 0.84,
+  itemContent: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1],
   },
   iconSlot: {
-    width: spacing[8],
+    width: '100%',
     height: spacing[8],
     alignItems: 'center',
     justifyContent: 'center',

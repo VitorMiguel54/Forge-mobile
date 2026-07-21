@@ -4,6 +4,8 @@ export { Card } from './cards/Card';
 export type { CardPadding, CardProps, CardVariant } from './cards/Card';
 export { MetricCard } from './cards/MetricCard';
 export type { MetricAccent, MetricCardProps, MetricProgress } from './cards/MetricCard';
+export { SimpleLineChart } from './charts/SimpleLineChart';
+export type { LineChartPoint, SimpleLineChartProps } from './charts/SimpleLineChart';
 export { OrderControls } from './controls/OrderControls';
 export type { OrderControlsProps } from './controls/OrderControls';
 export { HomeHeader } from './home/HomeHeader';

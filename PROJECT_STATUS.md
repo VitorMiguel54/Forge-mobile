@@ -4,9 +4,23 @@ Atualizado em: 21/07/2026
 
 ## Ajustes Visuais Pontuais - 21/07/2026
 
+- Perfil: tela refatorada para a composicao "Sua forja", com card principal de usuario, XP/nivel, card de evolucao, metas, estatisticas gerais e acoes preservadas.
+- Graficos: criada a rota `/profile/charts`, acessada por "Ver graficos" no Perfil, com filtros locais de periodo e metrica.
+- Arquivos impactados nesta etapa: `src/app/profile.tsx`, `src/app/profile/charts.tsx`, `src/services/profileService.ts`, `src/components/charts/SimpleLineChart.tsx` e `src/components/index.ts`.
+- Metricas implementadas com dados reais: peso, volume, treinos, agua e sono.
+- Fontes reais reutilizadas: `GET /api/user-profiles/{userProfileId}`, `GET /api/user-profiles/{userProfileId}/xp`, `GET /api/mobile/users/{userProfileId}/home`, `GET /api/mobile/users/{userProfileId}/history`, `GET /api/user-profiles/{userProfileId}/weight-records`, `GET /api/user-profiles/{userProfileId}/water-intakes` e `GET /api/user-profiles/{userProfileId}/sleep-records`.
+- Graficos usam o componente proprio `SimpleLineChart`, implementado com React Native `View`/`Pressable`, sem instalar nova dependencia e sem imagem estatica.
+- Limitacoes atuais: sequencia atual e recorde pessoal ainda nao possuem contrato confiavel no Mobile e sao exibidos como `--`; "Ver historico completo" fica ativo apenas para metricas que podem reutilizar `/history`.
+- Pendencias: quando a API expuser streak/recorde pessoal e historicos especificos completos por habito, conectar esses campos sem alterar a composicao visual.
+- Proximos passos: validar em dispositivo real Android/iOS e revisar densidade dos graficos com bases maiores de registros.
 - Conquistas: os cards passam a exibir progresso no formato numerico direto, sem unidade textual apos a contagem, preservando os mesmos valores e a mesma regra visual de progresso.
 - Historico: removido o botao visual de calendario do canto superior direito, deixando titulo e descricao ocuparem toda a largura disponivel.
 - Navegacao inferior: itens padronizados com largura uniforme, icone centralizado e texto alinhado exatamente abaixo do icone, sem deslocamentos assimetricos.
+- Refinamento da Bottom Navigation: cada item usa `flex: 1`, `flexBasis: 0`, `alignItems: center` e `justifyContent: center`; o slot do icone ocupa 100% da largura do item para manter Home, Treinos, Historico, Conquistas e Perfil simetricos mesmo com labels de tamanhos diferentes.
+- Arquivo impactado no refinamento: `src/components/navigation/BottomNavigation.tsx`.
+- Correcao estrutural complementar: removidos `maxWidth` do container e padding horizontal do wrapper da Bottom Navigation, que faziam os cinco itens serem distribuidos em uma largura limitada em vez de ocuparem 20% da barra. A estrutura interna agora e `Pressable > View itemContent > iconSlot + Text`, com alinhamento central uniforme.
+- Causa raiz do desalinhamento remanescente: no Expo Web, o estilo funcional do `Pressable` nao era materializado no anchor durante a renderizacao, deixando os itens sem `flex: 1` efetivo; o estilo passou a ser aplicado diretamente no item.
+- Validacao: Expo Web respondeu em `/history` e o HTML renderizado confirmou os cinco itens da Bottom Navigation com `flex: 1`, `flex-basis: 0px`, `align-items: center`, `justify-content: center` e labels centralizadas.
 - Nenhuma rota, URL, endpoint, configuracao, contrato de API ou regra de negocio foi alterada.
 
 ## Ordenacao Manual por Setas em Treinos e Exercicios - 20/07/2026

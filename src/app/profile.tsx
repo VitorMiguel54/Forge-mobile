@@ -1,15 +1,17 @@
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomNavigation, Button, Card, XPProgress } from '@/components';
+import { BottomNavigation, Button, Card, ForgeSymbol, SimpleLineChart } from '@/components';
 import { useProfile } from '@/hooks/useProfile';
-import type { ProfileStat } from '@/services/profileService';
+import type { ProfileData, ProfileStat } from '@/services/profileService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
 const webContentMaxWidth = spacing[10] * spacing[5];
-const avatarSize = componentSizes.avatar.xl + spacing[12];
+const avatarSize = componentSizes.avatar.xl + spacing[8];
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { profile, error, isLoading, refetch } = useProfile();
 
   return (
@@ -21,9 +23,15 @@ export default function ProfileScreen() {
       >
         <View style={styles.page}>
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>Perfil</Text>
-            <Text style={styles.title}>Sua forja</Text>
-            <Text style={styles.description}>Dados pessoais e progresso principal em um só lugar.</Text>
+            <View style={styles.headerCopy}>
+              <Text style={styles.eyebrow}>PERFIL</Text>
+              <Text style={styles.title}>Sua forja</Text>
+              <Text style={styles.description}>Acompanhe sua evolução dentro e fora dos treinos.</Text>
+            </View>
+            <View style={styles.headerActions}>
+              <IconCircle icon={{ ios: 'bell', android: 'notifications', web: 'notifications' }} fallback="!" />
+              <IconCircle icon={{ ios: 'person', android: 'person', web: 'person' }} fallback="P" />
+            </View>
           </View>
 
           {isLoading ? (
@@ -51,61 +59,38 @@ export default function ProfileScreen() {
 
           {!isLoading && !error && profile ? (
             <>
-              <Card variant="highlighted" padding={5}>
-                <View style={styles.profileHero}>
-                  <View style={styles.avatarFrame}>
-                    <Text style={styles.avatarInitials}>{getInitials(profile.name)}</Text>
-                  </View>
+              <ProfileMainCard profile={profile} />
+              <EvolutionCard profile={profile} onOpenCharts={() => router.push('/profile/charts' as Href)} />
+              <GoalsCard profile={profile} />
+              <GeneralStats profile={profile} />
 
-                  <View style={styles.profileIdentity}>
-                    <Text style={styles.profileName}>{profile.name}</Text>
-                    <Text style={styles.secondaryText}>{profile.email ?? 'Email não informado'}</Text>
-                    <View style={styles.levelBadge}>
-                      <Text style={styles.levelBadgeText}>Nível {profile.level}</Text>
-                    </View>
-                  </View>
-
-                  <XPProgress
-                    currentLevel={profile.level}
-                    currentXp={profile.currentXp}
-                    xpToNextLevel={profile.xpToNextLevel ?? profile.currentXp}
-                  />
-                </View>
-              </Card>
-
-              <View style={styles.statsGrid}>
-                <ProfileStatCard label="Peso atual" value={formatWeight(profile.currentWeight)} />
-                <ProfileStatCard label="Peso inicial" value={formatWeight(profile.initialWeight)} />
-                <ProfileStatCard label="Criado em" value={formatDate(profile.createdAt)} />
-                <ProfileStatCard label="Meta semanal" value={formatWeeklyGoal(profile.weeklyWorkoutGoal)} />
-                <ProfileStatCard label="Meta de água" value={formatLiters(profile.dailyWaterGoalInLiters)} />
-                <ProfileStatCard label="Meta de sono" value={formatHours(profile.dailySleepGoalInHours)} />
+              <View style={styles.actions}>
+                <Button
+                  disabled
+                  icon={
+                    <ForgeSymbol
+                      color={colors.text.primary}
+                      fallback="E"
+                      name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
+                      size={20}
+                    />
+                  }
+                  title="Editar perfil"
+                />
+                <Button
+                  disabled
+                  icon={
+                    <ForgeSymbol
+                      color={colors.text.disabled}
+                      fallback="C"
+                      name={{ ios: 'gearshape', android: 'settings', web: 'settings' }}
+                      size={20}
+                    />
+                  }
+                  title="Configurações"
+                  variant="secondary"
+                />
               </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Estatísticas gerais</Text>
-                {profile.stats.length > 0 ? (
-                  <View style={styles.statsGrid}>
-                    {profile.stats.map((stat) => (
-                      <ProfileStatCard key={stat.label} label={stat.label} value={stat.value} />
-                    ))}
-                  </View>
-                ) : (
-                  <Card padding={5} style={styles.stateCard}>
-                    <Text style={styles.stateTitle}>Nenhuma estatística disponível</Text>
-                    <Text style={styles.stateText}>
-                      As estatísticas aparecem quando a API retornar dados de treino para este perfil.
-                    </Text>
-                  </Card>
-                )}
-              </View>
-
-              <Card padding={5}>
-                <View style={styles.actions}>
-                  <Button title="Editar perfil" disabled />
-                  <Button title="Configurações" variant="secondary" disabled />
-                </View>
-              </Card>
             </>
           ) : null}
         </View>
@@ -115,42 +100,225 @@ export default function ProfileScreen() {
   );
 }
 
-function ProfileStatCard({ label, value }: ProfileStat) {
+function ProfileMainCard({ profile }: { readonly profile: ProfileData }) {
+  const xpTarget = profile.currentXp + Math.max(profile.xpToNextLevel ?? 0, 0);
+  const xpPercent = xpTarget > 0 ? clamp((profile.currentXp / xpTarget) * 100) : 0;
+
   return (
-    <Card padding={4} style={styles.statCard}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <Card padding={5} style={styles.profileCard}>
+      <View style={styles.profileTopRow}>
+        <View style={styles.avatarFrame}>
+          <Text style={styles.avatarInitials}>{getInitials(profile.name)}</Text>
+        </View>
+        <View style={styles.profileIdentity}>
+          <Text style={styles.profileName}>{profile.name || 'Usuário'}</Text>
+          <Text style={styles.secondaryText}>{profile.email ?? 'Email não informado'}</Text>
+          <View style={styles.levelBadge}>
+            <Text style={styles.levelBadgeText}>Nível {profile.level}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.xpBlock}>
+        <Text style={styles.xpText}>
+          <Text style={styles.xpAccent}>{profile.currentXp}</Text> / {xpTarget} XP
+        </Text>
+        <View style={styles.progressRow}>
+          <View style={styles.progressTrack}>
+            <View style={[styles.xpProgressFill, { width: `${xpPercent}%` }]} />
+          </View>
+          <Text style={styles.percentText}>{Math.round(xpPercent)}%</Text>
+        </View>
+      </View>
     </Card>
   );
 }
 
-function formatWeight(weight?: number): string {
-  if (weight === undefined) {
-    return 'Não informado';
-  }
+function EvolutionCard({
+  onOpenCharts,
+  profile,
+}: {
+  readonly onOpenCharts: () => void;
+  readonly profile: ProfileData;
+}) {
+  const weights = profile.records.weights;
+  const initialWeight = profile.initialWeight ?? weights[0]?.weight;
+  const currentWeight = profile.currentWeight ?? weights[weights.length - 1]?.weight;
+  const difference =
+    currentWeight !== undefined && initialWeight !== undefined ? currentWeight - initialWeight : undefined;
 
-  return `${new Intl.NumberFormat('pt-BR', {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: Number.isInteger(weight) ? 0 : 1,
-  }).format(weight)} kg`;
+  return (
+    <View style={styles.section}>
+      <Card padding={5} style={styles.evolutionCard}>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.sectionTitle}>EVOLUÇÃO</Text>
+          <View style={styles.evolutionDelta}>
+            <Text style={[styles.deltaValue, getDeltaStyle(difference)]}>{formatSignedWeight(difference)}</Text>
+            <Text style={styles.secondaryText}>desde o início</Text>
+          </View>
+        </View>
+
+        <View style={styles.evolutionValues}>
+          <View>
+            <Text style={styles.secondaryText}>Peso atual</Text>
+            <Text style={styles.featureValue}>{formatWeight(currentWeight)}</Text>
+          </View>
+          <View>
+            <Text style={styles.smallValue}>{formatWeight(initialWeight)}</Text>
+            <Text style={styles.secondaryText}>Peso inicial</Text>
+          </View>
+        </View>
+
+        <SimpleLineChart
+          color={colors.gamification.xp}
+          emptyText="Registre mais pesos para visualizar a evolução."
+          height={132}
+          points={weights.map((record) => ({
+            date: record.date,
+            id: record.id,
+            value: record.weight,
+          }))}
+          unit="kg"
+        />
+
+        <Pressable accessibilityRole="button" onPress={onOpenCharts} style={styles.linkButton}>
+          <Text style={styles.linkButtonText}>Ver gráficos</Text>
+          <ForgeSymbol
+            color={colors.brand.primary}
+            fallback=">"
+            name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+            size={22}
+            weight="semibold"
+          />
+        </Pressable>
+      </Card>
+    </View>
+  );
 }
 
-function formatDate(date?: string): string {
-  if (!date) {
-    return 'Não informada';
-  }
+function GoalsCard({ profile }: { readonly profile: ProfileData }) {
+  const todayWater = getTodayWater(profile);
+  const latestSleep = profile.summary.latestSleepHours ?? profile.records.sleepRecords.at(-1)?.hoursSlept ?? 0;
+  const weeklyWorkouts = profile.summary.weeklyCompletedWorkouts ?? 0;
 
-  const parsedDate = new Date(date);
+  return (
+    <View style={styles.section}>
+      <Card padding={4} style={styles.goalsCard}>
+        <Text style={styles.sectionTitle}>MINHAS METAS</Text>
+        <GoalRow
+          color={colors.brand.primary}
+          description="por semana"
+          icon={{ ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' }}
+          label="treinos"
+          progress={getPercent(weeklyWorkouts, profile.weeklyWorkoutGoal)}
+          value={profile.weeklyWorkoutGoal === undefined ? '—' : `${profile.weeklyWorkoutGoal} treinos`}
+        />
+        <GoalRow
+          color={colors.metric.water}
+          description="de água por dia"
+          icon={{ ios: 'drop', android: 'water_drop', web: 'water_drop' }}
+          label="água"
+          progress={getPercent(todayWater, profile.dailyWaterGoalInLiters)}
+          value={profile.dailyWaterGoalInLiters === undefined ? '—' : `${formatDecimal(profile.dailyWaterGoalInLiters)} L`}
+        />
+        <GoalRow
+          color={colors.metric.sleep}
+          description="de sono por dia"
+          icon={{ ios: 'moon', android: 'dark_mode', web: 'dark_mode' }}
+          label="sono"
+          progress={getPercent(latestSleep, profile.dailySleepGoalInHours)}
+          value={profile.dailySleepGoalInHours === undefined ? '—' : `${formatDecimal(profile.dailySleepGoalInHours)} h`}
+        />
+      </Card>
+    </View>
+  );
+}
 
-  if (Number.isNaN(parsedDate.getTime())) {
-    return 'Data não informada';
-  }
+function GoalRow({
+  color,
+  description,
+  icon,
+  progress,
+  value,
+}: {
+  readonly color: string;
+  readonly description: string;
+  readonly icon: Parameters<typeof ForgeSymbol>[0]['name'];
+  readonly label: string;
+  readonly progress: number;
+  readonly value: string;
+}) {
+  return (
+    <View style={styles.goalRow}>
+      <View style={[styles.goalIcon, { backgroundColor: `${color}1F` }]}>
+        <ForgeSymbol color={color} fallback="*" name={icon} size={24} weight="semibold" />
+      </View>
+      <View style={styles.goalTextBlock}>
+        <Text style={styles.goalValue}>{value}</Text>
+        <Text style={styles.secondaryText}>{description}</Text>
+      </View>
+      <View style={[styles.goalProgress, { borderColor: color }]}>
+        <Text style={[styles.goalProgressText, { color }]}>{Math.round(progress)}%</Text>
+      </View>
+    </View>
+  );
+}
 
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(parsedDate);
+function GeneralStats({ profile }: { readonly profile: ProfileData }) {
+  const stats: readonly ProfileStat[] = [
+    { label: 'Treinos', value: profile.summary.totalWorkouts ?? '—' },
+    { label: 'Tempo total', value: formatDuration(profile.summary.totalDurationMinutes) },
+    { label: 'Volume total', value: formatVolume(profile.summary.totalVolume) },
+    { label: 'Água hoje', value: formatLiters(profile.summary.todayWaterConsumption ?? getTodayWater(profile)) },
+    { label: 'Treinos na semana', value: profile.summary.weeklyCompletedWorkouts ?? '—' },
+    { label: 'Sono recente', value: formatHours(profile.summary.latestSleepHours) },
+    { label: 'Sequência atual', value: '—' },
+    { label: 'Recorde pessoal', value: '—' },
+  ];
+
+  return (
+    <View style={styles.section}>
+      <Card padding={4} style={styles.generalStatsCard}>
+        <Text style={styles.sectionTitle}>ESTATÍSTICAS GERAIS</Text>
+        <View style={styles.statsGrid}>
+          {stats.map((stat) => (
+            <ProfileStatCard key={stat.label} label={stat.label} value={stat.value} />
+          ))}
+        </View>
+      </Card>
+    </View>
+  );
+}
+
+function ProfileStatCard({ label, value }: ProfileStat) {
+  return (
+    <View style={styles.statCard}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function IconCircle({
+  fallback,
+  icon,
+}: {
+  readonly fallback: string;
+  readonly icon: Parameters<typeof ForgeSymbol>[0]['name'];
+}) {
+  return (
+    <View style={styles.iconCircle}>
+      <ForgeSymbol color={colors.text.primary} fallback={fallback} name={icon} size={24} />
+    </View>
+  );
+}
+
+function getTodayWater(profile: ProfileData): number {
+  const todayKey = new Date().toDateString();
+
+  return profile.records.waterIntakes
+    .filter((record) => new Date(record.date).toDateString() === todayKey)
+    .reduce((sum, record) => sum + record.liters, 0);
 }
 
 function getInitials(name: string): string {
@@ -161,19 +329,75 @@ function getInitials(name: string): string {
     .map((part) => part[0]?.toUpperCase())
     .join('');
 
-  return initials || '??';
+  return initials || 'F';
 }
 
-function formatWeeklyGoal(goal?: number): string {
-  return goal === undefined ? 'Não informada' : `${goal} treinos`;
+function getPercent(current = 0, target?: number): number {
+  if (!target || target <= 0) {
+    return 0;
+  }
+
+  return clamp((current / target) * 100);
+}
+
+function clamp(value: number): number {
+  return Math.min(Math.max(value, 0), 100);
+}
+
+function getDeltaStyle(value?: number) {
+  if (value === undefined || value === 0) {
+    return styles.neutralDelta;
+  }
+
+  return value > 0 ? styles.positiveDelta : styles.negativeDelta;
+}
+
+function formatSignedWeight(weight?: number): string {
+  if (weight === undefined) {
+    return '—';
+  }
+
+  const prefix = weight > 0 ? '+' : '';
+  return `${prefix}${formatDecimal(weight)} kg`;
+}
+
+function formatWeight(weight?: number): string {
+  return weight === undefined ? '—' : `${formatDecimal(weight)} kg`;
+}
+
+function formatDuration(minutes?: number): string {
+  if (minutes === undefined) {
+    return '—';
+  }
+
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function formatVolume(volume?: number): string {
+  if (volume === undefined) {
+    return '—';
+  }
+
+  if (volume >= 1000) {
+    return `${formatDecimal(volume / 1000)}k kg`;
+  }
+
+  return `${formatDecimal(volume)} kg`;
 }
 
 function formatLiters(value?: number): string {
-  return value === undefined ? 'Não informada' : `${formatDecimal(value)} L`;
+  return value === undefined ? '—' : `${formatDecimal(value)} L`;
 }
 
 function formatHours(value?: number): string {
-  return value === undefined ? 'Não informada' : `${formatDecimal(value)} h`;
+  return value === undefined ? '—' : `${formatDecimal(value)} h`;
 }
 
 function formatDecimal(value: number): string {
@@ -194,7 +418,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     alignItems: 'center',
     paddingHorizontal: spacing[4],
-    paddingTop: spacing[6],
+    paddingTop: spacing[4],
     paddingBottom: componentSizes.bottomNavigation.height + spacing[8],
   },
   page: {
@@ -203,10 +427,31 @@ const styles = StyleSheet.create({
       web: webContentMaxWidth,
       default: undefined,
     }),
-    gap: spacing[6],
+    gap: spacing[4],
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing[4],
+  },
+  headerCopy: {
+    flex: 1,
     gap: spacing[2],
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  iconCircle: {
+    width: componentSizes.touchTarget.global,
+    height: componentSizes.touchTarget.global,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.circular,
+    borderWidth: borders.width.default,
+    borderColor: colors.border.default,
+    backgroundColor: colors.background.secondary,
   },
   eyebrow: {
     ...typography.caption,
@@ -221,36 +466,40 @@ const styles = StyleSheet.create({
     ...typography.body.secondary,
     color: colors.text.secondary,
   },
-  profileHero: {
+  profileCard: {
+    gap: spacing[5],
+  },
+  profileTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing[5],
   },
   avatarFrame: {
     width: avatarSize,
     height: avatarSize,
-    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: radius.circular,
-    borderWidth: borders.width.default,
-    borderColor: colors.material.bronze,
-    backgroundColor: colors.background.secondary,
-    overflow: 'hidden',
+    borderWidth: borders.width.strong,
+    borderColor: colors.brand.primary,
+    backgroundColor: colors.background.primary,
   },
   avatarInitials: {
-    ...typography.screenTitle,
-    color: colors.text.primary,
+    ...typography.display,
+    color: colors.brand.primary,
   },
   profileIdentity: {
-    alignItems: 'center',
-    gap: spacing[2],
+    flex: 1,
+    alignItems: 'flex-start',
+    gap: spacing[1],
   },
   profileName: {
     ...typography.screenTitle,
     color: colors.text.primary,
-    textAlign: 'center',
   },
   secondaryText: {
     ...typography.body.secondary,
     color: colors.text.secondary,
-    textAlign: 'center',
   },
   levelBadge: {
     minHeight: componentSizes.badge.minHeight,
@@ -259,45 +508,173 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.circular,
     borderWidth: borders.width.default,
-    borderColor: colors.gamification.level,
-    backgroundColor: colors.surface.default,
+    borderColor: colors.brand.primary,
+    backgroundColor: colors.background.secondary,
   },
   levelBadgeText: {
     ...typography.gamification.level,
     color: colors.gamification.level,
+  },
+  xpBlock: {
+    gap: spacing[3],
+  },
+  xpText: {
+    ...typography.metric.compact,
+    color: colors.text.secondary,
+  },
+  xpAccent: {
+    color: colors.gamification.xp,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  progressTrack: {
+    flex: 1,
+    height: componentSizes.progressBar.height,
+    overflow: 'hidden',
+    borderRadius: radius.circular,
+    backgroundColor: colors.skeleton.base,
+  },
+  xpProgressFill: {
+    height: '100%',
+    borderRadius: radius.circular,
+    backgroundColor: colors.gamification.xp,
+  },
+  percentText: {
+    ...typography.body.secondary,
+    minWidth: spacing[8],
+    color: colors.text.primary,
+    textAlign: 'right',
   },
   section: {
     gap: spacing[3],
   },
   sectionTitle: {
     ...typography.sectionTitle,
-    color: colors.gamification.level,
+    color: colors.brand.primary,
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
   },
-  statsGrid: {
-    flexDirection: Platform.select({
-      web: 'row',
-      default: 'column',
-    }),
-    flexWrap: 'wrap',
+  evolutionCard: {
     gap: spacing[4],
   },
-  statCard: {
-    flexBasis: Platform.select({
-      web: '30%',
-      default: 'auto',
-    }),
-    flexGrow: 1,
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing[4],
+  },
+  evolutionDelta: {
+    alignItems: 'flex-end',
+  },
+  deltaValue: {
+    ...typography.metric.compact,
+  },
+  positiveDelta: {
+    color: colors.semantic.success,
+  },
+  negativeDelta: {
+    color: colors.semantic.error,
+  },
+  neutralDelta: {
+    color: colors.text.secondary,
+  },
+  evolutionValues: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing[4],
+  },
+  featureValue: {
+    ...typography.metric.highlight,
+    color: colors.text.primary,
+  },
+  smallValue: {
+    ...typography.cardTitle,
+    color: colors.text.primary,
+  },
+  linkButton: {
+    minHeight: componentSizes.touchTarget.ios,
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing[1],
   },
-  statValue: {
-    ...typography.metric.compact,
+  linkButtonText: {
+    ...typography.button,
+    color: colors.brand.primary,
+  },
+  goalsCard: {
+    gap: spacing[2],
+  },
+  goalRow: {
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[4],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: radius.md,
+    borderWidth: borders.width.default,
+    borderColor: colors.border.default,
+    backgroundColor: colors.background.secondary,
+  },
+  goalIcon: {
+    width: componentSizes.avatar.lg,
+    height: componentSizes.avatar.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+  },
+  goalTextBlock: {
+    flex: 1,
+  },
+  goalValue: {
+    ...typography.cardTitle,
     color: colors.text.primary,
+  },
+  goalProgress: {
+    width: componentSizes.avatar.lg,
+    height: componentSizes.avatar.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.circular,
+    borderWidth: borders.width.strong,
+  },
+  goalProgressText: {
+    ...typography.caption,
+    fontWeight: 800,
+  },
+  generalStatsCard: {
+    gap: spacing[4],
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[3],
+  },
+  statCard: {
+    minWidth: '46%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1],
+    minHeight: 82,
+    padding: spacing[3],
+    borderRadius: radius.md,
+    borderWidth: borders.width.default,
+    borderColor: colors.border.default,
+    backgroundColor: colors.background.secondary,
+  },
+  statValue: {
+    ...typography.cardTitle,
+    color: colors.text.primary,
+    textAlign: 'center',
   },
   statLabel: {
     ...typography.caption,
     color: colors.text.secondary,
+    textAlign: 'center',
   },
   stateCard: {
     alignItems: 'center',
