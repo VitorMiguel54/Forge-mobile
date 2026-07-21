@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 
 import { ApiError } from '@/api/apiClient';
-import { getWorkoutById, type WorkoutDetails } from '@/services/workoutsService';
+import { getWorkoutAnalysis, type WorkoutAnalysis } from '@/services/workoutsService';
 
 export type UseWorkoutDetailsResult = {
-  readonly workout?: WorkoutDetails;
+  readonly workout?: WorkoutAnalysis;
   readonly isLoading: boolean;
   readonly error?: string;
 };
 
 export function useWorkoutDetails(id?: string): UseWorkoutDetailsResult {
-  const [workout, setWorkout] = useState<WorkoutDetails>();
+  const [workout, setWorkout] = useState<WorkoutAnalysis>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>();
   const missingIdError = id ? undefined : 'Treino não informado.';
@@ -23,7 +23,7 @@ export function useWorkoutDetails(id?: string): UseWorkoutDetailsResult {
       setError(undefined);
 
       try {
-        const nextWorkout = await getWorkoutById(workoutId);
+        const nextWorkout = await getWorkoutAnalysis(workoutId);
 
         if (!isActive) {
           return;

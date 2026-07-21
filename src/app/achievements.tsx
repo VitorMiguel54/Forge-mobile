@@ -1,19 +1,31 @@
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomNavigation, Button, Card } from '@/components';
+import { BottomNavigation, Button, Card, ForgeSymbol } from '@/components';
 import { useGamification } from '@/hooks/useGamification';
 import type { AchievementItem } from '@/services/gamificationService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
 type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+type RarityFilterValue = 'all' | Rarity;
 
-const rarityFilters: readonly Rarity[] = ['common', 'rare', 'epic', 'legendary'];
+const rarityFilters: readonly RarityFilterValue[] = ['all', 'common', 'rare', 'epic', 'legendary'];
 const webContentMaxWidth = spacing[10] * spacing[5];
 
 export default function AchievementsScreen() {
   const { gamification, error, isLoading, refetch } = useGamification();
-  const overallProgress = gamification?.summary.progressPercent ?? 0;
+  const [selectedRarity, setSelectedRarity] = useState<RarityFilterValue>('all');
+  const overallProgress = clampProgress(gamification?.summary.progressPercent ?? 0);
+  const filteredAchievements = useMemo(() => {
+    const achievements = gamification?.achievements ?? [];
+
+    if (selectedRarity === 'all') {
+      return achievements;
+    }
+
+    return achievements.filter((achievement) => getRarity(achievement) === selectedRarity);
+  }, [gamification?.achievements, selectedRarity]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -24,7 +36,6 @@ export default function AchievementsScreen() {
       >
         <View style={styles.page}>
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>Marcos</Text>
             <Text style={styles.title}>Conquistas</Text>
             <Text style={styles.description}>
               Progresso visual discreto para reconhecer consistência e evolução.
@@ -49,42 +60,41 @@ export default function AchievementsScreen() {
 
           {!isLoading && !error && gamification ? (
             <>
-              <Card variant="elevated" padding={5}>
-                <View style={styles.summary}>
-                  <View style={styles.summaryGrid}>
-                    <SummaryStat label="Desbloqueadas" value={gamification.summary.unlocked} />
-                    <SummaryStat label="Disponíveis" value={gamification.summary.available} />
-                    <SummaryStat label="Progresso" value={`${overallProgress}%`} />
-                  </View>
-                  <View style={styles.overallTrack}>
-                    <View style={[styles.overallFill, { width: `${overallProgress}%` }]} />
-                  </View>
-                </View>
-              </Card>
-
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Raridade</Text>
-                <View style={styles.filterRow}>
-                  {rarityFilters.map((rarity) => (
-                    <RarityFilter key={rarity} rarity={rarity} />
-                  ))}
-                </View>
+                <Text style={styles.sectionTitle}>MARCADOR</Text>
+                <AchievementSummaryCard
+                  available={gamification.summary.available}
+                  progress={overallProgress}
+                  unlocked={gamification.summary.unlocked}
+                />
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Coleção</Text>
-                {gamification.achievements.length > 0 ? (
-                  <View style={styles.achievementGrid}>
-                    {gamification.achievements.map((achievement) => (
-                      <AchievementCard key={achievement.id} achievement={achievement} />
-                    ))}
-                  </View>
-                ) : (
+                <Text style={styles.sectionTitle}>RARIDADE</Text>
+                <RarityFilter
+                  selectedRarity={selectedRarity}
+                  onSelectRarity={setSelectedRarity}
+                />
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>COLEÇÃO</Text>
+                {gamification.achievements.length === 0 ? (
                   <Card padding={5} style={styles.stateCard}>
                     <Text style={styles.stateTitle}>Nenhuma conquista disponível</Text>
                     <Text style={styles.stateText}>
                       O catálogo de conquistas ainda não retornou itens para este ambiente.
                     </Text>
+                  </Card>
+                ) : filteredAchievements.length > 0 ? (
+                  <View style={styles.achievementList}>
+                    {filteredAchievements.map((achievement) => (
+                      <AchievementCard key={achievement.id} achievement={achievement} />
+                    ))}
+                  </View>
+                ) : (
+                  <Card padding={5} style={styles.stateCard}>
+                    <Text style={styles.stateTitle}>Nenhuma conquista encontrada nesta raridade.</Text>
                   </Card>
                 )}
               </View>
@@ -97,58 +107,179 @@ export default function AchievementsScreen() {
   );
 }
 
-function SummaryStat({ label, value }: { readonly label: string; readonly value: string | number }) {
+function AchievementSummaryCard({
+  available,
+  progress,
+  unlocked,
+}: {
+  readonly available: number;
+  readonly progress: number;
+  readonly unlocked: number;
+}) {
+  return (
+    <Card variant="elevated" padding={5}>
+      <View style={styles.summary}>
+        <View style={styles.summaryGrid}>
+          <SummaryStat
+            icon={{ ios: 'trophy', android: 'emoji_events', web: 'emoji_events' }}
+            label="Desbloqueadas"
+            tone={colors.gamification.level}
+            value={unlocked}
+          />
+          <View style={styles.summaryDivider} />
+          <SummaryStat
+            icon={{ ios: 'star', android: 'star', web: 'star' }}
+            label="Disponíveis"
+            tone={colors.brand.primary}
+            value={available}
+          />
+          <View style={styles.summaryDivider} />
+          <SummaryStat
+            icon={{ ios: 'chart.line.uptrend.xyaxis', android: 'trending_up', web: 'trending_up' }}
+            label="Progresso"
+            tone={colors.gamification.xp}
+            value={`${progress}%`}
+          />
+        </View>
+
+        <View style={styles.overallProgressRow}>
+          <View style={styles.overallTrack}>
+            <View style={[styles.overallFill, { width: `${progress}%` }]} />
+          </View>
+          <Text style={styles.overallProgressText}>{progress}% concluído</Text>
+        </View>
+      </View>
+    </Card>
+  );
+}
+
+type ForgeSymbolName = Parameters<typeof ForgeSymbol>[0]['name'];
+
+function SummaryStat({
+  icon,
+  label,
+  tone,
+  value,
+}: {
+  readonly icon: ForgeSymbolName;
+  readonly label: string;
+  readonly tone: string;
+  readonly value: string | number;
+}) {
   return (
     <View style={styles.summaryStat}>
+      <ForgeSymbol color={tone} fallback="*" name={icon} size={26} weight="semibold" />
       <Text style={styles.summaryValue}>{value}</Text>
       <Text style={styles.summaryLabel}>{label}</Text>
     </View>
   );
 }
 
-function RarityFilter({ rarity }: { readonly rarity: Rarity }) {
-  const tone = rarityTone[rarity];
-
+function RarityFilter({
+  onSelectRarity,
+  selectedRarity,
+}: {
+  readonly onSelectRarity: (rarity: RarityFilterValue) => void;
+  readonly selectedRarity: RarityFilterValue;
+}) {
   return (
-    <View style={[styles.filterChip, { borderColor: tone.color }]}>
-      <View style={[styles.filterDot, { backgroundColor: tone.color }]} />
-      <Text style={[styles.filterText, { color: tone.color }]}>{tone.label}</Text>
-    </View>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.filterContent}
+      style={styles.filterScroll}
+    >
+      {rarityFilters.map((rarity) => {
+        const tone = rarityTone[rarity];
+        const isSelected = selectedRarity === rarity;
+
+        return (
+          <Pressable
+            key={rarity}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
+            onPress={() => onSelectRarity(rarity)}
+            style={({ pressed }) => [
+              styles.filterChip,
+              { borderColor: tone.color },
+              isSelected && { backgroundColor: tone.color },
+              pressed && styles.pressed,
+            ]}
+          >
+            <View
+              style={[
+                styles.filterDot,
+                { backgroundColor: isSelected ? colors.text.primary : tone.color },
+              ]}
+            />
+            <Text style={[styles.filterText, { color: isSelected ? colors.text.primary : tone.color }]}>
+              {tone.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
   );
 }
 
 function AchievementCard({ achievement }: { readonly achievement: AchievementItem }) {
-  const tone = rarityTone[getRarity(achievement)];
-  const progress = achievement.unlocked ? 100 : 0;
+  const rarity = getRarity(achievement);
+  const tone = rarityTone[rarity];
+  const progress = getAchievementProgress(achievement);
 
   return (
-    <Card padding={4} style={!achievement.unlocked && styles.lockedCard}>
+    <Card padding={4} style={[styles.achievementCardFrame, { borderColor: tone.color }]}>
       <View style={styles.achievementCard}>
-        <View style={styles.achievementHeader}>
-          <View style={[styles.rarityMark, { borderColor: tone.color }]}>
-            <View style={[styles.rarityCore, { backgroundColor: tone.color }]} />
+        <View style={styles.achievementMain}>
+          <View
+            style={[
+              styles.achievementIcon,
+              { borderColor: tone.color },
+              !achievement.unlocked && styles.lockedIcon,
+            ]}
+          >
+            <ForgeSymbol
+              color={tone.color}
+              fallback="*"
+              name={{ ios: 'trophy', android: 'emoji_events', web: 'emoji_events' }}
+              size={24}
+              weight="semibold"
+            />
           </View>
-          <View style={styles.achievementTitleGroup}>
-            <Text style={styles.cardTitle}>{achievement.name}</Text>
-            <Text style={[styles.rarityLabel, { color: tone.color }]}>{tone.label}</Text>
-          </View>
-          <View style={achievement.unlocked ? styles.unlockedBadge : styles.lockedBadge}>
-            <Text style={achievement.unlocked ? styles.unlockedBadgeText : styles.lockedBadgeText}>
-              {achievement.unlocked ? 'Desbloqueada' : 'Bloqueada'}
-            </Text>
+
+          <View style={styles.achievementBody}>
+            <View style={styles.achievementTitleRow}>
+              <View style={styles.achievementTitleGroup}>
+                <Text style={styles.cardTitle}>{achievement.name}</Text>
+                <Text style={[styles.rarityLabel, { color: tone.color }]}>{tone.label}</Text>
+              </View>
+              <View
+                style={[
+                  styles.statusBadge,
+                  achievement.unlocked
+                    ? { borderColor: tone.color, backgroundColor: withOpacity(tone.color, 0.18) }
+                    : styles.lockedBadge,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusBadgeText,
+                    { color: achievement.unlocked ? tone.color : colors.text.secondary },
+                  ]}
+                >
+                  {achievement.unlocked ? 'Desbloqueada' : 'Bloqueada'}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.secondaryText}>{achievement.description}</Text>
           </View>
         </View>
 
-        <Text style={styles.secondaryText}>{achievement.description}</Text>
-
         <View style={styles.progressBlock}>
           <View style={styles.progressCopy}>
-            <Text style={styles.progressLabel}>{achievement.unlocked ? 'Desbloqueada em' : 'Requisito'}</Text>
-            <Text style={styles.progressValue}>
-              {achievement.unlocked && achievement.unlockedAt
-                ? formatDate(achievement.unlockedAt)
-                : formatRequirement(achievement)}
-            </Text>
+            <Text style={styles.progressLabel}>Progresso</Text>
+            <Text style={styles.progressValue}>{formatProgressValue(achievement)}</Text>
           </View>
           <View style={styles.progressTrack}>
             <View
@@ -161,20 +292,20 @@ function AchievementCard({ achievement }: { readonly achievement: AchievementIte
               ]}
             />
           </View>
+          {achievement.unlocked && achievement.unlockedAt ? (
+            <Text style={styles.unlockedDate}>Desbloqueada em {formatDate(achievement.unlockedAt)}</Text>
+          ) : null}
         </View>
-
-        {achievement.xpReward > 0 ? (
-          <View style={styles.progressCopy}>
-            <Text style={styles.progressLabel}>Recompensa</Text>
-            <Text style={styles.progressValue}>{achievement.xpReward} XP</Text>
-          </View>
-        ) : null}
       </View>
     </Card>
   );
 }
 
 const rarityTone = {
+  all: {
+    label: 'Todos',
+    color: colors.brand.primary,
+  },
   common: {
     label: 'Comum',
     color: colors.semantic.success,
@@ -209,31 +340,29 @@ function getRarity(achievement: AchievementItem): Rarity {
   return 'common';
 }
 
-function formatRequirement(achievement: AchievementItem): string {
-  if (achievement.requiredValue <= 0) {
-    return 'Critério definido pela API';
+function getAchievementProgress(achievement: AchievementItem): number {
+  if (achievement.unlocked) {
+    return 100;
   }
 
-  return `${achievement.requiredValue} ${getCategoryUnit(achievement.category)}`;
+  return 0;
 }
 
-function getCategoryUnit(category: string): string {
-  const units: Record<string, string> = {
-    Consistency: 'treinos na semana',
-    Hydration: 'metas de água',
-    Progression: 'kg movimentados',
-    Sleep: 'metas de sono',
-    Workout: 'treinos',
-  };
+function formatProgressValue(achievement: AchievementItem): string {
+  if (achievement.requiredValue <= 0) {
+    return achievement.unlocked ? 'Concluída' : 'Critério definido pela API';
+  }
 
-  return units[category] ?? 'pontos';
+  const currentValue = achievement.unlocked ? achievement.requiredValue : 0;
+
+  return `${currentValue}/${achievement.requiredValue}`;
 }
 
 function formatDate(date: string): string {
   const parsedDate = new Date(date);
 
   if (Number.isNaN(parsedDate.getTime())) {
-    return 'Data não informada';
+    return 'data não informada';
   }
 
   return new Intl.DateTimeFormat('pt-BR', {
@@ -241,6 +370,28 @@ function formatDate(date: string): string {
     month: 'short',
     year: 'numeric',
   }).format(parsedDate);
+}
+
+function clampProgress(progress: number): number {
+  if (!Number.isFinite(progress)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(progress, 100));
+}
+
+function withOpacity(hexColor: string, opacity: number): string {
+  const normalized = hexColor.replace('#', '');
+
+  if (normalized.length !== 6) {
+    return colors.surface.default;
+  }
+
+  const alpha = Math.round(Math.max(0, Math.min(opacity, 1)) * 255)
+    .toString(16)
+    .padStart(2, '0');
+
+  return `#${normalized}${alpha}`;
 }
 
 const styles = StyleSheet.create({
@@ -268,11 +419,6 @@ const styles = StyleSheet.create({
   header: {
     gap: spacing[2],
   },
-  eyebrow: {
-    ...typography.caption,
-    color: colors.brand.primary,
-    textTransform: 'uppercase',
-  },
   title: {
     ...typography.screenTitle,
     color: colors.text.primary,
@@ -280,39 +426,6 @@ const styles = StyleSheet.create({
   description: {
     ...typography.body.secondary,
     color: colors.text.secondary,
-  },
-  summary: {
-    gap: spacing[4],
-  },
-  summaryGrid: {
-    gap: spacing[3],
-  },
-  summaryStat: {
-    gap: spacing[1],
-    padding: spacing[3],
-    borderRadius: radius.lg,
-    borderWidth: borders.width.default,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.default,
-  },
-  summaryValue: {
-    ...typography.metric.compact,
-    color: colors.text.primary,
-  },
-  summaryLabel: {
-    ...typography.caption,
-    color: colors.text.secondary,
-  },
-  overallTrack: {
-    height: componentSizes.progressBar.height,
-    borderRadius: radius.circular,
-    backgroundColor: colors.border.default,
-    overflow: 'hidden',
-  },
-  overallFill: {
-    height: componentSizes.progressBar.height,
-    borderRadius: radius.circular,
-    backgroundColor: colors.brand.primary,
   },
   section: {
     gap: spacing[3],
@@ -337,17 +450,72 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     textAlign: 'center',
   },
-  filterRow: {
+  summary: {
+    gap: spacing[4],
+  },
+  summaryGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'stretch',
+    gap: spacing[3],
+  },
+  summaryDivider: {
+    width: borders.width.default,
+    alignSelf: 'stretch',
+    backgroundColor: colors.border.default,
+  },
+  summaryStat: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1],
+    minWidth: 0,
+  },
+  summaryValue: {
+    ...typography.metric.compact,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  summaryLabel: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  overallProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  overallTrack: {
+    flex: 1,
+    height: componentSizes.progressBar.height,
+    borderRadius: radius.circular,
+    backgroundColor: colors.border.default,
+    overflow: 'hidden',
+  },
+  overallFill: {
+    height: componentSizes.progressBar.height,
+    borderRadius: radius.circular,
+    backgroundColor: colors.brand.primary,
+  },
+  overallProgressText: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    textAlign: 'right',
+  },
+  filterScroll: {
+    marginHorizontal: -spacing[4],
+  },
+  filterContent: {
     gap: spacing[2],
+    paddingHorizontal: spacing[4],
   },
   filterChip: {
     minHeight: componentSizes.chip.height,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing[2],
-    paddingHorizontal: spacing[3],
+    paddingHorizontal: spacing[4],
     borderRadius: radius.circular,
     borderWidth: borders.width.default,
     backgroundColor: colors.surface.default,
@@ -360,21 +528,24 @@ const styles = StyleSheet.create({
   filterText: {
     ...typography.caption,
   },
-  achievementGrid: {
+  pressed: {
+    opacity: 0.82,
+  },
+  achievementList: {
     gap: spacing[4],
   },
-  lockedCard: {
-    opacity: 0.72,
+  achievementCardFrame: {
+    borderWidth: borders.width.default,
   },
   achievementCard: {
     gap: spacing[4],
   },
-  achievementHeader: {
+  achievementMain: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing[3],
   },
-  rarityMark: {
+  achievementIcon: {
     width: componentSizes.avatar.md,
     height: componentSizes.avatar.md,
     alignItems: 'center',
@@ -383,17 +554,26 @@ const styles = StyleSheet.create({
     borderWidth: borders.width.default,
     backgroundColor: colors.surface.default,
   },
-  rarityCore: {
-    width: spacing[4],
-    height: spacing[4],
-    borderRadius: radius.circular,
+  lockedIcon: {
+    opacity: 0.58,
+  },
+  achievementBody: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing[2],
+  },
+  achievementTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[2],
   },
   achievementTitleGroup: {
     flex: 1,
+    minWidth: 0,
     gap: spacing[1],
   },
   cardTitle: {
-    ...typography.sectionTitle,
+    ...typography.cardTitle,
     color: colors.text.primary,
   },
   rarityLabel: {
@@ -403,37 +583,27 @@ const styles = StyleSheet.create({
     ...typography.body.secondary,
     color: colors.text.secondary,
   },
-  unlockedBadge: {
+  statusBadge: {
     minHeight: componentSizes.badge.minHeight,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing[3],
     borderRadius: radius.circular,
     borderWidth: borders.width.default,
-    borderColor: colors.semantic.success,
   },
   lockedBadge: {
-    minHeight: componentSizes.badge.minHeight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing[3],
-    borderRadius: radius.circular,
-    borderWidth: borders.width.default,
     borderColor: colors.border.default,
+    backgroundColor: colors.surface.default,
   },
-  unlockedBadgeText: {
+  statusBadgeText: {
     ...typography.caption,
-    color: colors.semantic.success,
-  },
-  lockedBadgeText: {
-    ...typography.caption,
-    color: colors.text.disabled,
   },
   progressBlock: {
     gap: spacing[2],
   },
   progressCopy: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing[3],
   },
@@ -444,6 +614,7 @@ const styles = StyleSheet.create({
   progressValue: {
     ...typography.caption,
     color: colors.text.primary,
+    textAlign: 'right',
   },
   progressTrack: {
     height: componentSizes.progressBar.height,
@@ -454,5 +625,9 @@ const styles = StyleSheet.create({
   progressFill: {
     height: componentSizes.progressBar.height,
     borderRadius: radius.circular,
+  },
+  unlockedDate: {
+    ...typography.caption,
+    color: colors.text.secondary,
   },
 });

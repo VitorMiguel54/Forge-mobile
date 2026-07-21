@@ -30,6 +30,48 @@ export type WorkoutDetails = {
   readonly isArchived: boolean;
 };
 
+export type WorkoutAnalysisSet = {
+  readonly id: string;
+  readonly setNumber: number;
+  readonly repetitions: number;
+  readonly weight: number;
+  readonly volume: number;
+  readonly notes?: string;
+};
+
+export type WorkoutAnalysisExercise = {
+  readonly workoutExerciseId: string;
+  readonly exerciseId: string;
+  readonly name: string;
+  readonly muscleGroup: string;
+  readonly equipment?: string;
+  readonly order: number;
+  readonly notes?: string;
+  readonly totalSets: number;
+  readonly totalRepetitions: number;
+  readonly bestWeight: number;
+  readonly totalVolume: number;
+  readonly previousBestWeight?: number;
+  readonly weightDifference?: number;
+  readonly weightDifferencePercentage?: number;
+  readonly sets: readonly WorkoutAnalysisSet[];
+};
+
+export type WorkoutAnalysis = {
+  readonly id: string;
+  readonly name: string;
+  readonly workoutDate: string;
+  readonly startedAt?: string;
+  readonly finishedAt?: string;
+  readonly durationMinutes: number;
+  readonly totalVolume: number;
+  readonly totalExercises: number;
+  readonly totalSets: number;
+  readonly totalRepetitions: number;
+  readonly status: string;
+  readonly exercises: readonly WorkoutAnalysisExercise[];
+};
+
 type ApiRecord = Record<string, unknown>;
 
 export async function getMobileWorkouts(): Promise<MobileWorkoutsData> {
@@ -53,6 +95,11 @@ export async function createWorkout(): Promise<WorkoutDetails> {
 export async function getWorkoutById(id: string): Promise<WorkoutDetails> {
   const response = await apiClient.get<unknown>(`/workouts/${id}`);
   return mapWorkoutDetails(response);
+}
+
+export async function getWorkoutAnalysis(id: string): Promise<WorkoutAnalysis> {
+  const response = await apiClient.get<unknown>(`/workouts/${id}/analysis`);
+  return mapWorkoutAnalysis(response);
 }
 
 export async function startWorkout(id: string): Promise<WorkoutDetails> {
@@ -127,6 +174,93 @@ function mapWorkoutDetails(response: unknown): WorkoutDetails {
     status: getString(workout, ['status']),
     templateWorkoutId: getString(workout, ['templateWorkoutId', 'template_workout_id']),
     isArchived: getBoolean(workout, ['isArchived', 'is_archived']) ?? false,
+  };
+}
+
+function mapWorkoutAnalysis(response: unknown): WorkoutAnalysis {
+  const workout = getObject(getField(asObject(response), 'data')) ?? asObject(response) ?? {};
+
+  return {
+    id: getString(workout, ['id']) ?? '',
+    name: getString(workout, ['name']) ?? '',
+    workoutDate: getString(workout, ['workoutDate', 'workout_date']) ?? '',
+    startedAt: getString(workout, ['startedAt', 'started_at']),
+    finishedAt: getString(workout, ['finishedAt', 'finished_at']),
+    durationMinutes: getNumber(workout, ['durationMinutes', 'duration_minutes']) ?? 0,
+    totalVolume: getNumber(workout, ['totalVolume', 'total_volume']) ?? 0,
+    totalExercises: getNumber(workout, ['totalExercises', 'total_exercises']) ?? 0,
+    totalSets: getNumber(workout, ['totalSets', 'total_sets']) ?? 0,
+    totalRepetitions: getNumber(workout, ['totalRepetitions', 'total_repetitions']) ?? 0,
+    status: getString(workout, ['status']) ?? '',
+    exercises: mapAnalysisExerciseList(getField(workout, 'exercises')),
+  };
+}
+
+function mapAnalysisExerciseList(value: unknown): readonly WorkoutAnalysisExercise[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(mapAnalysisExercise)
+    .filter((exercise): exercise is WorkoutAnalysisExercise => exercise !== undefined)
+    .sort((first, second) => first.order - second.order);
+}
+
+function mapAnalysisExercise(value: unknown): WorkoutAnalysisExercise | undefined {
+  const exercise = asObject(value);
+
+  if (!exercise) {
+    return undefined;
+  }
+
+  return {
+    workoutExerciseId: getString(exercise, ['workoutExerciseId', 'workout_exercise_id']) ?? '',
+    exerciseId: getString(exercise, ['exerciseId', 'exercise_id']) ?? '',
+    name: getString(exercise, ['name']) ?? '',
+    muscleGroup: getString(exercise, ['muscleGroup', 'muscle_group']) ?? 'Grupo muscular nao informado',
+    equipment: getString(exercise, ['equipment']),
+    order: getNumber(exercise, ['order']) ?? 0,
+    notes: getString(exercise, ['notes']),
+    totalSets: getNumber(exercise, ['totalSets', 'total_sets']) ?? 0,
+    totalRepetitions: getNumber(exercise, ['totalRepetitions', 'total_repetitions']) ?? 0,
+    bestWeight: getNumber(exercise, ['bestWeight', 'best_weight']) ?? 0,
+    totalVolume: getNumber(exercise, ['totalVolume', 'total_volume']) ?? 0,
+    previousBestWeight: getNumber(exercise, ['previousBestWeight', 'previous_best_weight']),
+    weightDifference: getNumber(exercise, ['weightDifference', 'weight_difference']),
+    weightDifferencePercentage: getNumber(exercise, [
+      'weightDifferencePercentage',
+      'weight_difference_percentage',
+    ]),
+    sets: mapAnalysisSetList(getField(exercise, 'sets')),
+  };
+}
+
+function mapAnalysisSetList(value: unknown): readonly WorkoutAnalysisSet[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(mapAnalysisSet)
+    .filter((set): set is WorkoutAnalysisSet => set !== undefined)
+    .sort((first, second) => first.setNumber - second.setNumber);
+}
+
+function mapAnalysisSet(value: unknown): WorkoutAnalysisSet | undefined {
+  const set = asObject(value);
+
+  if (!set) {
+    return undefined;
+  }
+
+  return {
+    id: getString(set, ['id']) ?? '',
+    setNumber: getNumber(set, ['setNumber', 'set_number']) ?? 0,
+    repetitions: getNumber(set, ['repetitions']) ?? 0,
+    weight: getNumber(set, ['weight']) ?? 0,
+    volume: getNumber(set, ['volume']) ?? 0,
+    notes: getString(set, ['notes']),
   };
 }
 

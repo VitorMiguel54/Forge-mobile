@@ -1,7 +1,9 @@
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, type Href } from 'expo-router';
 
 import { BottomNavigation, Button, Card } from '@/components';
+import { ForgeSymbol } from '@/components/icons/ForgeSymbol';
 import { useHistory } from '@/hooks/useHistory';
 import type { MobileHistoryWorkout } from '@/services/historyService';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
@@ -9,6 +11,7 @@ import { borders, colors, componentSizes, radius, spacing, typography } from '@/
 const webContentMaxWidth = spacing[10] * spacing[5];
 
 export default function HistoryScreen() {
+  const router = useRouter();
   const { history, error, isLoading, refetch } = useHistory();
   const hasHistory = Boolean(history?.workouts.length);
 
@@ -21,11 +24,12 @@ export default function HistoryScreen() {
       >
         <View style={styles.page}>
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>Linha do tempo</Text>
-            <Text style={styles.title}>Histórico</Text>
-            <Text style={styles.description}>
-              Seus treinos recentes organizados para reconhecer progresso sem perder foco.
-            </Text>
+            <View style={styles.headerCopy}>
+              <Text style={styles.title}>Histórico</Text>
+              <Text style={styles.description}>
+                Seus treinos recentes organizados para reconhecer progresso sem perder foco.
+              </Text>
+            </View>
           </View>
 
           {isLoading ? (
@@ -46,15 +50,24 @@ export default function HistoryScreen() {
 
           {!isLoading && !error && history ? (
             <>
-              <Card variant="elevated" padding={5}>
+              <Card variant="elevated" padding={5} style={styles.weekSummaryCard}>
+                <Text style={styles.summaryTitle}>Resumo da semana</Text>
                 <View style={styles.summaryGrid}>
-                  <SummaryStat label="Treinos" value={history.summary.workouts} />
                   <SummaryStat
+                    icon={{ ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' }}
+                    label={history.summary.workouts === 1 ? 'Treino' : 'Treinos'}
+                    value={history.summary.workouts}
+                  />
+                  <View style={styles.summaryDivider} />
+                  <SummaryStat
+                    icon={{ ios: 'clock', android: 'schedule', web: 'schedule' }}
                     label="Tempo total"
                     value={formatDuration(history.summary.totalDurationMinutes)}
                   />
+                  <View style={styles.summaryDivider} />
                   <SummaryStat
-                    label="Volume semana"
+                    icon={{ ios: 'scalemass', android: 'fitness_center', web: 'fitness_center' }}
+                    label="Volume total"
                     value={formatVolume(history.summary.weeklyVolume)}
                   />
                 </View>
@@ -64,8 +77,13 @@ export default function HistoryScreen() {
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Últimos treinos</Text>
                   <View style={styles.timeline}>
-                    {history.workouts.map((workout) => (
-                      <HistoryWorkoutCard key={workout.id} workout={workout} />
+                    {history.workouts.map((workout, index) => (
+                      <TimelineWorkoutItem
+                        key={workout.id}
+                        isLast={index === history.workouts.length - 1}
+                        workout={workout}
+                        onOpen={() => router.push(getWorkoutHref(workout.id))}
+                      />
                     ))}
                   </View>
                 </View>
@@ -86,39 +104,114 @@ export default function HistoryScreen() {
   );
 }
 
-function SummaryStat({ label, value }: { readonly label: string; readonly value: string | number }) {
+type ForgeSymbolName = Parameters<typeof ForgeSymbol>[0]['name'];
+
+function SummaryStat({
+  icon,
+  label,
+  value,
+}: {
+  readonly icon: ForgeSymbolName;
+  readonly label: string;
+  readonly value: string | number;
+}) {
   return (
     <View style={styles.summaryStat}>
+      <ForgeSymbol color={colors.brand.primary} fallback="+" name={icon} size={28} weight="semibold" />
       <Text style={styles.summaryValue}>{value}</Text>
       <Text style={styles.summaryLabel}>{label}</Text>
     </View>
   );
 }
 
-function HistoryWorkoutCard({ workout }: { readonly workout: MobileHistoryWorkout }) {
+function TimelineWorkoutItem({
+  isLast,
+  onOpen,
+  workout,
+}: {
+  readonly isLast: boolean;
+  readonly onOpen: () => void;
+  readonly workout: MobileHistoryWorkout;
+}) {
   return (
-    <Card padding={4}>
+    <View style={styles.timelineItem}>
+      <View style={styles.timelineRail}>
+        <View style={styles.timelineDotOuter}>
+          <View style={styles.timelineDot} />
+        </View>
+        {!isLast ? <View style={styles.timelineLine} /> : null}
+      </View>
+      <HistoryWorkoutCard workout={workout} onOpen={onOpen} />
+    </View>
+  );
+}
+
+function HistoryWorkoutCard({
+  onOpen,
+  workout,
+}: {
+  readonly onOpen: () => void;
+  readonly workout: MobileHistoryWorkout;
+}) {
+  return (
+    <Card padding={4} style={styles.historyCardFrame}>
       <View style={styles.historyCard}>
         <View style={styles.historyHeader}>
+          <View style={styles.workoutIcon}>
+            <ForgeSymbol
+              color={colors.brand.primary}
+              fallback="+"
+              name={{ ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' }}
+              size={24}
+              weight="semibold"
+            />
+          </View>
           <View style={styles.historyTitleGroup}>
             <Text style={styles.cardTitle}>{workout.name}</Text>
-            <Text style={styles.secondaryText}>{formatDate(workout.date)}</Text>
+            <Text style={styles.secondaryText}>{formatMuscleGroups(workout)}</Text>
+            <View style={styles.workoutMetaLine}>
+              <ForgeSymbol
+                color={colors.text.secondary}
+                fallback="D"
+                name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }}
+                size={16}
+              />
+              <Text style={styles.secondaryText}>{formatDate(workout.date)}</Text>
+              <Text style={styles.secondaryText}>•</Text>
+              <ForgeSymbol
+                color={colors.text.secondary}
+                fallback="T"
+                name={{ ios: 'clock', android: 'schedule', web: 'schedule' }}
+                size={16}
+              />
+              <Text style={styles.secondaryText}>{formatDuration(workout.durationMinutes)}</Text>
+            </View>
           </View>
-          <View style={styles.dateBadge}>
-            <Text style={styles.dateBadgeText}>{formatDuration(workout.durationMinutes)}</Text>
-          </View>
+          <Pressable
+            accessibilityLabel={`Abrir detalhes de ${workout.name}`}
+            accessibilityRole="button"
+            onPress={onOpen}
+            style={({ pressed }) => [styles.detailsButton, pressed && styles.pressed]}
+          >
+            <ForgeSymbol
+              color={colors.text.primary}
+              fallback=">"
+              name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+              size={26}
+              weight="semibold"
+            />
+          </Pressable>
         </View>
 
         <View style={styles.metaGrid}>
           <WorkoutMeta label="Volume" value={formatVolume(workout.volume)} />
+          <View style={styles.metaDivider} />
           <WorkoutMeta label="Exercícios" value={workout.exerciseCount} />
         </View>
 
-        <View style={styles.exerciseList}>
-          <View style={styles.exerciseItem}>
-            <View style={styles.exerciseDot} />
-            <Text style={styles.exerciseText}>{formatExerciseCount(workout.exerciseCount)}</Text>
-          </View>
+        <View style={styles.statusRow}>
+          <View style={styles.statusDot} />
+          <Text style={styles.statusText}>Finalizado</Text>
         </View>
       </View>
     </Card>
@@ -170,6 +263,16 @@ function formatExerciseCount(exerciseCount: number): string {
   return exerciseCount === 1 ? '1 exercício registrado' : `${exerciseCount} exercícios registrados`;
 }
 
+function formatMuscleGroups(workout: MobileHistoryWorkout): string {
+  const muscleGroups = Array.from(new Set(workout.muscleGroups.filter(Boolean)));
+
+  return muscleGroups.length > 0 ? muscleGroups.join(' • ') : formatExerciseCount(workout.exerciseCount);
+}
+
+function getWorkoutHref(id: string): Href {
+  return `/workouts/${encodeURIComponent(id)}` as Href;
+}
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -195,6 +298,12 @@ const styles = StyleSheet.create({
   header: {
     gap: spacing[2],
   },
+  headerCopy: {
+    gap: spacing[2],
+  },
+  pressed: {
+    opacity: 0.82,
+  },
   eyebrow: {
     ...typography.caption,
     color: colors.brand.primary,
@@ -208,24 +317,40 @@ const styles = StyleSheet.create({
     ...typography.body.secondary,
     color: colors.text.secondary,
   },
+  weekSummaryCard: {
+    gap: spacing[5],
+    borderColor: colors.brand.primary,
+  },
+  summaryTitle: {
+    ...typography.sectionTitle,
+    color: colors.brand.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
   summaryGrid: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
     gap: spacing[3],
   },
+  summaryDivider: {
+    width: borders.width.default,
+    alignSelf: 'stretch',
+    backgroundColor: colors.border.default,
+  },
   summaryStat: {
+    flex: 1,
+    alignItems: 'center',
     gap: spacing[1],
-    padding: spacing[3],
-    borderRadius: radius.lg,
-    borderWidth: borders.width.default,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.default,
   },
   summaryValue: {
     ...typography.metric.compact,
     color: colors.text.primary,
+    textAlign: 'center',
   },
   summaryLabel: {
     ...typography.caption,
     color: colors.text.secondary,
+    textAlign: 'center',
   },
   section: {
     gap: spacing[3],
@@ -251,20 +376,65 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   timeline: {
-    gap: spacing[4],
+    gap: 0,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: spacing[3],
+  },
+  timelineRail: {
+    width: componentSizes.touchTarget.global,
+    alignItems: 'center',
+  },
+  timelineDotOuter: {
+    width: spacing[8],
+    height: spacing[8],
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.circular,
+    borderWidth: borders.width.default,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.default,
+  },
+  timelineDot: {
+    width: spacing[5],
+    height: spacing[5],
+    borderRadius: radius.circular,
+    backgroundColor: colors.brand.primary,
+  },
+  timelineLine: {
+    flex: 1,
+    width: borders.width.default,
+    backgroundColor: colors.border.default,
+  },
+  historyCardFrame: {
+    flex: 1,
+    marginBottom: spacing[4],
   },
   historyCard: {
     gap: spacing[4],
   },
   historyHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing[4],
+    gap: spacing[3],
+  },
+  workoutIcon: {
+    width: componentSizes.fab.size,
+    height: componentSizes.fab.size,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.circular,
+    borderWidth: borders.width.default,
+    borderColor: colors.brand.primary,
+    backgroundColor: colors.surface.default,
   },
   historyTitleGroup: {
     flex: 1,
-    gap: spacing[2],
+    minWidth: 0,
+    gap: spacing[1],
   },
   cardTitle: {
     ...typography.cardTitle,
@@ -274,32 +444,36 @@ const styles = StyleSheet.create({
     ...typography.body.secondary,
     color: colors.text.secondary,
   },
-  dateBadge: {
-    minHeight: componentSizes.badge.minHeight,
+  workoutMetaLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing[1],
+  },
+  detailsButton: {
+    width: componentSizes.touchTarget.global,
+    height: componentSizes.touchTarget.global,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing[3],
-    borderRadius: radius.circular,
-    borderWidth: borders.width.default,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.default,
-  },
-  dateBadgeText: {
-    ...typography.caption,
-    color: colors.text.secondary,
   },
   metaGrid: {
     flexDirection: 'row',
-    gap: spacing[3],
-  },
-  metaItem: {
-    flex: 1,
-    gap: spacing[1],
-    padding: spacing[3],
+    alignItems: 'stretch',
     borderRadius: radius.lg,
     borderWidth: borders.width.default,
     borderColor: colors.border.default,
     backgroundColor: colors.surface.default,
+  },
+  metaItem: {
+    flex: 1,
+    gap: spacing[1],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+  },
+  metaDivider: {
+    width: borders.width.default,
+    alignSelf: 'stretch',
+    backgroundColor: colors.border.default,
   },
   metaValue: {
     ...typography.metric.compact,
@@ -309,21 +483,18 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.text.secondary,
   },
-  exerciseList: {
-    gap: spacing[2],
-  },
-  exerciseItem: {
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
   },
-  exerciseDot: {
+  statusDot: {
     width: spacing[2],
     height: spacing[2],
     borderRadius: radius.circular,
-    backgroundColor: colors.brand.primary,
+    backgroundColor: colors.semantic.success,
   },
-  exerciseText: {
+  statusText: {
     ...typography.body.secondary,
     color: colors.text.secondary,
   },

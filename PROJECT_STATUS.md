@@ -1,6 +1,13 @@
 # Forge Mobile - Project Status
 
-Atualizado em: 20/07/2026
+Atualizado em: 21/07/2026
+
+## Ajustes Visuais Pontuais - 21/07/2026
+
+- Conquistas: os cards passam a exibir progresso no formato numerico direto, sem unidade textual apos a contagem, preservando os mesmos valores e a mesma regra visual de progresso.
+- Historico: removido o botao visual de calendario do canto superior direito, deixando titulo e descricao ocuparem toda a largura disponivel.
+- Navegacao inferior: itens padronizados com largura uniforme, icone centralizado e texto alinhado exatamente abaixo do icone, sem deslocamentos assimetricos.
+- Nenhuma rota, URL, endpoint, configuracao, contrato de API ou regra de negocio foi alterada.
 
 ## Ordenacao Manual por Setas em Treinos e Exercicios - 20/07/2026
 

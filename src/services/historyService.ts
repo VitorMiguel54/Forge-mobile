@@ -20,6 +20,7 @@ export type MobileHistoryWorkout = {
   readonly durationMinutes: number;
   readonly volume: number;
   readonly exerciseCount: number;
+  readonly muscleGroups: readonly string[];
 };
 
 export type MobileHistoryData = {
@@ -113,7 +114,18 @@ function mapWorkout(value: unknown): MobileHistoryWorkout | undefined {
     durationMinutes: getNumber(workout, ['durationMinutes', 'duration_minutes']) ?? 0,
     volume: getNumber(workout, ['volume']) ?? 0,
     exerciseCount: getNumber(workout, ['exerciseCount', 'exercise_count']) ?? 0,
+    muscleGroups: mapMuscleGroups(getField(workout, 'muscleGroups', 'muscle_groups')),
   };
+}
+
+function mapMuscleGroups(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(value.filter((item): item is string => typeof item === 'string' && item.length > 0)),
+  );
 }
 
 function getField(object: ApiRecord | undefined, ...keys: string[]): unknown {
