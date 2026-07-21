@@ -2,6 +2,32 @@
 
 Atualizado em: 21/07/2026
 
+## Landing Page e Login Demo - 21/07/2026
+
+- Landing Page criada em `/landing` para demonstrar o fluxo de acesso do Forge sem substituir a Home atual em `/`.
+- Modal de login de demonstração implementado localmente na Landing, pequeno, centralizado, responsivo, com overlay escuro, botão `X`, fechamento por `Cancelar` e por clique/toque fora.
+- Credenciais exibidas e validadas localmente: usuário `admin` e senha `admin`.
+- Os dois CTAs `Entrar` da Landing usam a mesma função `openLoginModal`, o mesmo estado `isLoginModalVisible` e o mesmo componente `DemoLoginModal`.
+- Credenciais incorretas mantêm o modal aberto e exibem a mensagem `Usuário ou senha inválidos.`.
+- Login válido com `admin/admin` fecha o modal e navega para a Home existente por `router.replace('/')`.
+- O botão `Começar agora` permanece visível e desabilitado, sem navegação, modal, API ou ação de clique.
+- O envio por Enter nos campos tenta login pelo mesmo fluxo de submit e bloqueia múltiplos envios simultâneos com `isSubmitting`.
+- Arquivos alterados nesta etapa:
+  - `src/app/landing.tsx`;
+  - `PROJECT_STATUS.md`.
+- Limitações atuais:
+  - login é apenas demonstração local de portfólio, sem autenticação real;
+  - sessão não é persistida;
+  - a Landing está disponível em `/landing`, enquanto `/` segue sendo a Home já existente.
+- Próximos passos:
+  - decidir se `/landing` deve virar a tela inicial pública antes da Home;
+  - criar fluxo real de cadastro/acesso quando houver decisão de autenticação;
+  - revisar visualmente a Landing em dispositivos físicos Android/iOS.
+- Nenhuma API, URL base, endpoint, `.env`, backend, banco, Home, XP, níveis, conquistas, perfil ou dado do usuário foi alterado.
+- Validação executada:
+  - `npx.cmd tsc --noEmit`: sucesso;
+  - `npm.cmd run lint`: sucesso.
+
 ## Ajustes Visuais Pontuais - 21/07/2026
 
 - Home: melhorias de navegacao e UX aplicadas no topo e nas secoes principais.
