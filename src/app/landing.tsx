@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
@@ -20,16 +21,51 @@ const demoCredentials = {
   password: 'admin',
 } as const;
 
+const narrowMobileBreakpoint = 360;
+
+const offerItems = [
+  {
+    icon: { ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' },
+    iconFallback: 'T',
+    title: 'Monte seus treinos',
+    description: 'Crie treinos personalizados com exercícios, séries, repetições e intensidade.',
+  },
+  {
+    icon: { ios: 'chart.bar', android: 'monitoring', web: 'monitoring' },
+    iconFallback: 'G',
+    title: 'Acompanhe sua evolução',
+    description: 'Monitore peso, volume, treinos, água, sono e veja gráficos detalhados do seu progresso.',
+  },
+  {
+    icon: { ios: 'trophy', android: 'emoji_events', web: 'emoji_events' },
+    iconFallback: 'C',
+    title: 'Sistema de conquistas',
+    description: 'Desbloqueie conquistas conforme você evolui e mantenha a motivação alta.',
+  },
+  {
+    icon: { ios: 'shield', android: 'shield', web: 'shield' },
+    iconFallback: 'XP',
+    title: 'Gamificação de verdade',
+    description: 'Ganhe XP, suba de nível e transforme disciplina em resultados reais.',
+  },
+] as const;
+
 export default function LandingScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const [isLoginModalVisible, setIsLoginModalVisible] = useState(false);
+  const isNarrowMobile = width < narrowMobileBreakpoint;
 
   const openLoginModal = () => setIsLoginModalVisible(true);
   const closeLoginModal = () => setIsLoginModalVisible(false);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.page}>
           <View style={styles.header}>
             <View style={styles.brand}>
@@ -48,34 +84,59 @@ export default function LandingScreen() {
           </View>
 
           <View style={styles.hero}>
-            <View style={styles.heroCopy}>
-              <Text style={styles.heroTitle}>
-                TRANSFORME{'\n'}DISCIPLINA EM{'\n'}
-                <Text style={styles.heroTitleAccent}>EVOLUÇÃO.</Text>
-              </Text>
-              <Text style={styles.heroText}>
-                O Forge é o seu companheiro de jornada. Monitore seus treinos, acompanhe sua evolução e supere seus
-                limites todos os dias.
-              </Text>
+            <Text style={[styles.heroTitle, isNarrowMobile && styles.heroTitleNarrow]}>FORGE</Text>
+            <Text style={[styles.heroSubtitle, isNarrowMobile && styles.heroSubtitleNarrow]}>
+              Sua evolução começa <Text style={styles.heroAccent}>aqui.</Text>
+            </Text>
+            <Text style={styles.heroText}>
+              O Forge é o seu companheiro de jornada.{'\n'}
+              Monitore seus treinos, acompanhe seu progresso{'\n'}e supere seus limites todos os dias.
+            </Text>
+          </View>
 
-              <View style={styles.ctaRow}>
-                <Button
-                  disabled
-                  icon={<ForgeSymbol color={colors.text.disabled} fallback="T" name="dumbbell" size={18} />}
-                  style={styles.startButton}
-                  title="Começar agora"
-                />
-                <View style={styles.accessPrompt}>
-                  <Text style={styles.accessPromptText}>Já possui acesso?</Text>
-                  <Pressable accessibilityRole="button" onPress={openLoginModal} style={styles.inlineLoginButton}>
-                    <Text style={styles.inlineLoginText}>Entrar</Text>
-                  </Pressable>
-                </View>
-              </View>
+          <View style={styles.accessBlock}>
+            <Button
+              disabled
+              icon={<ForgeSymbol color="#1A0D03" fallback="T" name="dumbbell" size={18} />}
+              style={styles.startButton}
+              textStyle={styles.startButtonText}
+              title="Começar agora"
+            />
+            <View style={styles.accessPrompt}>
+              <Text style={styles.accessPromptText}>Já possui acesso?</Text>
+              <Pressable accessibilityRole="button" onPress={openLoginModal} style={styles.inlineLoginButton}>
+                <Text style={styles.inlineLoginText}>Entrar</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.offerSection}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionRule} />
+              <Text style={styles.offerSectionTitle}>
+                O QUE O <Text style={styles.offerSectionAccent}>FORGE</Text> OFERECE
+              </Text>
+              <View style={styles.sectionRule} />
             </View>
 
-            <View style={styles.previewPanel}>
-              <View style={styles.previewGlow} />
+            <View style={styles.offerList}>
+              {offerItems.map((item, index) => (
+                <View key={item.title} style={[styles.offerItem, index === offerItems.length - 1 && styles.offerItemLast]}>
+                  <View style={styles.offerIconCircle}>
+                    <ForgeSymbol
+                      color={colors.forge.hotOrange}
+                      fallback={item.iconFallback}
+                      name={item.icon}
+                      size={34}
+                      weight="semibold"
+                    />
+                  </View>
+                  <View style={styles.offerCopy}>
+                    <Text style={styles.offerTitle}>{item.title}</Text>
+                    <Text style={styles.offerDescription}>{item.description}</Text>
+                  </View>
+                </View>
+              ))}
             </View>
           </View>
         </View>
@@ -86,7 +147,7 @@ export default function LandingScreen() {
         onClose={closeLoginModal}
         onSuccess={() => {
           closeLoginModal();
-          router.replace('/' as Href);
+          router.replace('/home' as Href);
         }}
       />
     </SafeAreaView>
@@ -126,8 +187,7 @@ function DemoLoginModal({
     setIsSubmitting(true);
     setError('');
 
-    const isValid =
-      username.trim() === demoCredentials.username && password === demoCredentials.password;
+    const isValid = username.trim() === demoCredentials.username && password === demoCredentials.password;
 
     if (!isValid) {
       setError('Usuário ou senha inválidos.');
@@ -147,7 +207,12 @@ function DemoLoginModal({
     <Modal animationType="fade" onRequestClose={closeModal} transparent visible={isVisible}>
       <Pressable accessibilityLabel="Fechar login" onPress={closeModal} style={styles.modalOverlay}>
         <Pressable onPress={(event) => event.stopPropagation()} style={styles.loginCard}>
-          <Pressable accessibilityLabel="Fechar modal" accessibilityRole="button" onPress={closeModal} style={styles.closeButton}>
+          <Pressable
+            accessibilityLabel="Fechar modal"
+            accessibilityRole="button"
+            onPress={closeModal}
+            style={styles.closeButton}
+          >
             <Text style={styles.closeButtonText}>X</Text>
           </Pressable>
 
@@ -215,109 +280,119 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: 'center',
-    paddingHorizontal: Platform.select({
-      web: spacing[8],
-      default: spacing[4],
-    }),
-    paddingVertical: spacing[8],
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[5],
+    paddingBottom: spacing[12],
   },
   page: {
     width: '100%',
-    maxWidth: 1180,
-    gap: spacing[10],
+    maxWidth: 760,
+    gap: spacing[8],
   },
   header: {
+    width: '100%',
+    minWidth: 0,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: spacing[4],
+    gap: spacing[3],
   },
   brand: {
+    minWidth: 0,
+    flexShrink: 1,
     alignItems: 'center',
     flexDirection: 'row',
-    gap: spacing[3],
+    gap: spacing[2],
   },
   brandMark: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 56,
-    height: 56,
+    width: 44,
+    height: 44,
     borderRadius: radius.sm,
-    borderWidth: borders.width.strong,
+    borderWidth: borders.width.active,
     borderColor: colors.forge.hotOrange,
   },
   brandMarkText: {
     ...typography.identity.logo,
     color: colors.forge.hotOrange,
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 20,
+    lineHeight: 24,
   },
   brandName: {
     ...typography.identity.logo,
+    flexShrink: 1,
     color: colors.text.primary,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 22,
+    lineHeight: 28,
   },
   headerLoginButton: {
+    flexShrink: 0,
+    minHeight: componentSizes.touchTarget.global,
+    paddingHorizontal: spacing[3],
     borderColor: colors.forge.hotOrange,
+    backgroundColor: colors.forge.hotOrange,
   },
   hero: {
-    flexDirection: Platform.select({
-      web: 'row',
-      default: 'column',
-    }),
-    alignItems: 'center',
-    gap: spacing[12],
-  },
-  heroCopy: {
-    flex: 1,
     width: '100%',
-    gap: spacing[5],
+    minWidth: 0,
+    gap: spacing[4],
+    paddingTop: spacing[6],
   },
   heroTitle: {
     ...typography.display,
+    width: '100%',
+    flexShrink: 1,
     color: colors.text.primary,
-    fontSize: Platform.select({
-      web: 54,
-      default: 34,
-    }),
-    lineHeight: Platform.select({
-      web: 62,
-      default: 42,
-    }),
+    fontSize: 64,
+    lineHeight: 72,
   },
-  heroTitleAccent: {
+  heroTitleNarrow: {
+    fontSize: 52,
+    lineHeight: 60,
+  },
+  heroSubtitle: {
+    ...typography.display,
+    width: '100%',
+    flexShrink: 1,
+    color: colors.text.primary,
+    fontSize: 40,
+    lineHeight: 48,
+  },
+  heroSubtitleNarrow: {
+    fontSize: 34,
+    lineHeight: 42,
+  },
+  heroAccent: {
     color: colors.forge.hotOrange,
   },
   heroText: {
     ...typography.body.default,
-    maxWidth: 430,
+    width: '100%',
     color: colors.text.secondary,
     fontSize: 18,
-    lineHeight: 30,
+    lineHeight: 31,
   },
-  ctaRow: {
-    alignItems: Platform.select({
-      web: 'center',
-      default: 'stretch',
-    }),
-    flexDirection: Platform.select({
-      web: 'row',
-      default: 'column',
-    }),
-    gap: spacing[5],
+  accessBlock: {
+    width: '100%',
+    gap: spacing[4],
   },
   startButton: {
-    opacity: 0.58,
+    width: '100%',
+    minHeight: 64,
+    borderColor: colors.forge.hotOrange,
+    backgroundColor: 'rgba(242, 122, 26, 0.74)',
+    opacity: 0.78,
+  },
+  startButtonText: {
+    color: '#1A0D03',
   },
   accessPrompt: {
+    minWidth: 0,
     alignItems: 'center',
     flexDirection: 'row',
+    justifyContent: 'center',
     gap: spacing[2],
-    justifyContent: Platform.select({
-      web: 'flex-start',
-      default: 'center',
-    }),
   },
   accessPromptText: {
     ...typography.body.default,
@@ -332,24 +407,76 @@ const styles = StyleSheet.create({
     color: colors.forge.hotOrange,
     textDecorationLine: 'underline',
   },
-  previewPanel: {
-    flex: 1,
+  offerSection: {
     width: '100%',
-    minHeight: Platform.select({
-      web: 420,
-      default: 240,
-    }),
-    borderRadius: radius.xl,
-    borderWidth: borders.width.default,
-    borderColor: colors.forge.hotOrange,
-    borderStyle: 'dashed',
-    backgroundColor: '#090706',
-    overflow: 'hidden',
+    gap: spacing[5],
+    paddingTop: spacing[4],
   },
-  previewGlow: {
+  sectionHeader: {
     width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(242, 122, 26, 0.16)',
+    minWidth: 0,
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  sectionRule: {
+    flex: 1,
+    height: borders.width.default,
+    backgroundColor: colors.border.default,
+  },
+  offerSectionTitle: {
+    ...typography.sectionTitle,
+    flexShrink: 0,
+    color: colors.text.primary,
+    textAlign: 'center',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  offerSectionAccent: {
+    color: colors.forge.hotOrange,
+  },
+  offerList: {
+    width: '100%',
+  },
+  offerItem: {
+    width: '100%',
+    minWidth: 0,
+    flexDirection: 'row',
+    gap: spacing[4],
+    paddingVertical: spacing[4],
+    borderBottomWidth: borders.width.default,
+    borderBottomColor: colors.border.default,
+  },
+  offerItemLast: {
+    borderBottomWidth: 0,
+  },
+  offerIconCircle: {
+    flexShrink: 0,
+    width: 64,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.circular,
+    borderWidth: borders.width.default,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.default,
+  },
+  offerCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing[1],
+  },
+  offerTitle: {
+    ...typography.cardTitle,
+    color: colors.text.primary,
+    fontSize: 20,
+    lineHeight: 26,
+  },
+  offerDescription: {
+    ...typography.body.default,
+    color: colors.text.secondary,
+    fontSize: 16,
+    lineHeight: 24,
   },
   modalOverlay: {
     flex: 1,

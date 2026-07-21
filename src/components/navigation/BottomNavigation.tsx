@@ -17,7 +17,7 @@ export type BottomNavigationProps = {
 };
 
 const defaultItems: readonly BottomNavigationItem[] = [
-  { label: 'Home', href: '/', icon: { ios: 'house', android: 'home', web: 'home' }, iconFallback: 'H' },
+  { label: 'Home', href: '/home' as Href, icon: { ios: 'house', android: 'home', web: 'home' }, iconFallback: 'H' },
   { label: 'Treinos', href: '/workouts', icon: { ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' }, iconFallback: 'T' },
   { label: 'Histórico', href: '/history', icon: { ios: 'chart.bar', android: 'monitoring', web: 'monitoring' }, iconFallback: 'G' },
   { label: 'Conquistas', href: '/achievements', icon: { ios: 'trophy', android: 'emoji_events', web: 'emoji_events' }, iconFallback: 'C' },

@@ -2,9 +2,79 @@
 
 Atualizado em: 21/07/2026
 
+## Redesign Simplificado da Landing - 21/07/2026
+
+- Landing Page redesenhada com estrutura mobile first inspirada na referencia aprovada.
+- Estrutura atual da tela: header, hero principal, botao `Comecar agora`, link `Entrar` e secao `O que o Forge oferece`.
+- Removidos do visual antigo:
+  - hero em duas colunas;
+  - retangulo/placeholder reservado para imagem futura;
+  - bloco de preview vazio;
+  - estilos desktop comprimidos no mobile;
+  - regras responsivas antigas baseadas em alternancia de hero/placeholder.
+- Header mantem simbolo `F`, texto `FORGE` e botao `Entrar` com icone de usuario, fundo laranja e area de toque confortavel.
+- Hero simplificado com titulo `FORGE`, subtitulo `Sua evolucao comeca aqui.` e destaque laranja em `aqui.`.
+- CTA `Comecar agora` permanece visivel, ocupa a largura disponivel, tem icone de halter e continua desabilitado, sem `onPress`, modal ou navegacao.
+- Link `Ja possui acesso? Entrar` reutiliza a mesma acao `openLoginModal` do botao do header.
+- Secao `O que o Forge oferece` passou a usar lista vertical com quatro itens, icones em circulos escuros, divisores discretos e textos alinhados para leitura mobile.
+- Fluxo demo preservado: modal existente, credenciais `admin/admin`, erro de credenciais invalidas e navegacao para `/home` apos sucesso foram mantidos.
+- Arquivos alterados nesta etapa:
+  - `src/app/landing.tsx`;
+  - `PROJECT_STATUS.md`.
+- Limitacoes atuais:
+  - a Landing ainda nao possui imagens reais ou animacoes, por decisao desta etapa;
+  - a validacao visual automatizada por screenshot segue indisponivel no ambiente local sem Playwright/navegador headless.
+- Proximos passos:
+  - validar visualmente em dispositivos fisicos Android/iOS;
+  - definir se a secao de oferta tera novas provas visuais quando houver assets oficiais;
+  - substituir o login demo por autenticacao real somente quando isso for planejado.
+- Nenhuma URL, rota, navegacao pos-login, API, backend, endpoint, HTTP/HTTPS, `.env`, Home, dado de usuario, XP, nivel ou conquista foi alterado.
+- Validacao executada:
+  - `npx.cmd tsc --noEmit`: sucesso;
+  - `npm.cmd run lint`: sucesso;
+  - Expo Web respondeu `200 OK` em `/`, `/landing` e `/home`.
+
+## Responsividade Mobile da Landing - 21/07/2026
+
+- Landing Page ajustada para usar breakpoint real por largura da janela via `useWindowDimensions`.
+- Em mobile, o hero deixa de usar duas colunas e passa obrigatoriamente para `flexDirection: 'column'`.
+- O bloco textual ocupa `width: '100%'`, com titulo reduzido em telas estreitas e sem estilos de quebra por caractere.
+- O placeholder da futura imagem fica abaixo do texto no mobile, com area retangular preservada e sem comprimir o conteudo textual.
+- Header mobile mantem logo e botao `Entrar` nas extremidades, com tamanhos menores e legiveis.
+- CTAs no mobile ficam em fluxo vertical: `Comecar agora` desabilitado e link `Entrar` abaixo.
+- Nenhum comportamento de login, modal, credenciais `admin/admin`, rotas, navegacao, API, endpoint, URL base, `.env` ou dados foi alterado.
+- Arquivo alterado nesta etapa:
+  - `src/app/landing.tsx`;
+  - `PROJECT_STATUS.md`.
+- Validacao executada:
+  - `npx.cmd tsc --noEmit`: sucesso;
+  - `npm.cmd run lint`: sucesso;
+  - Expo Web respondeu `200 OK` em `/`, `/landing` e `/home`.
+- Limitacao da validacao: nao havia Playwright nem navegador headless disponivel no ambiente para captura automatica em 320-390 px; a responsividade foi validada por estrutura de estilos e carregamento das rotas.
+
+## Rota Inicial da Landing - 21/07/2026
+
+- Causa corrigida: no Expo Router, `src/app/index.tsx` define a rota inicial `/`, e esse arquivo ainda continha a Home.
+- `/` agora renderiza a Landing Page, reutilizando `LandingScreen` de `src/app/landing.tsx`, sem redirecionamento automatico.
+- A Home real foi movida para a rota explicita `/home`, preservando sua logica interna, hooks, dados e componentes.
+- O login demo `admin/admin` passou a navegar com `router.replace('/home')` apos sucesso.
+- A bottom navigation passou a apontar o item Home para `/home`, evitando retorno acidental para a Landing depois do login.
+- `/landing` continua disponivel como rota direta da Landing.
+- Arquivos alterados nesta etapa:
+  - `src/app/index.tsx`;
+  - `src/app/home.tsx`;
+  - `src/app/landing.tsx`;
+  - `src/components/navigation/BottomNavigation.tsx`;
+  - `PROJECT_STATUS.md`.
+- Nenhuma API, URL base, endpoint, `.env`, backend, banco, dados do usuario, XP, niveis, conquistas ou regra interna da Home foi alterada.
+- Validacao executada:
+  - `npx.cmd tsc --noEmit`: sucesso;
+  - `npm.cmd run lint`: sucesso;
+  - Expo Web respondeu `200 OK` em `/`, `/home`, `/workouts`, `/history`, `/achievements` e `/profile`.
+
 ## Landing Page e Login Demo - 21/07/2026
 
-- Landing Page criada em `/landing` para demonstrar o fluxo de acesso do Forge sem substituir a Home atual em `/`.
+- Landing Page criada em `/landing` para demonstrar o fluxo de acesso do Forge.
 - Modal de login de demonstração implementado localmente na Landing, pequeno, centralizado, responsivo, com overlay escuro, botão `X`, fechamento por `Cancelar` e por clique/toque fora.
 - Credenciais exibidas e validadas localmente: usuário `admin` e senha `admin`.
 - Os dois CTAs `Entrar` da Landing usam a mesma função `openLoginModal`, o mesmo estado `isLoginModalVisible` e o mesmo componente `DemoLoginModal`.
@@ -18,7 +88,7 @@ Atualizado em: 21/07/2026
 - Limitações atuais:
   - login é apenas demonstração local de portfólio, sem autenticação real;
   - sessão não é persistida;
-  - a Landing está disponível em `/landing`, enquanto `/` segue sendo a Home já existente.
+  - a Landing está disponível em `/` e `/landing`, enquanto a Home real está em `/home`.
 - Próximos passos:
   - decidir se `/landing` deve virar a tela inicial pública antes da Home;
   - criar fluxo real de cadastro/acesso quando houver decisão de autenticação;
