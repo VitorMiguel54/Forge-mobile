@@ -6,26 +6,21 @@ import { borders, colors, componentSizes, radius, shadows, spacing, typography }
 
 export type WeeklyProgressDay = {
   readonly completed: boolean;
-  readonly current: boolean;
+  readonly isToday?: boolean;
   readonly label: string;
 };
 
 export type WeeklyProgressProps = {
-  readonly current: number;
   readonly days: readonly WeeklyProgressDay[];
   readonly motivation: string;
-  readonly target: number;
 };
 
-export function WeeklyProgress({ current, days, motivation, target }: WeeklyProgressProps) {
+export function WeeklyProgress({ days, motivation }: WeeklyProgressProps) {
   return (
     <View style={styles.section}>
       <View style={styles.header}>
         <Text numberOfLines={1} style={styles.sectionLabel}>
           Progresso da semana
-        </Text>
-        <Text numberOfLines={1} style={styles.goalText}>
-          {current}/{target} treinos
         </Text>
       </View>
 
@@ -40,7 +35,8 @@ export function WeeklyProgress({ current, days, motivation, target }: WeeklyProg
                 style={[
                   styles.dayDot,
                   day.completed && styles.dayDotCompleted,
-                  day.current && styles.dayDotCurrent,
+                  day.isToday && styles.dayDotToday,
+                  day.completed && day.isToday && styles.dayDotCompletedToday,
                 ]}
               >
                 {day.completed ? (
@@ -105,10 +101,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     letterSpacing: 1.2,
   },
-  goalText: {
-    ...typography.body.default,
-    color: colors.semantic.success,
-  },
   daysRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -139,9 +131,13 @@ const styles = StyleSheet.create({
     borderColor: colors.material.bronze,
     backgroundColor: colors.material.bronze,
   },
-  dayDotCurrent: {
-    borderColor: colors.semantic.success,
+  dayDotToday: {
+    borderColor: colors.forge.hotOrange,
     borderWidth: borders.width.strong,
+    boxShadow: `0 0 12px ${colors.forge.hotOrange}55`,
+  },
+  dayDotCompletedToday: {
+    borderColor: colors.forge.hotOrange,
   },
   motivationCard: {
     minWidth: 0,

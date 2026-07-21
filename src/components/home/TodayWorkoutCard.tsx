@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card } from '@/components/cards/Card';
 import { ForgeSymbol } from '@/components/icons/ForgeSymbol';
@@ -7,11 +7,12 @@ import { borders, colors, componentSizes, radius, shadows, spacing, typography }
 export type TodayWorkoutCardProps = {
   readonly detail: string;
   readonly estimate: string;
+  readonly onViewAllPress?: () => void;
   readonly title: string;
   readonly volumeText: string;
 };
 
-export function TodayWorkoutCard({ detail, estimate, title, volumeText }: TodayWorkoutCardProps) {
+export function TodayWorkoutCard({ detail, estimate, onViewAllPress, title, volumeText }: TodayWorkoutCardProps) {
   const isEmptyWorkout = title.toLowerCase().includes('nenhum treino');
   const displayTitle = isEmptyWorkout ? 'Nenhum treino em andamento' : title;
   const displayDetail = isEmptyWorkout ? 'Crie ou inicie um treino para continuar.' : detail;
@@ -22,7 +23,7 @@ export function TodayWorkoutCard({ detail, estimate, title, volumeText }: TodayW
         <Text numberOfLines={1} style={styles.sectionLabel}>
           Treino de hoje
         </Text>
-        <View style={styles.headerAction}>
+        <Pressable accessibilityRole="button" onPress={onViewAllPress} style={styles.headerAction}>
           <Text numberOfLines={1} style={styles.headerActionText}>
             Ver todos
           </Text>
@@ -32,7 +33,7 @@ export function TodayWorkoutCard({ detail, estimate, title, volumeText }: TodayW
             name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
             size={18}
           />
-        </View>
+        </Pressable>
       </View>
 
       <Card padding={4} style={styles.card}>

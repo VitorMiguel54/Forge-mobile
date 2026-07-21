@@ -4,6 +4,15 @@ Atualizado em: 21/07/2026
 
 ## Ajustes Visuais Pontuais - 21/07/2026
 
+- Home: melhorias de navegacao e UX aplicadas no topo e nas secoes principais.
+- Popover beta: o sino da Home abre um popover compacto sem escurecer a tela, com seta visual, fechamento pelo `X` e por toque fora.
+- Navegacao da Home: icone de Perfil navega para `/profile`, "Ver todos" em Treino de hoje navega para `/workouts` e "Novo treino" navega para `/workouts/new`.
+- Acoes rapidas: placeholders dos modais de Peso, Agua e Sono foram ajustados visualmente sem alterar validacoes.
+- Progresso da semana: dia atual passa a ser destacado automaticamente pela data do dispositivo, preservando a marcacao de treinos concluidos.
+- Progresso da semana simplificado: removido o destaque de meta/exemplo fixo e removido o contador lateral `concluidos/meta`; somente o dia atual recebe destaque especial calculado pelo dispositivo.
+- Arquivos impactados na Home: `src/app/index.tsx`, `src/components/home/HomeHeader.tsx`, `src/components/home/TodayWorkoutCard.tsx` e `src/components/home/WeeklyProgress.tsx`.
+- Pendencias: validar manualmente o fechamento por toque fora em Android/iOS fisicos, pois o comportamento visual foi conferido no Web.
+- Proximos passos: revisar acessibilidade dos popovers e criar tela real de notificacoes quando a plataforma sair do estado beta.
 - Perfil: tela refatorada para a composicao "Sua forja", com card principal de usuario, XP/nivel, card de evolucao, metas, estatisticas gerais e acoes preservadas.
 - Graficos: criada a rota `/profile/charts`, acessada por "Ver graficos" no Perfil, com filtros locais de periodo e metrica.
 - Arquivos impactados nesta etapa: `src/app/profile.tsx`, `src/app/profile/charts.tsx`, `src/services/profileService.ts`, `src/components/charts/SimpleLineChart.tsx` e `src/components/index.ts`.

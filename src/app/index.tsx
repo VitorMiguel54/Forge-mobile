@@ -2,6 +2,7 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, type Href } from 'expo-router';
+import { useState } from 'react';
 
 import {
   BottomNavigation,
@@ -30,6 +33,8 @@ import { borders, colors, componentSizes, radius, spacing, typography } from '@/
 const webContentMaxWidth = spacing[10] * spacing[10] + spacing[8];
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const [isBetaPopoverVisible, setIsBetaPopoverVisible] = useState(false);
   const { dashboard, error, isLoading, refetch } = useDashboard();
   const quickActions = useQuickActions(refetch);
   const weeklyWorkoutProgress = dashboard ? getWeeklyWorkoutProgress(dashboard.weeklyProgress) : undefined;
@@ -67,7 +72,10 @@ export default function HomeScreen() {
               ) : null}
 
               <View style={styles.heroStack}>
-                <HomeHeader />
+                <HomeHeader
+                  onBellPress={() => setIsBetaPopoverVisible((isVisible) => !isVisible)}
+                  onProfilePress={() => router.push('/profile' as Href)}
+                />
 
                 <HomeHero
                   dayLabel={dashboard.dayLabel}
@@ -80,6 +88,7 @@ export default function HomeScreen() {
               <TodayWorkoutCard
                 detail={dashboard.nextWorkout.detail}
                 estimate={dashboard.nextWorkout.estimate}
+                onViewAllPress={() => router.push('/workouts' as Href)}
                 title={dashboard.nextWorkout.title}
                 volumeText={`${dashboard.metrics.volume.value} ${dashboard.metrics.volume.unit ?? ''}`.trim()}
               />
@@ -87,6 +96,11 @@ export default function HomeScreen() {
               <QuickActions
                 actions={getHomeQuickActions(dashboard.quickActions)}
                 onActionPress={(action) => {
+                  if (action.id === 'new-workout') {
+                    router.push('/workouts/new' as Href);
+                    return;
+                  }
+
                   if (isQuickActionKind(action.id)) {
                     quickActions.openAction(action.id);
                   }
@@ -94,15 +108,25 @@ export default function HomeScreen() {
               />
 
               <WeeklyProgress
-                current={weeklyWorkoutProgress.current}
                 days={getWeekDayProgress(weeklyWorkoutProgress)}
                 motivation={dashboard.achievement.detail}
-                target={weeklyWorkoutProgress.target}
               />
             </>
           ) : null}
         </View>
       </ScrollView>
+
+      {isBetaPopoverVisible ? (
+        <>
+          <Pressable
+            accessibilityLabel="Fechar aviso beta"
+            accessibilityRole="button"
+            onPress={() => setIsBetaPopoverVisible(false)}
+            style={styles.popoverDismissLayer}
+          />
+          <BetaPopover onClose={() => setIsBetaPopoverVisible(false)} />
+        </>
+      ) : null}
 
       <QuickActionModal
         action={quickActions.activeAction}
@@ -115,6 +139,23 @@ export default function HomeScreen() {
       />
       <BottomNavigation activeHref="/" />
     </SafeAreaView>
+  );
+}
+
+function BetaPopover({ onClose }: { readonly onClose: () => void }) {
+  return (
+    <View style={styles.betaPopover}>
+      <View style={styles.betaArrow} />
+      <View style={styles.betaHeader}>
+        <Text style={styles.betaTitle}>🚧 Plataforma em Beta</Text>
+        <Pressable accessibilityRole="button" onPress={onClose} style={styles.betaCloseButton}>
+          <Text style={styles.betaCloseText}>X</Text>
+        </Pressable>
+      </View>
+      <Text style={styles.betaText}>
+        O Forge ainda está em desenvolvimento. Algumas funcionalidades podem sofrer alterações durante os testes.
+      </Text>
+    </View>
   );
 }
 
@@ -152,7 +193,7 @@ function QuickActionModal({
                 <TextInput
                   keyboardType="decimal-pad"
                   onChangeText={onChangeValue}
-                  placeholder={action.placeholder}
+                  placeholder={getQuickActionPlaceholder(action)}
                   placeholderTextColor={colors.text.disabled}
                   style={styles.input}
                   value={value}
@@ -171,6 +212,22 @@ function QuickActionModal({
       </View>
     </Modal>
   );
+}
+
+function getQuickActionPlaceholder(action: QuickActionConfig): string {
+  if (action.kind === 'weight') {
+    return 'Digite seu peso em kg';
+  }
+
+  if (action.kind === 'water') {
+    return 'Quantidade em litros';
+  }
+
+  if (action.kind === 'sleep') {
+    return 'Horas dormidas';
+  }
+
+  return action.placeholder;
 }
 
 function getQuickActionKind(title: string): QuickActionKind | undefined {
@@ -213,7 +270,6 @@ function getHomeQuickActions(actions: readonly { readonly title: string; readonl
       id: 'new-workout',
       icon: { ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' },
       iconFallback: 'T',
-      isDisabled: true,
       title: 'Novo treino',
     },
     {
@@ -249,13 +305,18 @@ function getWeeklyWorkoutProgress(
 function getWeekDayProgress(progress: { readonly current: number; readonly target: number }): readonly WeeklyProgressDay[] {
   const days = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
   const completedCount = Math.min(Math.max(Math.floor(progress.current), 0), days.length);
-  const targetIndex = Math.min(Math.max(progress.target - 1, completedCount), days.length - 1);
+  const todayIndex = getTodayWeekIndex();
 
   return days.map((label, index) => ({
     label,
     completed: index < completedCount,
-    current: index === targetIndex && index >= completedCount,
+    isToday: index === todayIndex,
   }));
+}
+
+function getTodayWeekIndex(): number {
+  const day = new Date().getDay();
+  return day === 0 ? 6 : day - 1;
 }
 
 function getLevelXpSummary(xp: { readonly level: number; readonly current: number; readonly next: number }) {
@@ -331,6 +392,72 @@ const styles = StyleSheet.create({
   },
   successCard: {
     borderColor: colors.semantic.success,
+  },
+  popoverDismissLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'transparent',
+    zIndex: 20,
+  },
+  betaPopover: {
+    position: 'absolute',
+    top: Platform.select({
+      web: spacing[8] + componentSizes.avatar.lg,
+      default: spacing[5] + componentSizes.avatar.lg,
+    }),
+    right: spacing[4],
+    width: 292,
+    maxWidth: '86%',
+    gap: spacing[3],
+    padding: spacing[4],
+    borderRadius: radius.lg,
+    borderWidth: borders.width.default,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.cardElevated,
+    boxShadow: '0 14px 28px rgba(0, 0, 0, 0.32)',
+    zIndex: 21,
+    elevation: 21,
+  },
+  betaArrow: {
+    position: 'absolute',
+    top: -7,
+    right: spacing[10],
+    width: spacing[4],
+    height: spacing[4],
+    transform: [{ rotate: '45deg' }],
+    borderLeftWidth: borders.width.default,
+    borderTopWidth: borders.width.default,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.cardElevated,
+  },
+  betaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[3],
+  },
+  betaTitle: {
+    ...typography.cardTitle,
+    flex: 1,
+    color: colors.text.primary,
+  },
+  betaCloseButton: {
+    width: componentSizes.touchTarget.ios,
+    height: componentSizes.touchTarget.ios,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.circular,
+  },
+  betaCloseText: {
+    ...typography.button,
+    color: colors.text.secondary,
+  },
+  betaText: {
+    ...typography.body.secondary,
+    color: colors.text.secondary,
   },
   modalOverlay: {
     flex: 1,

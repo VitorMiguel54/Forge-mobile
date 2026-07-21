@@ -1,9 +1,14 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ForgeSymbol } from '@/components/icons/ForgeSymbol';
 import { borders, colors, componentSizes, radius, spacing, typography } from '@/theme';
 
-export function HomeHeader() {
+export type HomeHeaderProps = {
+  readonly onBellPress?: () => void;
+  readonly onProfilePress?: () => void;
+};
+
+export function HomeHeader({ onBellPress, onProfilePress }: HomeHeaderProps) {
   return (
     <View style={styles.container}>
       <View style={styles.brandGroup}>
@@ -16,7 +21,7 @@ export function HomeHeader() {
       </View>
 
       <View style={styles.actions}>
-        <View style={styles.iconButton}>
+        <Pressable accessibilityRole="button" onPress={onBellPress} style={styles.iconButton}>
           <ForgeSymbol
             color={colors.text.primary}
             fallback="!"
@@ -24,15 +29,15 @@ export function HomeHeader() {
             size={22}
           />
           <View style={styles.notificationDot} />
-        </View>
-        <View style={styles.iconButton}>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onProfilePress} style={styles.iconButton}>
           <ForgeSymbol
             color={colors.text.primary}
             fallback="P"
             name={{ ios: 'person', android: 'person', web: 'person' }}
             size={23}
           />
-        </View>
+        </Pressable>
       </View>
     </View>
   );
