@@ -31,9 +31,9 @@ Aplicativo mobile-first do ecossistema **Forge**, desenvolvido em **React Native
 ### Treinos
 
 <p align="center">
-  <img src="assets/screenshots/training-page/training1.png" alt="Training" width="30%" />
-  <img src="assets/screenshots/training-page/training2.png" alt="Training" width="30%" />
-  <img src="assets/screenshots/training-page/training3.png" alt="Training" width="30%" />
+  <img src="assets/screenshots/training-page/training-list.png" alt="Training" width="30%" />
+  <img src="assets/screenshots/training-page/training-start1.png" alt="Training" width="30%" />
+  <img src="assets/screenshots/training-page/training-edit1.png" alt="Training" width="30%" />
 </p>
 
 ### Conquistas
@@ -45,8 +45,8 @@ Aplicativo mobile-first do ecossistema **Forge**, desenvolvido em **React Native
 ### Histórico
 
 <p align="center">
-  <img src="assets/screenshots/history-page/history1.png" alt="History" width="45%" />
-  <img src="assets/screenshots/history-page/history2.png" alt="History" width="45%" />
+  <img src="assets/screenshots/history-page/history-list.png" alt="History" width="45%" />
+  <img src="assets/screenshots/history-page/history-details.png" alt="History" width="45%" />
 </p>
 
 ### Perfil
