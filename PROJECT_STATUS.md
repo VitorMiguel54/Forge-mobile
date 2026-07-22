@@ -1,6 +1,39 @@
 # Forge Mobile - Project Status
 
-Atualizado em: 21/07/2026
+Atualizado em: 22/07/2026
+
+## Configuracao de API por Plataforma - 22/07/2026
+
+Corrigida a documentacao de acesso local a Forge.Api para Expo Web, Android Emulator e dispositivo fisico na mesma rede.
+
+Problema encontrado:
+
+- O `.env` local usava `EXPO_PUBLIC_API_BASE_URL=https://localhost:7170/api`.
+- Esse valor funciona no Expo Web no mesmo computador, mas em emulador/dispositivo `localhost` aponta para o proprio emulador/celular, nao para o computador onde a API roda.
+
+Solucao adotada:
+
+- O codigo continua lendo somente `EXPO_PUBLIC_API_BASE_URL` e `EXPO_PUBLIC_USER_PROFILE_ID`.
+- Nenhuma URL foi hardcoded no codigo-fonte.
+- Criado `.env.example` com exemplos por plataforma:
+  - Expo Web: `https://localhost:7170/api`;
+  - Android Emulator: `https://10.0.2.2:7170/api`;
+  - dispositivo fisico: IPv4 do computador na rede local;
+  - alternativas HTTP locais usando a porta `5113` da Forge.Api.
+- README atualizado com a secao `Executando em Web, Emulador e Dispositivo Fisico`.
+
+Limitacoes registradas:
+
+- Dispositivos fisicos normalmente nao confiam automaticamente no certificado HTTPS local do ASP.NET Core.
+- Para demonstracao em rede local, HTTP na porta `5113` e a alternativa mais simples quando HTTPS local falhar.
+- Celular e computador precisam estar na mesma rede, e o Firewall do Windows pode bloquear a porta.
+- Apos alterar `.env`, reiniciar o Expo com `npx expo start -c`.
+
+Arquivos alterados:
+
+- `.env.example`
+- `README.md`
+- `PROJECT_STATUS.md`
 
 ## Redesign Simplificado da Landing - 21/07/2026
 

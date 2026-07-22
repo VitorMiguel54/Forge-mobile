@@ -1,56 +1,123 @@
-# Welcome to your Expo app 👋
+# Forge Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo mobile-first do ecossistema Forge, construido com Expo Router,
+React Native e TypeScript.
 
-## Get started
+## Configuracao da API
 
-1. Install dependencies
+O app le apenas estas variaveis publicas do Expo:
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```env
+EXPO_PUBLIC_API_BASE_URL=
+EXPO_PUBLIC_USER_PROFILE_ID=
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Copie `.env.example` para `.env` e preencha o `EXPO_PUBLIC_USER_PROFILE_ID`
+com um perfil existente no banco de desenvolvimento da Forge.Api.
 
-### Other setup steps
+O codigo aceita a URL base com ou sem `/api`; o `apiClient` normaliza a base
+automaticamente.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Executando em Web, Emulador e Dispositivo Fisico
 
-## Learn more
+### Expo Web no mesmo computador
 
-To learn more about developing your project with Expo, look at the following resources:
+Use `localhost`, porque o navegador esta rodando no mesmo computador da API:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```env
+EXPO_PUBLIC_API_BASE_URL=https://localhost:7170/api
+EXPO_PUBLIC_USER_PROFILE_ID=seu-guid-de-perfil
+```
 
-## Join the community
+Esse e o caminho principal para demonstracao local em Web. A Forge.Api ja
+possui CORS de desenvolvimento para o Expo Web local.
 
-Join our community of developers creating universal apps.
+### Android Emulator
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+No Android Emulator padrao, `localhost` aponta para o proprio emulador. Use
+`10.0.2.2`, que redireciona para o computador host:
+
+```env
+EXPO_PUBLIC_API_BASE_URL=https://10.0.2.2:7170/api
+EXPO_PUBLIC_USER_PROFILE_ID=seu-guid-de-perfil
+```
+
+Se o certificado HTTPS local do ASP.NET Core nao for aceito no emulador, use a
+porta HTTP de desenvolvimento da API:
+
+```env
+EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:5113/api
+EXPO_PUBLIC_USER_PROFILE_ID=seu-guid-de-perfil
+```
+
+### Dispositivo fisico na mesma rede
+
+No celular, `localhost` aponta para o proprio aparelho, nao para o computador.
+Use o IPv4 do computador onde a Forge.Api esta rodando:
+
+```env
+EXPO_PUBLIC_API_BASE_URL=https://192.168.0.100:7170/api
+EXPO_PUBLIC_USER_PROFILE_ID=seu-guid-de-perfil
+```
+
+Substitua `192.168.0.100` pelo IPv4 real do computador. Para descobrir no
+Windows:
+
+```powershell
+ipconfig
+```
+
+Procure o `Endereco IPv4` da placa conectada na mesma rede Wi-Fi/cabeada do
+celular.
+
+Celular e computador precisam estar na mesma rede local. O Firewall do Windows
+pode bloquear a porta da API; nesse caso, libere a porta usada apenas para rede
+privada/de desenvolvimento.
+
+### HTTP e HTTPS local
+
+A Forge.Api possui, no `launchSettings.json`, uma URL HTTPS local e uma URL HTTP
+local de desenvolvimento:
+
+```txt
+https://localhost:7170
+http://localhost:5113
+```
+
+Mantenha HTTPS como configuracao principal para Expo Web no mesmo computador.
+Para dispositivo fisico, HTTPS local costuma falhar porque o celular nao confia
+automaticamente no certificado de desenvolvimento do ASP.NET Core. A opcao mais
+simples para demonstracao em rede local e usar HTTP na porta `5113`, sem trocar
+a configuracao principal de HTTPS:
+
+```env
+EXPO_PUBLIC_API_BASE_URL=http://192.168.0.100:5113/api
+```
+
+Para expor a API na rede local, rode a Forge.Api escutando no IP da maquina ou
+em todas as interfaces durante o desenvolvimento, por exemplo:
+
+```powershell
+dotnet run --project src\Forge.Api\Forge.Api.csproj --urls "http://0.0.0.0:5113"
+```
+
+Use tunel apenas quando precisar demonstrar fora da rede local ou evitar
+configuracao de firewall/certificado.
+
+### Reiniciar o Expo apos alterar `.env`
+
+Variaveis `EXPO_PUBLIC_*` sao lidas no start do Expo. Depois de alterar `.env`,
+reinicie limpando cache:
+
+```bash
+npx expo start -c
+```
+
+## Comandos uteis
+
+```bash
+npm install
+npx expo start
+npx tsc --noEmit
+npm run lint
+```
