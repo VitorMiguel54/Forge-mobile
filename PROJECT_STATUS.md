@@ -2,6 +2,13 @@
 
 Atualizado em: 22/07/2026
 
+## Higiene de Publicacao - 22/07/2026
+
+- `.env` deixou de ser versionado no Forge.Mobile e passa a ser ignorado pelo Git.
+- O arquivo local `.env` foi preservado no computador do desenvolvedor.
+- Somente `.env.example` permanece rastreado como referencia de configuracao.
+- `.env.example` contem apenas URLs de exemplo/placeholders para `EXPO_PUBLIC_API_BASE_URL` e `EXPO_PUBLIC_USER_PROFILE_ID`.
+
 ## Historico do Perfil e Graficos - 22/07/2026
 
 Corrigida a divergencia entre o Perfil/Graficos do Mobile e o limite real da Forge.Api para historico mobile.
