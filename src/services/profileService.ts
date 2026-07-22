@@ -37,6 +37,15 @@ export type ProfileWorkoutData = {
   readonly exerciseCount: number;
 };
 
+export type ProfileDataQuality = {
+  readonly status: 'complete' | 'partial';
+  readonly failedSources: readonly string[];
+  readonly historyLoadedItems: number;
+  readonly historyTotalItems?: number;
+  readonly historyPageSize?: number;
+  readonly isHistoryTruncated: boolean;
+};
+
 export type ProfileData = {
   readonly id: string;
   readonly name: string;
@@ -67,9 +76,18 @@ export type ProfileData = {
     readonly sleepRecords: readonly SleepRecordData[];
     readonly workouts: readonly ProfileWorkoutData[];
   };
+  readonly dataQuality: ProfileDataQuality;
 };
 
 type ApiRecord = Record<string, unknown>;
+type OptionalSourceLabel = 'home' | 'history' | 'weight' | 'water' | 'sleep' | 'xp';
+type OptionalSourceResult<T> = {
+  readonly label: OptionalSourceLabel;
+  readonly value?: T;
+  readonly failed: boolean;
+};
+
+const PROFILE_HISTORY_PAGE_SIZE = 50;
 
 export async function getProfile(): Promise<ProfileData> {
   const userProfileId = getUserProfileId();
@@ -83,22 +101,26 @@ export async function getProfile(): Promise<ProfileData> {
     xpSummary,
   ] = await Promise.all([
     apiClient.get<unknown>(`/user-profiles/${userProfileId}`),
-    apiClient.get<unknown>(`/mobile/users/${userProfileId}/home`).catch(() => undefined),
-    apiClient.get<unknown>(`/mobile/users/${userProfileId}/history?page=1&pageSize=100`).catch(() => undefined),
-    apiClient.get<unknown>(`/user-profiles/${userProfileId}/weight-records`).catch(() => undefined),
-    apiClient.get<unknown>(`/user-profiles/${userProfileId}/water-intakes`).catch(() => undefined),
-    apiClient.get<unknown>(`/user-profiles/${userProfileId}/sleep-records`).catch(() => undefined),
-    getXpSummary().catch(() => undefined),
+    loadOptional('home', apiClient.get<unknown>(`/mobile/users/${userProfileId}/home`)),
+    loadOptional(
+      'history',
+      apiClient.get<unknown>(`/mobile/users/${userProfileId}/history?page=1&pageSize=${PROFILE_HISTORY_PAGE_SIZE}`),
+    ),
+    loadOptional('weight', apiClient.get<unknown>(`/user-profiles/${userProfileId}/weight-records`)),
+    loadOptional('water', apiClient.get<unknown>(`/user-profiles/${userProfileId}/water-intakes`)),
+    loadOptional('sleep', apiClient.get<unknown>(`/user-profiles/${userProfileId}/sleep-records`)),
+    loadOptional('xp', getXpSummary()),
   ]);
 
   return mapProfileResponse(
     profileResponse,
-    homeResponse,
-    historyResponse,
-    weightRecordsResponse,
-    waterIntakesResponse,
-    sleepRecordsResponse,
-    xpSummary,
+    homeResponse.value,
+    historyResponse.value,
+    weightRecordsResponse.value,
+    waterIntakesResponse.value,
+    sleepRecordsResponse.value,
+    xpSummary.value,
+    [homeResponse, historyResponse, weightRecordsResponse, waterIntakesResponse, sleepRecordsResponse, xpSummary],
   );
 }
 
@@ -120,6 +142,7 @@ function mapProfileResponse(
   waterIntakesResponse: unknown,
   sleepRecordsResponse: unknown,
   xpSummary: Awaited<ReturnType<typeof getXpSummary>> | undefined,
+  optionalSources: readonly OptionalSourceResult<unknown>[],
 ): ProfileData {
   const profile = getObject(getField(asObject(profileResponse), 'data')) ?? asObject(profileResponse);
 
@@ -133,6 +156,11 @@ function mapProfileResponse(
   const waterIntakes = mapWaterIntakes(waterIntakesResponse);
   const sleepRecords = mapSleepRecords(sleepRecordsResponse);
   const workouts = mapWorkouts(getField(history, 'workouts'));
+  const historyPage = getObject(getField(history, 'page'));
+  const historyTotalItems = getNumber(historyPage, ['totalItems', 'total_items']);
+  const historyPageSize = getNumber(historyPage, ['pageSize', 'page_size']);
+  const isHistoryTruncated = historyTotalItems !== undefined && historyTotalItems > workouts.length;
+  const failedSources = optionalSources.filter((source) => source.failed).map((source) => source.label);
   const gamification = getObject(getField(home, 'gamification'));
   const metricsSummary = getObject(getField(home, 'metricsSummary', 'metrics_summary'));
   const historySummary = getObject(getField(history, 'summary'));
@@ -212,7 +240,33 @@ function mapProfileResponse(
       sleepRecords,
       workouts,
     },
+    dataQuality: {
+      status: failedSources.length > 0 || isHistoryTruncated ? 'partial' : 'complete',
+      failedSources,
+      historyLoadedItems: workouts.length,
+      historyTotalItems,
+      historyPageSize,
+      isHistoryTruncated,
+    },
   };
+}
+
+async function loadOptional<T>(
+  label: OptionalSourceLabel,
+  promise: Promise<T>,
+): Promise<OptionalSourceResult<T>> {
+  try {
+    return {
+      label,
+      value: await promise,
+      failed: false,
+    };
+  } catch {
+    return {
+      label,
+      failed: true,
+    };
+  }
 }
 
 function mapWeightRecords(response: unknown): readonly WeightRecordData[] {

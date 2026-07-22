@@ -2,6 +2,35 @@
 
 Atualizado em: 22/07/2026
 
+## Historico do Perfil e Graficos - 22/07/2026
+
+Corrigida a divergencia entre o Perfil/Graficos do Mobile e o limite real da Forge.Api para historico mobile.
+
+Problema encontrado:
+
+- `src/services/profileService.ts` solicitava `/mobile/users/{userProfileId}/history?page=1&pageSize=100`.
+- A Forge.Api limita esse endpoint a `pageSize=50`.
+- Fontes auxiliares do Perfil usavam `.catch(() => undefined)`, ocultando falhas parciais e podendo fazer os graficos parecerem completos.
+
+Solucao adotada:
+
+- O Mobile agora solicita `pageSize=50`, alinhado ao contrato da API.
+- O Perfil continua carregando os dados base do usuario como requisito obrigatorio.
+- Fontes auxiliares de home, historico, peso, agua, sono e XP agora sao tratadas como carregamento parcial rastreado.
+- `ProfileData` inclui `dataQuality`, com status `complete` ou `partial`, fontes auxiliares que falharam e informacao de historico truncado.
+- Perfil e Graficos exibem aviso discreto quando os dados sao parciais ou quando existem mais treinos concluidos do que a amostra recente carregada.
+
+Impacto nos graficos:
+
+- Peso, agua e sono continuam usando seus endpoints especificos.
+- Volume e frequencia de treinos usam os 50 treinos concluidos mais recentes.
+- Para periodos antigos ou bases com mais de 50 treinos concluidos, a tela informa que os valores podem estar incompletos.
+
+Validacao:
+
+- `npx.cmd tsc --noEmit`: passou.
+- `npm.cmd run lint`: primeira execucao falhou por falta de memoria do processo Node; repetido com `NODE_OPTIONS=--max-old-space-size=4096` e passou.
+
 ## Configuracao de API por Plataforma - 22/07/2026
 
 Corrigida a documentacao de acesso local a Forge.Api para Expo Web, Android Emulator e dispositivo fisico na mesma rede.

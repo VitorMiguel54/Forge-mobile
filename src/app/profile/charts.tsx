@@ -128,6 +128,8 @@ export default function ProfileChartsScreen() {
 
           {!isLoading && !error && profile && metricData ? (
             <>
+              <DataQualityNotice profile={profile} />
+
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.periodFilter}>
                   {periods.map((item) => {
@@ -254,6 +256,20 @@ export default function ProfileChartsScreen() {
   );
 }
 
+function DataQualityNotice({ profile }: { readonly profile: ProfileData }) {
+  const message = getDataQualityMessage(profile);
+
+  if (!message) {
+    return null;
+  }
+
+  return (
+    <Card padding={4} style={styles.warningCard}>
+      <Text style={styles.warningText}>{message}</Text>
+    </Card>
+  );
+}
+
 function SummaryItem({
   label,
   value,
@@ -269,6 +285,18 @@ function SummaryItem({
       <Text style={styles.summaryLabel}>{label}</Text>
     </View>
   );
+}
+
+function getDataQualityMessage(profile: ProfileData): string | undefined {
+  if (profile.dataQuality.status === 'complete') {
+    return undefined;
+  }
+
+  if (profile.dataQuality.isHistoryTruncated) {
+    return 'Volume e treinos usam os 50 registros concluídos mais recentes. Períodos antigos podem estar incompletos.';
+  }
+
+  return 'Algumas fontes auxiliares não foram carregadas. Os gráficos disponíveis continuam usando os dados recebidos.';
 }
 
 function buildMetricData(profile: ProfileData, metric: MetricFilter, period: PeriodFilter) {
@@ -630,5 +658,14 @@ const styles = StyleSheet.create({
   stateText: {
     ...typography.body.secondary,
     color: colors.text.secondary,
+  },
+  warningCard: {
+    borderColor: colors.semantic.warning,
+    backgroundColor: colors.background.secondary,
+  },
+  warningText: {
+    ...typography.body.secondary,
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
 });

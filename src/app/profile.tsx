@@ -59,6 +59,7 @@ export default function ProfileScreen() {
 
           {!isLoading && !error && profile ? (
             <>
+              <DataQualityNotice profile={profile} />
               <ProfileMainCard profile={profile} />
               <EvolutionCard profile={profile} onOpenCharts={() => router.push('/profile/charts' as Href)} />
               <GoalsCard profile={profile} />
@@ -97,6 +98,20 @@ export default function ProfileScreen() {
       </ScrollView>
       <BottomNavigation activeHref="/profile" />
     </SafeAreaView>
+  );
+}
+
+function DataQualityNotice({ profile }: { readonly profile: ProfileData }) {
+  const message = getDataQualityMessage(profile);
+
+  if (!message) {
+    return null;
+  }
+
+  return (
+    <Card padding={4} style={styles.warningCard}>
+      <Text style={styles.warningText}>{message}</Text>
+    </Card>
   );
 }
 
@@ -311,6 +326,18 @@ function IconCircle({
       <ForgeSymbol color={colors.text.primary} fallback={fallback} name={icon} size={24} />
     </View>
   );
+}
+
+function getDataQualityMessage(profile: ProfileData): string | undefined {
+  if (profile.dataQuality.status === 'complete') {
+    return undefined;
+  }
+
+  if (profile.dataQuality.isHistoryTruncated) {
+    return 'Os gráficos usam os 50 treinos concluídos mais recentes. Para períodos antigos, os valores podem estar incompletos.';
+  }
+
+  return 'Alguns dados auxiliares não foram carregados. Os blocos disponíveis continuam sendo exibidos.';
 }
 
 function getTodayWater(profile: ProfileData): number {
@@ -686,6 +713,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   stateText: {
+    ...typography.body.secondary,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
+  warningCard: {
+    borderColor: colors.semantic.warning,
+    backgroundColor: colors.background.secondary,
+  },
+  warningText: {
     ...typography.body.secondary,
     color: colors.text.secondary,
     textAlign: 'center',
